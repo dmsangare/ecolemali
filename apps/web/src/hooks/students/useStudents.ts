@@ -1,0 +1,72 @@
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { studentsApi } from "@/api/students";
+import { getErrorMessage } from "@/lib/axios";
+import type { StudentListFilters, CreateStudentInput } from "@/types/student";
+
+const KEY = "students";
+
+export function useStudents(filters: StudentListFilters = {}) {
+  return useQuery({
+    queryKey: [KEY, "list", filters],
+    queryFn: () => studentsApi.list(filters),
+  });
+}
+
+export function useStudent(id: string | undefined) {
+  return useQuery({
+    queryKey: [KEY, "detail", id],
+    queryFn: () => studentsApi.getById(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateStudentInput) => studentsApi.create(input),
+    onSuccess: () => {
+      toast.success("Eleve cree avec succes");
+      qc.invalidateQueries({ queryKey: [KEY] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useUpdateStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateStudentInput> }) =>
+      studentsApi.update(id, data),
+    onSuccess: () => {
+      toast.success("Eleve mis a jour");
+      qc.invalidateQueries({ queryKey: [KEY] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useDeleteStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => studentsApi.remove(id),
+    onSuccess: () => {
+      toast.success("Eleve supprime");
+      qc.invalidateQueries({ queryKey: [KEY] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useStudentStats() {
+  return useQuery({
+    queryKey: [KEY, "stats"],
+    queryFn: () => studentsApi.getStats(),
+  });
+}

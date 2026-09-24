@@ -1,140 +1,84 @@
-﻿# SIS-MALI — Systeme d Information Scolaire
+# SIS-MALI — Système d'Information Scolaire
 
-Application de gestion scolaire pour les ecoles fondamentales et lycees au Mali.
+Application de gestion scolaire pour les établissements du Mali.
 
-## Architecture
+## Stack
 
-- Backend : NestJS 10 + TypeScript + Prisma
-- Base de donnees : PostgreSQL 16
-- Frontend : React 18 + Vite + TailwindCSS
-- Conteneurisation : Docker + Docker Compose
-- Reverse proxy : Nginx
+- **Backend** : NestJS 10 + TypeScript + Prisma
+- **Base de données** : PostgreSQL 16
+- **Cache / Queue** : Redis 7
+- **Frontend** : React 18 + Vite + TailwindCSS
+- **PDF / Excel** : Puppeteer (Chromium Alpine) + xlsx
+- **Déploiement** : Docker + Docker Compose + Nginx
 
-## Prerequis
+## Installation rapide (Ubuntu LTS 22.04 / 24.04)
 
-- Docker Desktop 24+
-- Docker Compose 2.20+
+```bash
+git clone git@github.com:dmsangare/ecolemali.git
+cd ecolemali
+cp .env.example .env
+nano .env
+sudo ./install.sh
+```
 
-## Demarrage rapide
+Durée : 15-30 min selon débit réseau.
 
-Etape 1 : Cloner le projet
-    git clone <url> sis-mali
-    cd sis-mali
-
-Etape 2 : Copier les variables d environnement
-    cp .env.example .env
-
-Etape 3 : Demarrer les services
-    docker compose up -d
-
-Etape 4 : Attendre PostgreSQL (~10 secondes)
-
-Etape 5 : Appliquer les migrations Prisma
-    docker compose exec api npx prisma migrate deploy
-
-Etape 6 : Charger les donnees initiales
-    docker compose exec api npm run prisma:seed
-
-## Acces
+## Accès par défaut
 
 | Service | URL |
 |---|---|
-| Interface Web | http://localhost |
-| API REST | http://localhost/api/v1 |
-| Swagger | http://localhost/api/docs |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
+| Interface Web | http://IP-SERVEUR/ |
+| API REST | http://IP-SERVEUR/api/v1 |
+| Swagger | http://IP-SERVEUR/api/docs |
 
-## Comptes de demonstration
+## Comptes de démonstration
 
-Mot de passe pour tous : Admin@2026!
+Mot de passe : Admin@2026!
 
-| Email | Role |
+| Email | Rôle |
 |---|---|
-| admin@sis-mali.local | Super Administrateur |
+| admin@sis-mali.local | Super Admin |
 | director@sis-mali.local | Direction |
-| secretary@sis-mali.local | Secretariat |
+| accountant@sis-mali.local | Comptabilité |
 | teacher@sis-mali.local | Enseignant |
-| accountant@sis-mali.local | Comptable |
 | supervisor@sis-mali.local | Surveillant |
+| secretary@sis-mali.local | Secrétariat |
 
-## Structure du projet
+## Structure
 
-    sis-mali/
-    ├── apps/
-    │   ├── api/          # Backend NestJS
-    │   ├── web/          # Frontend React
-    │   └── worker/       # Jobs async
-    ├── packages/
-    │   └── shared/       # Types + Zod schemas
-    ├── prisma/           # Schema + seed
-    ├── infra/            # Nginx + PostgreSQL init
-    ├── docker/           # Configs Docker
-    └── storage/          # Documents, uploads, backups
+```
+apps/api        Backend NestJS
+apps/web        Frontend React
+apps/worker     Jobs async (PDF)
+packages/shared Types + Zod schemas
+prisma/         Schéma + migrations
+install.sh      Installation auto
+update.sh       Mise à jour
+backup.sh       Sauvegarde
+```
 
-## Commandes utiles
-
-Voir les logs
-    docker compose logs -f api
-    docker compose logs -f web
-
-Redemarrer un service
-    docker compose restart api
-
-Prisma Studio (explorer la DB)
-    docker compose exec api npx prisma studio
-
-Reset complet
-    docker compose down -v
-    docker compose up -d
-    docker compose exec api npx prisma migrate deploy
-    docker compose exec api npm run prisma:seed
-
-## Modules fonctionnels
+## Modules
 
 ### Administration
-- Gestion des etablissements, annees scolaires, niveaux, classes, salles
-- Gestion des utilisateurs et roles (RBAC granulaire)
-- Journal d audit automatique
+Établissement, années scolaires, classes, utilisateurs, rôles, audit.
 
-### Scolarite
-- Eleves : fiche complete, matricule auto, parcours
-- Tuteurs : liaison parent/enfant
-- Inscriptions : workflow complet
-- Enseignants et matieres
+### Scolarité
+Élèves, tuteurs, inscriptions, transferts, enseignants, matières, emploi du temps.
 
-### Pedagogie
-- Emploi du temps (detection conflits)
-- Presences (saisie en masse)
-- Evaluations et notes (workflow 5 etapes)
-- Bulletins (calcul auto moyennes + rangs)
-- Examens
+### Pédagogie
+Présences, évaluations, notes, bulletins, examens.
 
 ### Finance
-- Grille tarifaire
-- Factures et paiements
-- Recus automatiques
-- Caisse journaliere
-- Rapports financiers
+Grille tarifaire, factures, paiements, caisse, rapports.
 
-### Communication
-- Notifications internes
-- Modeles de documents
-- Generation PDF
+## Sécurité
 
-## Securite
-
-- Mots de passe hashes bcrypt (cost 12)
+- Mots de passe hashés bcrypt (cost 12)
 - JWT access (15 min) + refresh (7 jours)
-- Verrouillage apres 5 tentatives echouees
-- RBAC : 8 roles, 28 modules, 11 actions
-- Journal d audit automatique
-- Rate limiting
-
-## Deploiement production
-
-Voir docs/DEPLOYMENT.md pour le deploiement sur Ubuntu Server.
+- RBAC granulaire (8 rôles, 28 modules, 11 actions)
+- Audit automatique
+- Rate limiting (100 req/min)
 
 ## Licence
 
-Proprietaire — SIS-MALI 2026
+Propriétaire — SIS-MALI 2026

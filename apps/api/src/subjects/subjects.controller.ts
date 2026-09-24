@@ -43,8 +43,11 @@ export class SubjectsController {
 
   @Post()
   @RequirePermissions("subject:create")
-  async create(@Body(new ZodValidationPipe(SubjectCreateSchema)) dto: any) {
-    return this.service.create(dto);
+  async create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body(new ZodValidationPipe(SubjectCreateSchema)) dto: any,
+  ) {
+    return this.service.create({ ...dto, schoolId: user.schoolId });
   }
 
   @Patch(":id")

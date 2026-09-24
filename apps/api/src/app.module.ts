@@ -6,6 +6,7 @@ import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import configuration from "./config/configuration";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
+import { RolesModule } from "./roles/roles.module";
 import { UsersModule } from "./users/users.module";
 import { SchoolsModule } from "./schools/schools.module";
 import { AcademicYearsModule } from "./academic-years/academic-years.module";
@@ -37,12 +38,14 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { ReportsModule } from "./reports/reports.module";
 import { AuditModule } from "./audit/audit.module";
 import { BackupsModule } from "./backups/backups.module";
+import { TransfersModule } from "./transfers/transfers.module";
 
 import { JwtAuthGuard, PermissionsGuard } from "./common/guards";
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
 
 @Module({
   imports: [
+    RolesModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -83,6 +86,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     ReportsModule,
     AuditModule,
     BackupsModule,
+    TransfersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

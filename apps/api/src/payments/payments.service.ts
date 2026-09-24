@@ -1,6 +1,16 @@
-﻿import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { PaymentCreateDto, PaymentCancelDto } from "./dto";
+import { PaymentCancelDto } from "./dto";
+
+type PaymentCreateInput = {
+  schoolId: string;
+  cashierId: string;
+  invoiceId: string;
+  studentId: string;
+  amount: number;
+  method?: string;
+  reference?: string;
+};
 
 @Injectable()
 export class PaymentsService {
@@ -55,17 +65,27 @@ export class PaymentsService {
     return payment;
   }
 
-  /**
-   * Enregistre un paiement.
-   * Transaction :
-   *  1. Verifier la facture (non annulee, solde restant suffisant)
-   *  2. Creer le paiement
-   *  3. Mettre a jour la facture (paidAmount, balance, status)
-   *  4. Creer le recu (auto)
-   */
-  async create(dto: PaymentCreateDto) {
+  async getTodayTotal(schoolId: string, cashierId?: string) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const where: any = {
+      schoolId,
+      cancelledAt: null,
+      paidAt: { gte: start, lte: end },
+    };
+    if (cashierId) where.cashierId = cashierId;
+
+    const payments = await this.prisma.payment.findMany({ where });
+    const total = payments.reduce((s, p) => s + Number(p.amount), 0);
+    return { total, count: payments.length };
+  }
+
+  async create(dto: PaymentCreateInput) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Recuperer et verifier la facture
+      // 1. Verifier la facture
       const invoice = await tx.invoice.findUnique({
         where: { id: dto.invoiceId },
       });
@@ -82,20 +102,31 @@ export class PaymentsService {
         );
       }
 
-      // 2. Creer le paiement
+      // 2. Chercher la session de caisse ouverte du caissier
+      const openSession = await tx.cashSession.findFirst({
+        where: {
+          schoolId: dto.schoolId,
+          cashierId: dto.cashierId,
+          status: "OPEN",
+        },
+        orderBy: { openedAt: "desc" },
+      });
+
+      // 3. Creer le paiement (rattache la session de caisse si ouverte)
       const payment = await tx.payment.create({
         data: {
           schoolId: dto.schoolId,
           invoiceId: dto.invoiceId,
           studentId: dto.studentId,
           amount: dto.amount,
-          method: dto.method as any,
+          method: (dto.method ?? "CASH") as any,
           reference: dto.reference,
           cashierId: dto.cashierId,
+          cashSessionId: openSession?.id ?? null,
         },
       });
 
-      // 3. Mettre a jour la facture
+      // 4. Mettre a jour la facture
       const newPaidAmount = Number(invoice.paidAmount) + dto.amount;
       const newBalance = Number(invoice.totalAmount) - newPaidAmount;
       let newStatus: any = "PARTIAL";
@@ -110,7 +141,7 @@ export class PaymentsService {
         },
       });
 
-      // 4. Generer le recu
+      // 5. Generer le recu
       const receiptNumber = await this.generateReceiptNumber(tx, dto.schoolId);
       const receipt = await tx.receipt.create({
         data: {
@@ -119,24 +150,18 @@ export class PaymentsService {
         },
       });
 
-      this.logger.log(`Payment ${payment.id} created. Receipt: ${receiptNumber}`);
-
-      return {
-        ...payment,
-        receipt,
-      };
+      return { ...payment, receipt };
     });
   }
 
   async cancel(id: string, dto: PaymentCancelDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findUnique({ where: { id } });
-      if (!payment) throw new NotFoundException("Paiement introuvable");
-      if (payment.cancelledAt) {
-        throw new BadRequestException("Ce paiement est deja annule");
-      }
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) throw new NotFoundException("Paiement introuvable");
+    if (payment.cancelledAt) {
+      throw new BadRequestException("Paiement deja annule");
+    }
 
-      // 1. Marquer le paiement comme annule
+    return this.prisma.$transaction(async (tx) => {
       await tx.payment.update({
         where: { id },
         data: {
@@ -145,81 +170,42 @@ export class PaymentsService {
         },
       });
 
-      // 2. Recalculer la facture
       const invoice = await tx.invoice.findUnique({
         where: { id: payment.invoiceId },
       });
       if (invoice) {
-        const newPaidAmount = Math.max(Number(invoice.paidAmount) - Number(payment.amount), 0);
-        const newBalance = Number(invoice.totalAmount) - newPaidAmount;
-        let newStatus: any = "UNPAID";
-        if (newBalance <= 0.001) newStatus = "PAID";
-        else if (newPaidAmount > 0) newStatus = "PARTIAL";
-
-        // Verifier echeance
-        if (invoice.dueDate && new Date(invoice.dueDate) < new Date() && newStatus !== "PAID") {
-          newStatus = "OVERDUE";
-        }
-
+        const newPaid = Number(invoice.paidAmount) - Number(payment.amount);
+        const newBalance = Number(invoice.totalAmount) - newPaid;
         await tx.invoice.update({
           where: { id: invoice.id },
           data: {
-            paidAmount: newPaidAmount,
+            paidAmount: Math.max(newPaid, 0),
             balance: Math.max(newBalance, 0),
-            status: newStatus,
+            status: newPaid <= 0 ? "UNPAID" : "PARTIAL",
           },
         });
       }
 
-      return { message: "Paiement annule" };
+      return { success: true };
     });
   }
 
   async remove(id: string) {
-    const payment = await this.findOne(id);
-    if (!payment.cancelledAt) {
-      throw new BadRequestException("Impossible de supprimer un paiement actif. Annulez-le d abord.");
-    }
-    return this.prisma.payment.delete({ where: { id } });
-  }
-
-  /**
-   * Recettes du jour pour un caissier.
-   */
-  async getTodayTotal(schoolId: string, cashierId?: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const where: any = {
-      schoolId,
-      paidAt: { gte: today, lt: tomorrow },
-      cancelledAt: null,
-    };
-    if (cashierId) where.cashierId = cashierId;
-
-    const payments = await this.prisma.payment.findMany({ where });
-    const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-
-    return { count: payments.length, total };
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) throw new NotFoundException("Paiement introuvable");
+    await this.prisma.payment.delete({ where: { id } });
+    return { success: true };
   }
 
   private async generateReceiptNumber(tx: any, schoolId: string): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `REC-${year}-`;
-
     const last = await tx.receipt.findFirst({
-      where: { payment: { schoolId }, number: { startsWith: prefix } },
+      where: { number: { startsWith: prefix } },
       orderBy: { number: "desc" },
     });
-
-    let seq = 1;
-    if (last) {
-      const lastSeq = parseInt(last.number.slice(prefix.length), 10);
-      if (!isNaN(lastSeq)) seq = lastSeq + 1;
-    }
-
-    return `${prefix}${String(seq).padStart(6, "0")}`;
+    const lastSeq = last ? parseInt(last.number.slice(prefix.length), 10) : 0;
+    const nextSeq = (lastSeq + 1).toString().padStart(6, "0");
+    return `${prefix}${nextSeq}`;
   }
 }

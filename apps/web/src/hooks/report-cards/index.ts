@@ -1,1 +1,1 @@
-﻿export * from "./useReportCards";
+export * from "./useReportCards";

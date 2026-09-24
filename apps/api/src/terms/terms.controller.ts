@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
@@ -18,6 +18,13 @@ export class TermsController {
   @ApiOperation({ summary: "Liste des trimestres" })
   async findAll(@Query("academicYearId") academicYearId?: string) {
     return this.service.findAll(academicYearId);
+  }
+
+  @Get("current")
+  @RequirePermissions("academic_year:view")
+  @ApiOperation({ summary: "Trimestre en cours" })
+  async findCurrent() {
+    return this.service.findCurrent();
   }
 
   @Get(":id")

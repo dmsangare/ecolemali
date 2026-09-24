@@ -1,356 +1,410 @@
-﻿import { Injectable, Logger } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ReportsService {
-  private readonly logger = new Logger(ReportsService.name);
+  constructor(private prisma: PrismaService) {}
 
-  constructor(private readonly prisma: PrismaService) {}
+  async getDashboard(schoolId: string, _academicYearId?: string) {
+    const studentsCount = await this.prisma.student.count({ where: { schoolId, status: 'ACTIVE' } });
+    const teachersCount = await this.prisma.teacher.count({ where: { schoolId, status: 'ACTIVE' } });
+    const classesCount = await this.prisma.class.count({ where: { schoolId } });
 
-  // ============================================================
-  // DASHBOARD DIRECTION
-  // ============================================================
-
-  async getDashboard(schoolId: string, academicYearId?: string) {
-    const currentYear = academicYearId
-      ? await this.prisma.academicYear.findUnique({ where: { id: academicYearId } })
-      : await this.prisma.academicYear.findFirst({ where: { schoolId, isCurrent: true } });
-
-    const yearId = currentYear?.id;
-
-    const [
-      studentsCount,
-      teachersCount,
-      classesCount,
-      invoices,
-      attendanceStats,
-    ] = await Promise.all([
-      this.prisma.student.count({
-        where: { schoolId, deletedAt: null, status: "ACTIVE" },
-      }),
-      this.prisma.teacher.count({
-        where: { schoolId, status: "ACTIVE" },
-      }),
-      this.prisma.class.count({
-        where: { schoolId, ...(yearId ? { academicYearId: yearId } : {}) },
-      }),
-      this.prisma.invoice.findMany({
-        where: { schoolId, ...(yearId ? { academicYearId: yearId } : {}), status: { not: "CANCELLED" } },
-      }),
-      this.prisma.attendanceRecord.findMany({
-        where: {
-          session: {
-            ...(yearId ? { term: { academicYearId: yearId } } : {}),
-            class: { schoolId },
-          },
-        },
-      }),
-    ]);
+    const invoices = await this.prisma.invoice.findMany({
+      where: { schoolId, status: { not: 'CANCELLED' } },
+      select: { totalAmount: true, paidAmount: true, balance: true },
+    });
+    const payments = await this.prisma.payment.findMany({
+      where: { schoolId, cancelledAt: null },
+      select: { amount: true },
+    });
 
     const totalBilled = invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
-    const totalPaid = invoices.reduce((s, i) => s + Number(i.paidAmount), 0);
-    const totalUnpaid = invoices.reduce((s, i) => s + Number(i.balance), 0);
+    const revenueAmount = payments.reduce((s, p) => s + Number(p.amount), 0);
+    const unpaidAmount = invoices.reduce((s, i) => s + Number(i.balance), 0);
 
-    const present = attendanceStats.filter((a) => a.status === "PRESENT").length;
-    const totalAttendance = attendanceStats.length;
-    const attendanceRate = totalAttendance > 0
-      ? Math.round((present / totalAttendance) * 100)
-      : 100;
+    const boys = await this.prisma.student.count({ where: { schoolId, gender: 'M', status: 'ACTIVE' } });
+    const girls = await this.prisma.student.count({ where: { schoolId, gender: 'F', status: 'ACTIVE' } });
 
-    // Repartition garcons/filles
-    const boysCount = await this.prisma.student.count({
-      where: { schoolId, deletedAt: null, gender: "M", status: "ACTIVE" },
+    const sessions = await this.prisma.attendanceSession.findMany({
+      where: { class: { schoolId } },
+      include: { records: { select: { status: true } } },
     });
-    const girlsCount = studentsCount - boysCount;
+    let totalRecords = 0;
+    let presentRecords = 0;
+    for (const s of sessions) {
+      totalRecords += s.records.length;
+      presentRecords += s.records.filter((r) => r.status === 'PRESENT').length;
+    }
+    const attendanceRate = totalRecords > 0 ? (presentRecords / totalRecords) * 100 : 0;
 
     return {
-      studentsCount,
-      teachersCount,
-      classesCount,
-      attendanceRate,
-      unpaidAmount: totalUnpaid,
-      revenueAmount: totalPaid,
-      totalBilled,
-      genderSplit: { boys: boysCount, girls: girlsCount },
-    };
-  }
-
-  // ============================================================
-  // STATISTIQUES ELEVES
-  // ============================================================
-
-  async getStudentStats(schoolId: string, academicYearId?: string) {
-    const where: any = { schoolId, deletedAt: null };
-    if (academicYearId) {
-      where.enrollments = { some: { academicYearId, status: "VALIDATED" } };
-    }
-
-    const students = await this.prisma.student.findMany({
-      where,
-      select: {
-        id: true,
-        gender: true,
-        birthDate: true,
-        enrollments: {
-          where: { status: "VALIDATED" },
-          take: 1,
-          orderBy: { enrollmentDate: "desc" },
-          include: {
-            level: { select: { id: true, code: true, name: true } },
-            class: { select: { id: true, code: true, name: true } },
-          },
-        },
+      data: {
+        studentsCount, teachersCount, classesCount,
+        attendanceRate: Math.round(attendanceRate),
+        unpaidAmount, revenueAmount, totalBilled,
+        genderSplit: { boys, girls },
       },
-    });
-
-    const total = students.length;
-    const boys = students.filter((s) => s.gender === "M").length;
-    const girls = total - boys;
-
-    // Repartition par niveau
-    const byLevelMap = new Map<string, { code: string; name: string; count: number }>();
-    for (const s of students) {
-      const level = s.enrollments[0]?.level;
-      if (!level) continue;
-      const key = level.id;
-      if (!byLevelMap.has(key)) {
-        byLevelMap.set(key, { code: level.code, name: level.name, count: 0 });
-      }
-      byLevelMap.get(key)!.count += 1;
-    }
-
-    // Repartition par classe
-    const byClassMap = new Map<string, { code: string; name: string; count: number }>();
-    for (const s of students) {
-      const cls = s.enrollments[0]?.class;
-      if (!cls) continue;
-      const key = cls.id;
-      if (!byClassMap.has(key)) {
-        byClassMap.set(key, { code: cls.code, name: cls.name, count: 0 });
-      }
-      byClassMap.get(key)!.count += 1;
-    }
-
-    // Repartition par age
-    const today = new Date();
-    const byAge: Record<string, number> = {};
-    for (const s of students) {
-      const age = today.getFullYear() - new Date(s.birthDate).getFullYear();
-      const bucket = `${age} ans`;
-      byAge[bucket] = (byAge[bucket] || 0) + 1;
-    }
-
-    return {
-      total,
-      boys,
-      girls,
-      byLevel: Array.from(byLevelMap.values()).sort((a, b) => a.code.localeCompare(b.code)),
-      byClass: Array.from(byClassMap.values()).sort((a, b) => a.code.localeCompare(b.code)),
-      byAge,
     };
   }
 
-  // ============================================================
-  // STATISTIQUES PEDAGOGIQUES
-  // ============================================================
-
-  async getPedagogicalStats(schoolId: string, termId?: string) {
-    const where: any = { schoolId };
-    if (termId) where.termId = termId;
-
-    const reports = await this.prisma.reportCard.findMany({
-      where,
-      include: {
-        student: { select: { id: true, matricule: true, firstName: true, lastName: true } },
-        class: { select: { id: true, code: true, name: true } },
-        items: { include: { subject: { select: { id: true, code: true, name: true } } } },
-      },
+  async getFinancial(schoolId: string, _academicYearId?: string) {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { schoolId, status: { not: 'CANCELLED' } },
+      include: { items: { select: { totalAmount: true, feeType: { select: { category: true } } } } },
     });
-
-    if (reports.length === 0) {
-      return {
-        globalAverage: null,
-        successRate: 0,
-        failureRate: 0,
-        totalStudents: 0,
-        bySubject: [],
-        byClass: [],
-        topStudents: [],
-      };
-    }
-
-    const averages = reports.map((r) => Number(r.average)).filter((v) => !isNaN(v));
-    const globalAverage = averages.length > 0
-      ? Math.round((averages.reduce((a, b) => a + b, 0) / averages.length) * 100) / 100
-      : null;
-
-    const passed = averages.filter((v) => v >= 10).length;
-    const failed = averages.filter((v) => v < 10).length;
-    const total = averages.length;
-
-    // Stats par matiere
-    const subjectMap = new Map<string, { code: string; name: string; sum: number; count: number }>();
-    for (const r of reports) {
-      for (const item of r.items) {
-        if (item.average === null) continue;
-        const key = item.subject.id;
-        if (!subjectMap.has(key)) {
-          subjectMap.set(key, {
-            code: item.subject.code,
-            name: item.subject.name,
-            sum: 0,
-            count: 0,
-          });
-        }
-        const entry = subjectMap.get(key)!;
-        entry.sum += Number(item.average);
-        entry.count += 1;
-      }
-    }
-
-    const bySubject = Array.from(subjectMap.values()).map((s) => ({
-      code: s.code,
-      name: s.name,
-      average: Math.round((s.sum / s.count) * 100) / 100,
-      studentsCount: s.count,
-    }));
-
-    // Stats par classe
-    const classMap = new Map<string, { code: string; name: string; sum: number; count: number }>();
-    for (const r of reports) {
-      if (r.average === null) continue;
-      const key = r.class.id;
-      if (!classMap.has(key)) {
-        classMap.set(key, { code: r.class.code, name: r.class.name, sum: 0, count: 0 });
-      }
-      const entry = classMap.get(key)!;
-      entry.sum += Number(r.average);
-      entry.count += 1;
-    }
-
-    const byClass = Array.from(classMap.values()).map((c) => ({
-      code: c.code,
-      name: c.name,
-      average: Math.round((c.sum / c.count) * 100) / 100,
-      studentsCount: c.count,
-    }));
-
-    // Top 10 eleves
-    const topStudents = [...reports]
-      .filter((r) => r.average !== null)
-      .sort((a, b) => Number(b.average) - Number(a.average))
-      .slice(0, 10)
-      .map((r) => ({
-        studentId: r.student.id,
-        matricule: r.student.matricule,
-        firstName: r.student.firstName,
-        lastName: r.student.lastName,
-        className: r.class.name,
-        average: Number(r.average),
-        rank: r.rank,
-      }));
-
-    return {
-      globalAverage,
-      successRate: total > 0 ? Math.round((passed / total) * 100) : 0,
-      failureRate: total > 0 ? Math.round((failed / total) * 100) : 0,
-      totalStudents: total,
-      passed,
-      failed,
-      bySubject: bySubject.sort((a, b) => b.average - a.average),
-      byClass: byClass.sort((a, b) => b.average - a.average),
-      topStudents,
-    };
-  }
-
-  // ============================================================
-  // STATISTIQUES FINANCIERES
-  // ============================================================
-
-  async getFinancialStats(schoolId: string, academicYearId?: string) {
-    const where: any = { schoolId };
-    if (academicYearId) where.academicYearId = academicYearId;
-
-    const [invoices, payments] = await Promise.all([
-      this.prisma.invoice.findMany({
-        where: { ...where, status: { not: "CANCELLED" } },
-        include: { items: { include: { feeType: true } } },
-      }),
-      this.prisma.payment.findMany({
-        where: { schoolId, cancelledAt: null, ...(academicYearId ? { invoice: { academicYearId } } : {}) },
-      }),
-    ]);
+    const payments = await this.prisma.payment.findMany({
+      where: { schoolId, cancelledAt: null },
+      include: { student: { select: { firstName: true, lastName: true } } },
+      orderBy: { paidAt: 'desc' },
+    });
 
     const totalBilled = invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
     const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
     const totalUnpaid = invoices.reduce((s, i) => s + Number(i.balance), 0);
 
-    // Repartition par categorie de frais
-    const byCategoryMap = new Map<string, number>();
-    for (const i of invoices) {
-      for (const item of i.items) {
-        const cat = item.feeType.category;
-        byCategoryMap.set(cat, (byCategoryMap.get(cat) || 0) + Number(item.totalAmount));
+    const byCategory: Record<string, number> = {};
+    for (const inv of invoices) {
+      for (const item of inv.items) {
+        const cat = item.feeType?.category ?? 'AUTRE';
+        byCategory[cat] = (byCategory[cat] ?? 0) + Number(item.totalAmount);
       }
     }
 
-    // Repartition par mois
-    const byMonthMap = new Map<string, number>();
+    const byMethod: Record<string, { count: number; total: number }> = {};
     for (const p of payments) {
-      const d = new Date(p.paidAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      byMonthMap.set(key, (byMonthMap.get(key) || 0) + Number(p.amount));
+      const m = p.method ?? 'AUTRE';
+      if (!byMethod[m]) byMethod[m] = { count: 0, total: 0 };
+      byMethod[m].count++;
+      byMethod[m].total += Number(p.amount);
+    }
+
+    const byMonth: Record<string, number> = {};
+    for (const p of payments) {
+      const m = new Date(p.paidAt).toISOString().slice(0, 7);
+      byMonth[m] = (byMonth[m] ?? 0) + Number(p.amount);
     }
 
     return {
-      totalBilled,
-      totalPaid,
-      totalUnpaid,
-      invoicesCount: invoices.length,
-      paidInvoices: invoices.filter((i) => i.status === "PAID").length,
-      partialInvoices: invoices.filter((i) => i.status === "PARTIAL").length,
-      unpaidInvoices: invoices.filter((i) => i.status === "UNPAID").length,
-      overdueInvoices: invoices.filter((i) => i.status === "OVERDUE").length,
-      byCategory: Array.from(byCategoryMap.entries()).map(([category, amount]) => ({
-        category,
-        amount,
-      })),
-      byMonth: Array.from(byMonthMap.entries())
-        .map(([month, amount]) => ({ month, amount }))
-        .sort((a, b) => a.month.localeCompare(b.month)),
+      data: {
+        totalBilled, totalPaid, totalUnpaid,
+        invoicesCount: invoices.length,
+        paidInvoices: invoices.filter((i) => i.status === 'PAID').length,
+        partialInvoices: invoices.filter((i) => i.status === 'PARTIAL').length,
+        unpaidInvoices: invoices.filter((i) => i.status === 'UNPAID').length,
+        overdueInvoices: invoices.filter((i) => i.status === 'OVERDUE').length,
+        recoveryRate: totalBilled > 0 ? (totalPaid / totalBilled) * 100 : 0,
+        byCategory: Object.entries(byCategory).map(([category, amount]) => ({ category, amount })),
+        byMethod: Object.entries(byMethod).map(([method, v]) => ({ method, ...v })),
+        byMonth: Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([month, amount]) => ({ month, amount })),
+        paymentsCount: payments.length,
+        topPayments: payments.slice(0, 10).map((p) => ({
+          id: p.id,
+          amount: Number(p.amount),
+          method: p.method,
+          paidAt: p.paidAt,
+          studentName: `${p.student.firstName} ${p.student.lastName}`,
+        })),
+      },
     };
   }
 
-  // ============================================================
-  // STATISTIQUES PRESENCES
-  // ============================================================
+  async getUnpaid(schoolId: string, classId?: string) {
+    // 1. Factures impayées
+    const invoices = await this.prisma.invoice.findMany({
+      where: { schoolId, status: { in: ['UNPAID', 'PARTIAL', 'OVERDUE'] }, balance: { gt: 0 } },
+      orderBy: { balance: 'desc' },
+    });
 
-  async getAttendanceStats(schoolId: string, classId?: string, termId?: string) {
+    // 2. Élèves
+    const studentIds = [...new Set(invoices.map((i) => i.studentId))];
+    const students = await this.prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, matricule: true, firstName: true, lastName: true },
+    });
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    // 3. Classes via Enrollment (VALIDATED = active)
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        studentId: { in: studentIds },
+        status: 'VALIDATED',
+      },
+      select: { studentId: true, classId: true },
+    });
+    const classIds = [...new Set(enrollments.map((e) => e.classId))];
+    const classes = await this.prisma.class.findMany({
+      where: { id: { in: classIds } },
+      select: { id: true, name: true },
+    });
+    const classMap = new Map(classes.map((c) => [c.id, c]));
+    const studentClassMap = new Map(enrollments.map((e) => [e.studentId, e.classId]));
+
+    // 4. Filtre par classe
+    const filtered = classId
+      ? invoices.filter((i) => studentClassMap.get(i.studentId) === classId)
+      : invoices;
+
+    // 5. Regrouper par classe
+    const byClassMap: Record<string, { className: string; count: number; total: number }> = {};
+    for (const inv of filtered) {
+      const cid = studentClassMap.get(inv.studentId);
+      const cls = cid ? classMap.get(cid) : null;
+      const key = cls?.id ?? 'none';
+      if (!byClassMap[key]) {
+        byClassMap[key] = { className: cls?.name ?? 'Non affecté', count: 0, total: 0 };
+      }
+      byClassMap[key].count++;
+      byClassMap[key].total += Number(inv.balance);
+    }
+
+    return {
+      data: {
+        totalOutstanding: filtered.reduce((s, i) => s + Number(i.balance), 0),
+        count: filtered.length,
+        byClass: Object.values(byClassMap).sort((a, b) => b.total - a.total),
+        items: filtered.map((i) => {
+          const st: any = studentMap.get(i.studentId);
+          const cid = studentClassMap.get(i.studentId);
+          const cls: any = cid ? classMap.get(cid) : null;
+          return {
+            id: i.id,
+            number: i.number,
+            studentName: st ? `${st.firstName} ${st.lastName}` : '—',
+            matricule: st?.matricule ?? '—',
+            className: cls?.name ?? '—',
+            totalAmount: Number(i.totalAmount),
+            paidAmount: Number(i.paidAmount),
+            balance: Number(i.balance),
+            dueDate: i.dueDate,
+            status: i.status,
+          };
+        }),
+      },
+    };
+  }
+
+  async getStudents(schoolId: string, _academicYearId?: string) {
+    // 1. Classes de l'école
+    const classes = await this.prisma.class.findMany({
+      where: { schoolId },
+      select: { id: true, name: true, levelId: true },
+    });
+    const classMap = new Map(classes.map((c) => [c.id, c]));
+    const classIds = classes.map((c) => c.id);
+
+    // 2. Niveaux
+    const levels = await this.prisma.level.findMany({
+      where: { schoolId },
+      select: { id: true, name: true, code: true, cycle: true },
+    });
+    const levelMap = new Map(levels.map((l) => [l.id, l]));
+
+    // 3. Inscriptions
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { status: 'VALIDATED', classId: { in: classIds } },
+      select: { id: true, studentId: true, classId: true, levelId: true },
+    });
+
+    // 4. Élèves
+    const studentIds = enrollments.map((e) => e.studentId);
+    const students = await this.prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, gender: true },
+    });
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    const byLevelMap: Record<string, any> = {};
+    const byClassMap: Record<string, any> = {};
+    let boys = 0, girls = 0;
+
+    for (const e of enrollments) {
+      const cls: any = classMap.get(e.classId);
+      const level: any = levelMap.get(e.levelId);
+      const st: any = studentMap.get(e.studentId);
+      if (!st) continue;
+
+      const isBoy = st.gender === 'M';
+      if (isBoy) boys++; else girls++;
+
+      const lkey = e.levelId;
+      if (!byLevelMap[lkey]) {
+        byLevelMap[lkey] = { code: level?.code ?? '—', name: level?.name ?? '—', cycle: level?.cycle ?? '—', count: 0, boys: 0, girls: 0 };
+      }
+      byLevelMap[lkey].count++;
+      if (isBoy) byLevelMap[lkey].boys++; else byLevelMap[lkey].girls++;
+
+      const ckey = e.classId;
+      if (!byClassMap[ckey]) {
+        byClassMap[ckey] = { className: cls?.name ?? '—', levelName: level?.name ?? '—', cycle: level?.cycle ?? '—', count: 0, boys: 0, girls: 0 };
+      }
+      byClassMap[ckey].count++;
+      if (isBoy) byClassMap[ckey].boys++; else byClassMap[ckey].girls++;
+    }
+
+    return {
+      data: {
+        total: enrollments.length,
+        boys,
+        girls,
+        byLevel: Object.values(byLevelMap).sort((a: any, b: any) => a.name.localeCompare(b.name)),
+        byClass: Object.values(byClassMap).sort((a: any, b: any) => a.className.localeCompare(b.className)),
+      },
+    };
+  }
+
+  async getPedagogicalStats(schoolId: string, termId?: string) {
+    const where: any = { assessment: { schoolId } };
+    if (termId) where.assessment.termId = termId;
+
+    const grades = await this.prisma.grade.findMany({
+      where: { ...where, value: { not: null }, isAbsent: false },
+      include: {
+        assessment: {
+          select: {
+            maxScore: true,
+            subject: { select: { id: true, code: true, name: true } },
+            class: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    const bySubjectMap: Record<string, any> = {};
+    const byClassMap: Record<string, any> = {};
+
+    for (const g of grades) {
+      const max = Number(g.assessment.maxScore) || 20;
+      const pct = (Number(g.value) / max) * 100;
+      const subj = g.assessment.subject;
+      const cls = g.assessment.class;
+
+      if (subj) {
+        if (!bySubjectMap[subj.id]) {
+          bySubjectMap[subj.id] = { code: subj.code, subject: subj.name, count: 0, sumPct: 0, avgPct: 0, minPct: 100, maxPct: 0 };
+        }
+        bySubjectMap[subj.id].count++;
+        bySubjectMap[subj.id].sumPct += pct;
+        if (pct < bySubjectMap[subj.id].minPct) bySubjectMap[subj.id].minPct = pct;
+        if (pct > bySubjectMap[subj.id].maxPct) bySubjectMap[subj.id].maxPct = pct;
+      }
+
+      if (cls) {
+        if (!byClassMap[cls.id]) byClassMap[cls.id] = { className: cls.name, count: 0, sumPct: 0, avgPct: 0 };
+        byClassMap[cls.id].count++;
+        byClassMap[cls.id].sumPct += pct;
+      }
+    }
+
+    Object.values(bySubjectMap).forEach((s: any) => { s.avgPct = s.count ? s.sumPct / s.count : 0; });
+    Object.values(byClassMap).forEach((c: any) => { c.avgPct = c.count ? c.sumPct / c.count : 0; });
+
+    const successCount = grades.filter((g) => {
+      const max = Number(g.assessment.maxScore) || 20;
+      return (Number(g.value) / max) * 100 >= 50;
+    }).length;
+
+    return {
+      data: {
+        totalGrades: grades.length,
+        successRate: grades.length > 0 ? (successCount / grades.length) * 100 : 0,
+        bySubject: Object.values(bySubjectMap).sort((a: any, b: any) => b.avgPct - a.avgPct).map((s: any) => ({
+          code: s.code, subject: s.subject, count: s.count,
+          avgPct: Math.round(s.avgPct * 10) / 10,
+          minPct: Math.round(s.minPct * 10) / 10,
+          maxPct: Math.round(s.maxPct * 10) / 10,
+        })),
+        byClass: Object.values(byClassMap).sort((a: any, b: any) => a.className.localeCompare(b.className)).map((c: any) => ({
+          className: c.className, count: c.count, avgPct: Math.round(c.avgPct * 10) / 10,
+        })),
+      },
+    };
+  }
+
+  async getAttendance(schoolId: string, classId?: string, termId?: string) {
     const where: any = { class: { schoolId } };
     if (classId) where.classId = classId;
     if (termId) where.termId = termId;
 
     const sessions = await this.prisma.attendanceSession.findMany({
       where,
-      include: { records: true, class: { select: { id: true, code: true, name: true } } },
+      include: {
+        class: { select: { id: true, name: true } },
+        records: { select: { status: true } },
+      },
     });
 
-    const allRecords = sessions.flatMap((s) => s.records);
-    const total = allRecords.length;
-    const present = allRecords.filter((r) => r.status === "PRESENT").length;
-    const absent = allRecords.filter((r) => r.status === "ABSENT" || r.status === "ABSENT_UNJUSTIFIED").length;
-    const absentJustified = allRecords.filter((r) => r.status === "ABSENT_JUSTIFIED").length;
-    const late = allRecords.filter((r) => r.status === "LATE").length;
+    const byClassMap: Record<string, any> = {};
+    let totalRecords = 0, present = 0, absent = 0, absentJustified = 0, late = 0;
+
+    for (const s of sessions) {
+      const cls = s.class;
+      if (!byClassMap[cls.id]) {
+        byClassMap[cls.id] = { className: cls.name, sessionsCount: 0, total: 0, present: 0, absent: 0, late: 0 };
+      }
+      byClassMap[cls.id].sessionsCount++;
+
+      for (const r of s.records) {
+        totalRecords++;
+        byClassMap[cls.id].total++;
+        if (r.status === 'PRESENT') { present++; byClassMap[cls.id].present++; }
+        else if (r.status === 'LATE') { late++; byClassMap[cls.id].late++; }
+        else if (r.status === 'ABSENT_JUSTIFIED') { absentJustified++; byClassMap[cls.id].absent++; }
+        else { absent++; byClassMap[cls.id].absent++; }
+      }
+    }
+
+    Object.values(byClassMap).forEach((c: any) => {
+      c.presenceRate = c.total > 0 ? Math.round((c.present / c.total) * 1000) / 10 : 0;
+    });
 
     return {
-      sessionsCount: sessions.length,
-      total,
-      present,
-      absent,
-      absentJustified,
-      late,
-      presenceRate: total > 0 ? Math.round(((present + late) / total) * 100) : 100,
-      absenceRate: total > 0 ? Math.round(((absent + absentJustified) / total) * 100) : 0,
+      data: {
+        sessionsCount: sessions.length, total: totalRecords, present,
+        absent: absent + absentJustified, absentJustified, late,
+        presenceRate: totalRecords > 0 ? Math.round((present / totalRecords) * 1000) / 10 : 0,
+        absenceRate: totalRecords > 0 ? Math.round(((absent + absentJustified) / totalRecords) * 1000) / 10 : 0,
+        byClass: Object.values(byClassMap).sort((a: any, b: any) => a.className.localeCompare(b.className)),
+      },
+    };
+  }
+
+  async getClassesComparison(schoolId: string) {
+    const classes = await this.prisma.class.findMany({
+      where: { schoolId },
+      include: {
+        level: { select: { name: true, cycle: true } },
+        _count: { select: { enrollments: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      data: classes.map((c) => ({
+        id: c.id, name: c.name,
+        levelName: c.level?.name ?? '—',
+        cycle: c.level?.cycle ?? '—',
+        studentsCount: c._count.enrollments,
+      })),
+    };
+  }
+
+  async getMonthlyEvolution(schoolId: string) {
+    const payments = await this.prisma.payment.findMany({
+      where: { schoolId, cancelledAt: null },
+      select: { amount: true, paidAt: true },
+    });
+
+    const byMonth: Record<string, { revenue: number; count: number }> = {};
+    for (const p of payments) {
+      const m = new Date(p.paidAt).toISOString().slice(0, 7);
+      if (!byMonth[m]) byMonth[m] = { revenue: 0, count: 0 };
+      byMonth[m].revenue += Number(p.amount);
+      byMonth[m].count++;
+    }
+
+    return {
+      data: Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([month, v]) => ({ month, ...v })),
     };
   }
 }

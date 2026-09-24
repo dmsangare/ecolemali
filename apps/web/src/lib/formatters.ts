@@ -1,4 +1,4 @@
-﻿const DEFAULT_LOCALE = "fr-FR";
+const DEFAULT_LOCALE = "fr-FR";
 const DEFAULT_CURRENCY = "FCFA";
 
 export function formatCurrency(
@@ -59,4 +59,39 @@ export function truncate(text: string, maxLength: number, suffix = "…"): strin
   if (!text) return "";
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - suffix.length) + suffix;
+}
+
+/**
+ * Formate une taille de fichier en octets vers une unite lisible.
+ * Ex: 1048576 -> "1.0 MB"
+ */
+export function formatFileSize(bytes: number | null | undefined): string {
+  if (!bytes || bytes < 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+/**
+ * Calcule l'age a partir d'une date de naissance.
+ */
+export function calculateAge(birthDate: Date | string): number {
+  const today = new Date();
+  const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate;
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+/**
+ * Formate un numero de telephone malien.
+ */
+export function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "—";
+  return phone;
 }

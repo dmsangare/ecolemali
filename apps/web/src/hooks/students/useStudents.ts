@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { studentsApi } from "@/api/students";
 import { getErrorMessage } from "@/lib/axios";
@@ -10,6 +10,7 @@ export function useStudents(filters: StudentListFilters = {}) {
   return useQuery({
     queryKey: [KEY, "list", filters],
     queryFn: () => studentsApi.list(filters),
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -68,5 +69,31 @@ export function useStudentStats() {
   return useQuery({
     queryKey: [KEY, "stats"],
     queryFn: () => studentsApi.getStats(),
+  });
+}
+
+export function useStudentPathway(id: string | undefined) {
+  return useQuery({
+    queryKey: [KEY, "pathway", id],
+    queryFn: () => studentsApi.getPathway(id!),
+    enabled: !!id,
+  });
+}
+
+export function useExportStudents() {
+  return useMutation({
+    mutationFn: ({
+      format,
+      filters,
+    }: {
+      format: "csv" | "excel" | "pdf";
+      filters: StudentListFilters;
+    }) => studentsApi.downloadExport(format, filters),
+    onSuccess: (_, variables) => {
+      toast.success(`Export ${variables.format.toUpperCase()} telecharge`);
+    },
+    onError: (error) => {
+      toast.error(`Erreur export : ${getErrorMessage(error)}`);
+    },
   });
 }

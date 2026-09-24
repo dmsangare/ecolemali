@@ -3,7 +3,9 @@
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { Response } from "express";
 import { PaymentsService } from "./payments.service";
+import { generateReceiptPDF } from "./utils/receipt-pdf.util";
 import { PaymentCreateSchema, PaymentCancelSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
@@ -54,7 +56,32 @@ export class PaymentsController {
   @Post()
   @RequirePermissions("payment:create")
   @ApiOperation({ summary: "Enregistrer un paiement (genere le recu automatiquement)" })
-  async create(@Body(new ZodValidationPipe(PaymentCreateSchema)) dto: any) {
+  async create(
+    @Body() rawDto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // Nettoyage manuel : injection schoolId + cashierId
+    const dto: any = {
+      schoolId: user.schoolId,
+      cashierId: user.id,
+      invoiceId: rawDto?.invoiceId,
+      studentId: rawDto?.studentId,
+      amount: Number(rawDto?.amount) || 0,
+      method: rawDto?.method || "CASH",
+    };
+
+    if (rawDto?.reference) dto.reference = String(rawDto.reference).trim();
+
+    // Validation minimale
+    if (!dto.invoiceId || !dto.studentId || dto.amount <= 0) {
+      const { BadRequestException } = await import("@nestjs/common");
+      throw new BadRequestException(
+        "Champs requis manquants : invoiceId, studentId, amount > 0"
+      );
+    }
+
+    console.log("[PAYMENT CREATE] Payload nettoye:", JSON.stringify(dto));
+
     return this.service.create(dto);
   }
 

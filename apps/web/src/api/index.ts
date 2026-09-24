@@ -1,4 +1,4 @@
-﻿export * from "./auth";
+export * from "./auth";
 export * from "./reports";
 export * from "./students";
 export * from "./classes";
@@ -12,3 +12,5 @@ export * from "./invoices";
 export * from "./payments";
 export * from "./cash-sessions";
 export * from "./exams";
+export * from "./users";
+export * from "./schools";

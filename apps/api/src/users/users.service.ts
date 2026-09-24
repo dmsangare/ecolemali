@@ -1,12 +1,22 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(schoolId: string | null, page = 1, limit = 20) {
-    const where = schoolId ? { schoolId } : {};
+  async findAll(schoolId: string | null, page = 1, limit = 20, q?: string) {
+    const where: any = {};
+    if (schoolId) where.schoolId = schoolId;
+    if (q) {
+      where.OR = [
+        { email: { contains: q, mode: "insensitive" } },
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
@@ -36,5 +46,113 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException("Utilisateur introuvable");
     return user;
+  }
+
+  async create(dto: {
+    schoolId?: string;
+    email?: string;
+    phone?: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    roleIds: string[];
+  }) {
+    if (dto.email) {
+      const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (existing) throw new ConflictException("Cet email est deja utilise");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    return this.prisma.user.create({
+      data: {
+        schoolId: dto.schoolId,
+        email: dto.email,
+        phone: dto.phone,
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        status: "ACTIVE",
+        mustChangePassword: true,
+        userRoles: {
+          create: dto.roleIds.map((roleId) => ({
+            roleId,
+            schoolId: dto.schoolId,
+          })),
+        },
+      },
+      select: {
+        id: true, email: true, phone: true, firstName: true, lastName: true,
+        status: true, createdAt: true,
+        userRoles: { select: { role: { select: { id: true, code: true, name: true } } } },
+      },
+    });
+  }
+
+  async update(id: string, dto: any) {
+    await this.findOne(id);
+
+    const data: any = {
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      status: dto.status,
+    };
+
+    Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
+
+    if (dto.email) {
+      const existing = await this.prisma.user.findFirst({
+        where: { email: dto.email, id: { not: id } },
+      });
+      if (existing) throw new ConflictException("Cet email est deja utilise");
+      data.email = dto.email;
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true, email: true, phone: true, firstName: true, lastName: true,
+        status: true,
+        userRoles: { select: { role: { select: { id: true, code: true, name: true } } } },
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { userRoles: { include: { role: true } } },
+    });
+
+    if (user?.userRoles.some((ur) => ur.role.code === "SUPER_ADMIN")) {
+      const superAdmins = await this.prisma.user.count({
+        where: { userRoles: { some: { role: { code: "SUPER_ADMIN" } } } },
+      });
+      if (superAdmins <= 1) {
+        throw new BadRequestException("Impossible de supprimer le dernier SUPER_ADMIN");
+      }
+    }
+
+    return this.prisma.user.delete({ where: { id } });
+  }
+
+  async resetPassword(id: string, newPassword: string) {
+    await this.findOne(id);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    return this.prisma.user.update({
+      where: { id },
+      data: { passwordHash, mustChangePassword: true },
+      select: { id: true, email: true },
+    });
+  }
+
+  async listRoles() {
+    return this.prisma.role.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, code: true, name: true, description: true },
+    });
   }
 }

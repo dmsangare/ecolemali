@@ -1,75 +1,45 @@
-﻿import {
-  Controller, Get, Post, Delete, Body, Param, Query,
-  HttpCode, HttpStatus, UseGuards,
-} from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { CashSessionsService } from "./cash-sessions.service";
-import { CashSessionOpenSchema, CashSessionCloseSchema } from "./dto";
-import { ZodValidationPipe } from "../common/pipes";
-import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
-import { SchoolScopeGuard } from "../common/guards";
-import { PaginationDto } from "../common/dto/pagination.dto";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CashSessionsService } from './cash-sessions.service';
+import { OpenCashSessionDto } from './dto/open-cash-session.dto';
+import { CloseCashSessionDto } from './dto/close-cash-session.dto';
 
-@ApiTags("CashSessions")
-@ApiBearerAuth("access-token")
-@Controller("cash-sessions")
-@UseGuards(SchoolScopeGuard)
+@Controller('cash-sessions')
+@UseGuards(JwtAuthGuard)
 export class CashSessionsController {
-  constructor(private readonly service: CashSessionsService) {}
+  constructor(private service: CashSessionsService) {}
 
-  @Get()
-  @RequirePermissions("cash:view")
-  @ApiOperation({ summary: "Liste des sessions de caisse" })
-  async findAll(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationDto,
-    @Query("status") status?: string,
-  ) {
-    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, query.page, query.limit, status);
+  @Get('current')
+  current(@Req() req: any) {
+    return this.service.getCurrent(req.user.schoolId, req.user.id);
   }
 
-  @Get("current")
-  @RequirePermissions("cash:view")
-  @ApiOperation({ summary: "Session ouverte du caissier connecte" })
-  async getCurrent(@CurrentUser() user: CurrentUserPayload) {
-    return this.service.getCurrentOpen(user.schoolId!, user.id);
+  @Post('open')
+  open(@Req() req: any, @Body() dto: OpenCashSessionDto) {
+    return this.service.open(req.user.schoolId, req.user.id, dto);
   }
 
-  @Get(":id")
-  @RequirePermissions("cash:view")
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  @Post('close')
+  close(@Req() req: any, @Body() dto: CloseCashSessionDto) {
+    return this.service.close(req.user.schoolId, req.user.id, dto);
   }
 
-  @Get(":id/report")
-  @RequirePermissions("cash:view")
-  @ApiOperation({ summary: "Rapport detaille de la session" })
-  async getReport(@Param("id") id: string) {
-    return this.service.getReport(id);
+  @Get('history')
+  history(@Req() req: any, @Query() query: any) {
+    return this.service.history(req.user.schoolId, query);
   }
 
-  @Post("open")
-  @RequirePermissions("cash:open")
-  @ApiOperation({ summary: "Ouvrir une session de caisse" })
-  async open(@Body(new ZodValidationPipe(CashSessionOpenSchema)) dto: any) {
-    return this.service.open(dto);
-  }
-
-  @Post(":id/close")
-  @RequirePermissions("cash:close")
-  @ApiOperation({ summary: "Fermer la session avec comptage" })
-  async close(
-    @Param("id") id: string,
-    @Body(new ZodValidationPipe(CashSessionCloseSchema)) dto: any,
-  ) {
-    return this.service.close(id, dto);
-  }
-
-  @Delete(":id")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @RequirePermissions("cash:close")
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+  @Get(':id')
+  detail(@Req() req: any, @Param('id') id: string) {
+    return this.service.detail(req.user.schoolId, id);
   }
 }

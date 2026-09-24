@@ -1,50 +1,44 @@
-﻿import { api } from "@/lib/axios";
+import { api } from "@/lib/axios";
 import type { Teacher, CreateTeacherInput } from "@/types/teacher";
 
 export interface TeacherListFilters {
   page?: number;
   limit?: number;
   q?: string;
-  status?: string;
 }
 
-export interface PaginatedTeachers {
+export interface TeacherListResponse {
   data: Teacher[];
   meta: { page: number; limit: number; total: number; pages: number };
 }
 
 export const teachersApi = {
-  async list(filters: TeacherListFilters = {}): Promise<PaginatedTeachers> {
-    const { data } = await api.get("/teachers", { params: filters });
-    return data.data ? data : data;
+  list: async (params?: TeacherListFilters): Promise<TeacherListResponse> => {
+    const res = await api.get('/teachers', { params });
+    return res.data;
   },
-
-  async getById(id: string): Promise<Teacher> {
-    const { data } = await api.get(`/teachers/${id}`);
-    return data.data || data;
+  getById: async (id: string) => {
+    const res = await api.get(`/teachers/${id}`);
+    return res.data?.data ?? res.data;
   },
-
-  async create(input: CreateTeacherInput): Promise<Teacher> {
-    const { data } = await api.post("/teachers", input);
-    return data.data || data;
+  create: async (input: CreateTeacherInput) => {
+    const res = await api.post('/teachers', input);
+    return res.data?.data ?? res.data;
   },
-
-  async update(id: string, input: Partial<CreateTeacherInput>): Promise<Teacher> {
-    const { data } = await api.patch(`/teachers/${id}`, input);
-    return data.data || data;
+  update: async (id: string, dto: any) => {
+    const res = await api.patch(`/teachers/${id}`, dto);
+    return res.data?.data ?? res.data;
   },
-
-  async remove(id: string): Promise<void> {
-    await api.delete(`/teachers/${id}`);
+  remove: async (id: string) => {
+    const res = await api.delete(`/teachers/${id}`);
+    return res.data?.data ?? res.data;
   },
-
-  async getAssignments(id: string): Promise<any[]> {
-    const { data } = await api.get(`/teachers/${id}/assignments`);
-    return data.data || data;
+  assign: async (id: string, dto: any) => {
+    const res = await api.post(`/teachers/${id}/assign`, dto);
+    return res.data?.data ?? res.data;
   },
-
-  async getTimetable(id: string): Promise<any[]> {
-    const { data } = await api.get(`/teachers/${id}/timetable`);
-    return data.data || data;
+  removeAssignment: async (id: string, assignmentId: string) => {
+    const res = await api.delete(`/teachers/${id}/assign/${assignmentId}`);
+    return res.data?.data ?? res.data;
   },
 };

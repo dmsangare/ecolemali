@@ -40,7 +40,42 @@ export class ClassesController {
 
   @Post()
   @RequirePermissions("class:create")
-  async create(@Body(new ZodValidationPipe(ClassCreateSchema)) dto: any) {
+  @ApiOperation({ summary: "Creer une classe" })
+  async create(
+    @Body() rawDto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // Nettoyage manuel : on ignore tout ce qui n'est pas attendu
+    const dto: any = {
+      schoolId: user.schoolId,
+      academicYearId: rawDto?.academicYearId,
+      levelId: rawDto?.levelId,
+      code: String(rawDto?.code || "").trim().toUpperCase(),
+      name: String(rawDto?.name || "").trim(),
+      capacity: rawDto?.capacity ? Number(rawDto.capacity) : 50,
+    };
+
+    // Champs optionnels : on ne les ajoute que s'ils sont valides
+    if (rawDto?.roomId && typeof rawDto.roomId === 'string' && rawDto.roomId.length > 10) {
+      dto.roomId = rawDto.roomId;
+    }
+    if (rawDto?.mainTeacherId && typeof rawDto.mainTeacherId === 'string' && rawDto.mainTeacherId.length > 10) {
+      dto.mainTeacherId = rawDto.mainTeacherId;
+    }
+    if (rawDto?.status && typeof rawDto.status === 'string') {
+      dto.status = rawDto.status;
+    }
+
+    // Validation minimale
+    if (!dto.academicYearId || !dto.levelId || !dto.code || !dto.name) {
+      throw new (await import("@nestjs/common")).BadRequestException(
+        "Champs requis manquants : academicYearId, levelId, code, name"
+      );
+    }
+
+    // Log pour debug
+    console.log("[CLASS CREATE] Payload nettoye:", JSON.stringify(dto));
+
     return this.service.create(dto);
   }
 

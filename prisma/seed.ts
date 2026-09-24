@@ -477,10 +477,9 @@ async function main() {
     // Link role
     await prisma.userRole.upsert({
       where: {
-        userId_roleId_schoolId: {
+        userId_roleId: {
           userId: user.id,
           roleId: roles[u.roleCode].id,
-          schoolId: u.roleCode === 'SUPER_ADMIN' ? null : school.id,
         },
       },
       update: {},

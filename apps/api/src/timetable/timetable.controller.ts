@@ -60,8 +60,11 @@ export class TimetableController {
   @Post()
   @RequirePermissions("timetable:create")
   @ApiOperation({ summary: "Creer un creneau (verifie les conflits)" })
-  async create(@Body(new ZodValidationPipe(TimetableSlotCreateSchema)) dto: any) {
-    return this.service.create(dto);
+  async create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body(new ZodValidationPipe(TimetableSlotCreateSchema)) dto: any,
+  ) {
+    return this.service.create({ ...dto, schoolId: user.schoolId });
   }
 
   @Patch(":id")

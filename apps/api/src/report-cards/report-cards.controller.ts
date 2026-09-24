@@ -1,9 +1,11 @@
 ﻿import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query,
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { Response } from "express";
 import { ReportCardsService } from "./report-cards.service";
+import { generateReportCardPDF } from "./utils/report-card-pdf.util";
 import { ReportCardGenerateSchema, ReportCardUpdateSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
@@ -52,7 +54,7 @@ export class ReportCardsController {
   }
 
   @Post("generate")
-  @RequirePermissions("report_card:generate")
+  @RequirePermissions("report_card:create")
   @ApiOperation({ summary: "Generer les bulletins (calcul auto des moyennes et rangs)" })
   async generate(@Body(new ZodValidationPipe(ReportCardGenerateSchema)) dto: any) {
     return this.service.generate(dto);
@@ -72,17 +74,38 @@ export class ReportCardsController {
   }
 
   @Post(":id/publish")
-  @RequirePermissions("report_card:publish")
+  @RequirePermissions("report_card:update")
   @ApiOperation({ summary: "Publier un bulletin" })
   async publish(@Param("id") id: string) {
     return this.service.publish(id);
   }
 
   @Post("class/:classId/term/:termId/publish")
-  @RequirePermissions("report_card:publish")
+  @RequirePermissions("report_card:update")
   @ApiOperation({ summary: "Publier tous les bulletins d une classe" })
   async publishByClass(@Param("classId") classId: string, @Param("termId") termId: string) {
     return this.service.publishByClass(classId, termId);
+  }
+
+  @Get(":id/export/pdf")
+  @RequirePermissions("report_card:export")
+  @ApiOperation({ summary: "Exporter le bulletin en PDF" })
+  async exportPDF(
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    const data = await this.service.getExportData(id);
+    const buffer = await generateReportCardPDF(data as any);
+
+    const safeName = data.studentName
+      .replace(/[^a-z0-9]/gi, "-")
+      .toLowerCase()
+      .slice(0, 40);
+    const filename = `bulletin-${safeName}-${data.termName.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 
   @Delete(":id")

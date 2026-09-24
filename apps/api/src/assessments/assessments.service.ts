@@ -172,4 +172,158 @@ export class AssessmentsService {
       data: { status: "LOCKED" },
     });
   }
+
+  async reopen(id: string) {
+    const assessment = await this.findOne(id);
+    if (assessment.status === "OPEN" || assessment.status === "DRAFT") {
+      return assessment; // deja modifiable
+    }
+
+    // Reinitialiser toutes les notes : debloquer
+    await this.prisma.grade.updateMany({
+      where: { assessmentId: id },
+      data: { locked: false },
+    });
+
+    return this.prisma.assessment.update({
+      where: { id },
+      data: { status: "OPEN" },
+    });
+  }
+
+  /**
+   * Prepare les donnees pour l'export (PDF/Excel/CSV).
+   */
+  async getExportData(assessmentId: string) {
+    const assessment = await this.prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      include: {
+        class: {
+          include: {
+            level: true,
+          },
+        },
+        subject: true,
+        term: true,
+        teacher: true,
+      },
+    });
+
+    if (!assessment) {
+      const { NotFoundException } = await import("@nestjs/common");
+      throw new NotFoundException("Evaluation introuvable");
+    }
+
+    // Recuperer les eleves inscrits dans la classe
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        classId: assessment.classId,
+        academicYearId: assessment.academicYearId,
+        status: "VALIDATED",
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            matricule: true,
+            firstName: true,
+            lastName: true,
+            gender: true,
+          },
+        },
+      },
+      orderBy: [
+        { student: { lastName: "asc" } },
+        { student: { firstName: "asc" } },
+      ],
+    });
+
+    // Recuperer les notes
+    const grades = await this.prisma.grade.findMany({
+      where: { assessmentId },
+    });
+
+    const gradesMap = new Map(
+      grades.map((g) => [g.studentId, g]),
+    );
+
+    // Construire les lignes
+    const rows = enrollments.map((e, idx) => {
+      const g = gradesMap.get(e.studentId);
+      return {
+        index: idx + 1,
+        matricule: e.student.matricule,
+        firstName: e.student.firstName,
+        lastName: e.student.lastName,
+        gender: e.student.gender as string,
+        value: g?.value !== null && g?.value !== undefined ? Number(g.value) : null,
+        isAbsent: g?.isAbsent ?? false,
+        observation: g?.observation ?? null,
+        rank: null as number | null,
+      };
+    });
+
+    // Calculer les rangs
+    const scored = rows
+      .filter((r) => !r.isAbsent && r.value !== null)
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    scored.forEach((r, i) => {
+      if (prevValue !== null && r.value! < prevValue) {
+        currentRank = i + 1;
+      }
+      const target = rows.find((x) => x.matricule === r.matricule);
+      if (target) target.rank = currentRank;
+      prevValue = r.value;
+    });
+
+    // Stats
+    const validGrades = rows
+      .filter((r) => !r.isAbsent && r.value !== null)
+      .map((r) => r.value!);
+
+    const count = validGrades.length;
+    const average = count > 0 ? validGrades.reduce((s, v) => s + v, 0) / count : 0;
+    const min = count > 0 ? Math.min(...validGrades) : 0;
+    const max = count > 0 ? Math.max(...validGrades) : 0;
+
+    // Infos ecole
+    const school = await this.prisma.school.findUnique({
+      where: { id: assessment.schoolId },
+    });
+
+    const academicYear = await this.prisma.academicYear.findUnique({
+      where: { id: assessment.academicYearId },
+    });
+
+    return {
+      schoolName: school?.name || "SIS-MALI",
+      schoolAddress: school?.address,
+      schoolPhone: school?.phone,
+      schoolLogoUrl: school?.logoUrl,
+      className: assessment.class?.name || "",
+      subjectName: assessment.subject?.name || "",
+      termName: assessment.term?.name || "",
+      assessmentTitle: assessment.title,
+      assessmentType: assessment.type,
+      assessmentDate: assessment.date.toISOString().split("T")[0],
+      maxScore: Number(assessment.maxScore),
+      coefficient: Number(assessment.coefficient),
+      teacherName: assessment.teacher
+        ? `${assessment.teacher.firstName} ${assessment.teacher.lastName}`
+        : null,
+      academicYear: academicYear?.label || "",
+      grades: rows,
+      stats: {
+        count,
+        total: rows.length,
+        average,
+        min,
+        max,
+      },
+    };
+  }
+
 }

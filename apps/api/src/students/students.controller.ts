@@ -1,41 +1,63 @@
-﻿import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query,
+import {
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { Response } from "express";
 import { StudentsService } from "./students.service";
-import { StudentCreateSchema, StudentUpdateSchema } from "./dto";
+import { PrismaService } from "../prisma/prisma.service";
+import {
+  StudentCreateSchema,
+  StudentUpdateSchema,
+  StudentListQueryDto,
+} from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
 import { SchoolScopeGuard } from "../common/guards";
-import { PaginationDto } from "../common/dto/pagination.dto";
 
 @ApiTags("Students")
 @ApiBearerAuth("access-token")
 @Controller("students")
 @UseGuards(SchoolScopeGuard)
 export class StudentsController {
-  constructor(private readonly service: StudentsService) {}
+  constructor(
+    private readonly service: StudentsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   @RequirePermissions("student:view")
-  @ApiOperation({ summary: "Liste des eleves" })
+  @ApiOperation({ summary: "Liste des eleves avec filtres avances" })
   async findAll(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationDto,
-    @Query("classId") classId?: string,
-    @Query("levelId") levelId?: string,
-    @Query("status") status?: string,
+    @Query() query: StudentListQueryDto,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, query.page, query.limit, query.q, classId, levelId, status);
+    return this.service.findAll(
+      schoolId,
+      query.page,
+      query.limit,
+      query.q,
+      query.classId,
+      query.levelId,
+      query.cycle,
+      query.gender,
+      query.ageRange,
+      query.status,
+      query.enrollmentStatus,
+      query.onlyNew,
+      query.onlyUnpaid,
+      query.sortField,
+      query.sortDirection,
+    );
   }
 
   @Get("stats")
   @RequirePermissions("student:view")
   @ApiOperation({ summary: "Statistiques des eleves" })
   async stats(@CurrentUser() user: CurrentUserPayload) {
-    return this.service.statsBySchool(user.schoolId!);
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+    return this.service.getStats(schoolId);
   }
 
   @Get(":id")
@@ -59,6 +81,14 @@ export class StudentsController {
     return this.service.getDocuments(id);
   }
 
+
+  @Get(":id/siblings")
+  @RequirePermissions("student:view")
+  @ApiOperation({ summary: "Freres et soeurs de l eleve" })
+  async getSiblings(@Param("id") id: string) {
+    return this.service.getSiblings(id);
+  }
+
   @Post()
   @RequirePermissions("student:create")
   @ApiOperation({ summary: "Creer un eleve" })
@@ -78,7 +108,7 @@ export class StudentsController {
 
   @Post(":id/documents")
   @RequirePermissions("student:update")
-  @ApiOperation({ summary: "Ajouter un document a l eleve" })
+  @ApiOperation({ summary: "Ajouter un document" })
   async addDocument(
     @Param("id") studentId: string,
     @CurrentUser("id") userId: string,
@@ -98,8 +128,101 @@ export class StudentsController {
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("student:delete")
-  @ApiOperation({ summary: "Supprimer un eleve (soft delete)" })
+  @ApiOperation({ summary: "Supprimer un eleve" })
   async remove(@Param("id") id: string) {
     await this.service.remove(id);
   }
+
+  @Get("export/csv")
+  @RequirePermissions("student:export")
+  @ApiOperation({ summary: "Exporter les eleves en CSV" })
+  async exportCSV(
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+    @Query("classId") classId?: string,
+    @Query("levelId") levelId?: string,
+    @Query("status") status?: string,
+    @Query("enrollmentStatus") enrollmentStatus?: "NOUVEAU" | "ANCIEN" | "REDOUBLANT",
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+    const csv = await this.service.exportCSV(schoolId, classId, levelId, status, enrollmentStatus);
+
+    const filename = `eleves-${new Date().toISOString().split("T")[0]}.csv`;
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+
+  @Get("export/excel")
+  @RequirePermissions("student:export")
+  @ApiOperation({ summary: "Exporter les eleves en Excel" })
+  async exportExcel(
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+    @Query("classId") classId?: string,
+    @Query("levelId") levelId?: string,
+    @Query("status") status?: string,
+    @Query("enrollmentStatus") enrollmentStatus?: "NOUVEAU" | "ANCIEN" | "REDOUBLANT",
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+
+    const school = schoolId
+      ? await this.prisma.school.findUnique({ where: { id: schoolId } })
+      : null;
+    const schoolName = school?.name || "SIS-MALI";
+
+    const buffer = await this.service.exportExcel(
+      schoolId,
+      schoolName,
+      classId,
+      levelId,
+      status,
+      enrollmentStatus,
+    );
+
+    const filename = `eleves-${new Date().toISOString().split("T")[0]}.xlsx`;
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Get("export/pdf")
+  @RequirePermissions("student:export")
+  @ApiOperation({ summary: "Exporter les eleves en PDF" })
+  async exportPDF(
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+    @Query("classId") classId?: string,
+    @Query("levelId") levelId?: string,
+    @Query("status") status?: string,
+    @Query("enrollmentStatus") enrollmentStatus?: "NOUVEAU" | "ANCIEN" | "REDOUBLANT",
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+
+    const school = schoolId
+      ? await this.prisma.school.findUnique({ where: { id: schoolId } })
+      : null;
+    const schoolName = school?.name || "SIS-MALI";
+    const schoolAddress = school?.address || undefined;
+
+    const buffer = await this.service.exportPDF(
+      schoolId,
+      schoolName,
+      schoolAddress,
+      classId,
+      levelId,
+      status,
+      enrollmentStatus,
+    );
+
+    const filename = `eleves-${new Date().toISOString().split("T")[0]}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
 }

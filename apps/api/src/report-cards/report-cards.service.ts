@@ -332,4 +332,83 @@ export class ReportCardsService {
       lates: r.latesCount,
     }));
   }
+
+  /**
+   * Prepare les donnees d'export PDF pour un bulletin.
+   */
+  async getExportData(id: string) {
+    const report = await this.prisma.reportCard.findUnique({
+      where: { id },
+      include: {
+        student: true,
+        class: {
+          include: { level: true },
+        },
+        term: true,
+        academicYear: true,
+        items: {
+          include: {
+            subject: true,
+          },
+        },
+      },
+    });
+
+    if (!report) {
+      const { NotFoundException } = await import("@nestjs/common");
+      throw new NotFoundException("Bulletin introuvable");
+    }
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: report.student.schoolId },
+    });
+
+    // Calculer le total coefficient et total weighted
+    const totalCoefficient = report.items.reduce(
+      (sum, item) => sum + Number(item.coefficient),
+      0,
+    );
+    const totalWeighted = report.items.reduce(
+      (sum, item) => sum + (Number(item.weighted) || 0),
+      0,
+    );
+
+    return {
+      schoolName: school?.name || "SIS-MALI",
+      schoolAddress: school?.address,
+      schoolPhone: school?.phone,
+      schoolMotto: school?.motto,
+      schoolLogoUrl: school?.logoUrl,
+
+      studentName: `${report.student.lastName} ${report.student.firstName}`,
+      studentMatricule: report.student.matricule,
+      studentGender: report.student.gender,
+      studentBirthDate: report.student.birthDate.toISOString().split("T")[0],
+      studentBirthPlace: report.student.birthPlace,
+
+      className: report.class?.name || "",
+      classSize: report.classSize || 0,
+      termName: report.term?.name || "",
+      academicYear: report.academicYear?.label || "",
+
+      items: report.items.map((item) => ({
+        subjectName: item.subject?.name || "",
+        coefficient: Number(item.coefficient),
+        average: item.average !== null ? Number(item.average) : null,
+        weighted: item.weighted !== null ? Number(item.weighted) : null,
+        rank: item.rank,
+      })),
+      totalCoefficient,
+      totalWeighted,
+      generalAverage:
+        report.average !== null ? Number(report.average) : null,
+      rank: report.rank,
+      absencesCount: report.absencesCount,
+      latesCount: report.latesCount,
+
+      decision: report.decision,
+      appreciation: report.appreciation,
+    };
+  }
+
 }

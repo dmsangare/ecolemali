@@ -17,7 +17,7 @@
 }
 
 export interface CreateSubjectInput {
-  schoolId: string;
+  schoolId?: string;
   code: string;
   name: string;
   type?: "CORE" | "OPTIONAL" | "SPORT" | "ART";

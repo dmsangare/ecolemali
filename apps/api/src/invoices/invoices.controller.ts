@@ -22,14 +22,17 @@ export class InvoicesController {
   @ApiOperation({ summary: "Liste des factures" })
   async findAll(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationDto,
-    @Query("studentId") studentId?: string,
-    @Query("status") status?: string,
-    @Query("academicYearId") academicYearId?: string,
+    @Query() query: any,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, query.page, query.limit, {
-      studentId, status, academicYearId, q: query.q,
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 20, 200);
+
+    return this.service.findAll(schoolId, page, limit, {
+      studentId: query.studentId,
+      status: query.status,
+      academicYearId: query.academicYearId,
+      q: query.q,
     });
   }
 

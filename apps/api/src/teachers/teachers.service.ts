@@ -1,140 +1,194 @@
-﻿import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { TeacherCreateDto, TeacherUpdateDto } from "./dto";
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TeachersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async findAll(schoolId: string | null, page = 1, limit = 20, q?: string, status?: string) {
-    const where: any = {};
-    if (schoolId) where.schoolId = schoolId;
-    if (status) where.status = status;
-
-    if (q) {
+  async findAll(schoolId: string, query: any) {
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 20);
+    const where: any = { schoolId };
+    if (query.q) {
       where.OR = [
-        { firstName: { contains: q, mode: "insensitive" } },
-        { lastName: { contains: q, mode: "insensitive" } },
-        { matricule: { contains: q, mode: "insensitive" } },
-        { specialty: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q } },
+        { firstName: { contains: query.q, mode: 'insensitive' } },
+        { lastName: { contains: query.q, mode: 'insensitive' } },
+        { matricule: { contains: query.q, mode: 'insensitive' } },
+        { phone: { contains: query.q } },
+        { email: { contains: query.q, mode: 'insensitive' } },
       ];
     }
 
-    const [data, total] = await Promise.all([
+    const [items, total] = await Promise.all([
       this.prisma.teacher.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         include: {
-          _count: {
-            select: { assignments: true, timetableSlots: true, mainTeacherClasses: true },
+          assignments: {
+            include: {
+              subject: { select: { id: true, name: true, code: true } },
+              class: { select: { id: true, name: true } },
+            },
           },
         },
       }),
       this.prisma.teacher.count({ where }),
     ]);
 
-    return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
+    return {
+      data: items,
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
   }
 
-  async findOne(id: string) {
-    const teacher = await this.prisma.teacher.findUnique({
-      where: { id },
+  async findOne(schoolId: string, id: string) {
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { id, schoolId },
       include: {
-        user: { select: { id: true, email: true, phone: true, status: true } },
         assignments: {
           include: {
-            subject: { select: { id: true, code: true, name: true } },
-            class: { select: { id: true, code: true, name: true } },
+            subject: { select: { id: true, name: true, code: true } },
+            class: { select: { id: true, name: true } },
             academicYear: { select: { id: true, label: true } },
           },
         },
-        mainTeacherClasses: {
-          select: { id: true, code: true, name: true },
-        },
-        _count: {
-          select: { timetableSlots: true, assessments: true },
-        },
       },
     });
-    if (!teacher) throw new NotFoundException("Enseignant introuvable");
+    if (!teacher) throw new NotFoundException('Enseignant introuvable');
     return teacher;
   }
 
-  async create(dto: TeacherCreateDto, createdBy: string) {
-    // Générer le matricule automatiquement si non fourni
+  async create(schoolId: string, dto: any) {
+    if (!dto.firstName || !dto.lastName) {
+      throw new BadRequestException('Nom et prénom obligatoires');
+    }
+
+    // Générer un matricule auto si non fourni
     let matricule = dto.matricule;
     if (!matricule) {
-      const currentYear = new Date().getFullYear();
-      const yearStr = String(currentYear);
-      const count = await this.prisma.teacher.count({
-        where: {
-          schoolId: dto.schoolId,
-          matricule: { startsWith: `ENS-${yearStr}-` },
-        },
-      });
-      matricule = `ENS-${yearStr}-${String(count + 1).padStart(6, "0")}`;
+      const count = await this.prisma.teacher.count({ where: { schoolId } });
+      matricule = `ENS-${String(count + 1).padStart(4, '0')}`;
     }
 
-    // Vérifier unicité
-    const existing = await this.prisma.teacher.findUnique({
-      where: { schoolId_matricule: { schoolId: dto.schoolId, matricule } },
-    });
-    if (existing) {
-      throw new ConflictException("Un enseignant avec ce matricule existe deja");
-    }
-
-    const data: any = {
-      ...dto,
-      matricule,
-      gender: dto.gender as any,
-      contractType: dto.contractType as any,
-      status: (dto.status || "ACTIVE") as any,
-    };
-    if (dto.hireDate) data.hireDate = new Date(dto.hireDate);
-
-    return this.prisma.teacher.create({ data });
-  }
-
-  async update(id: string, dto: TeacherUpdateDto) {
-    await this.findOne(id);
-    const data: any = { ...dto };
-    if (dto.hireDate) data.hireDate = new Date(dto.hireDate);
-    if (dto.gender) data.gender = dto.gender as any;
-    if (dto.contractType) data.contractType = dto.contractType as any;
-    if (dto.status) data.status = dto.status as any;
-    return this.prisma.teacher.update({ where: { id }, data });
-  }
-
-  async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.teacher.delete({ where: { id } });
-  }
-
-  async getAssignments(id: string) {
-    await this.findOne(id);
-    return this.prisma.teacherAssignment.findMany({
-      where: { teacherId: id },
-      include: {
-        subject: true,
-        class: { include: { level: true } },
-        academicYear: true,
+    return this.prisma.teacher.create({
+      data: {
+        schoolId,
+        matricule,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        gender: dto.gender ?? null,
+        phone: dto.phone ?? null,
+        email: dto.email ?? null,
+        address: dto.address ?? null,
+        specialty: dto.specialty ?? null,
+        diploma: dto.diploma ?? null,
+        hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+        contractType: dto.contractType ?? null,
+        status: dto.status ?? 'ACTIVE',
       },
     });
   }
 
-  async getTimetable(id: string) {
-    await this.findOne(id);
-    return this.prisma.timetableSlot.findMany({
-      where: { teacherId: id },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-      include: {
-        subject: { select: { id: true, code: true, name: true } },
-        class: { select: { id: true, code: true, name: true } },
-        room: { select: { id: true, name: true } },
+  async update(schoolId: string, id: string, dto: any) {
+    const teacher = await this.prisma.teacher.findFirst({ where: { id, schoolId } });
+    if (!teacher) throw new NotFoundException('Enseignant introuvable');
+
+    return this.prisma.teacher.update({
+      where: { id },
+      data: {
+        firstName: dto.firstName ?? teacher.firstName,
+        lastName: dto.lastName ?? teacher.lastName,
+        gender: dto.gender ?? teacher.gender,
+        phone: dto.phone ?? teacher.phone,
+        email: dto.email ?? teacher.email,
+        address: dto.address ?? teacher.address,
+        specialty: dto.specialty ?? teacher.specialty,
+        diploma: dto.diploma ?? teacher.diploma,
+        hireDate: dto.hireDate ? new Date(dto.hireDate) : teacher.hireDate,
+        contractType: dto.contractType ?? teacher.contractType,
+        status: dto.status ?? teacher.status,
       },
     });
+  }
+
+  async remove(schoolId: string, id: string) {
+    const teacher = await this.prisma.teacher.findFirst({ where: { id, schoolId } });
+    if (!teacher) throw new NotFoundException('Enseignant introuvable');
+
+    const assignments = await this.prisma.teacherAssignment.count({ where: { teacherId: id } });
+    if (assignments > 0) {
+      throw new BadRequestException(
+        `Impossible : ${assignments} assignation(s) à retirer d'abord`,
+      );
+    }
+
+    await this.prisma.teacher.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async assignSubject(schoolId: string, teacherId: string, dto: any) {
+    const teacher = await this.prisma.teacher.findFirst({ where: { id: teacherId, schoolId } });
+    if (!teacher) throw new NotFoundException('Enseignant introuvable');
+
+    if (!dto.subjectId || !dto.classId || !dto.academicYearId) {
+      throw new BadRequestException('subjectId, classId et academicYearId obligatoires');
+    }
+
+    const existing = await this.prisma.teacherAssignment.findFirst({
+      where: {
+        teacherId,
+        subjectId: dto.subjectId,
+        classId: dto.classId,
+        academicYearId: dto.academicYearId,
+      },
+    });
+    if (existing) throw new BadRequestException('Assignation déjà existante');
+
+    return this.prisma.teacherAssignment.create({
+      data: {
+        teacherId,
+        subjectId: dto.subjectId,
+        classId: dto.classId,
+        academicYearId: dto.academicYearId,
+        isMain: dto.isMain ?? false,
+      },
+    });
+  }
+
+  async removeAssignment(schoolId: string, teacherId: string, assignmentId: string) {
+    const teacher = await this.prisma.teacher.findFirst({ where: { id: teacherId, schoolId } });
+    if (!teacher) throw new NotFoundException('Enseignant introuvable');
+
+    await this.prisma.teacherAssignment.delete({ where: { id: assignmentId } });
+    return { success: true };
+  }
+
+  async getSubjects(schoolId: string) {
+    const data = await this.prisma.subject.findMany({
+      where: { schoolId, isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, code: true, name: true },
+    });
+    return { data };
+  }
+
+  async getClasses(schoolId: string) {
+    const data = await this.prisma.class.findMany({
+      where: { schoolId },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    });
+    return { data };
+  }
+
+  async getAcademicYears(schoolId: string) {
+    const data = await this.prisma.academicYear.findMany({
+      where: { schoolId },
+      orderBy: { startDate: 'desc' },
+      select: { id: true, label: true, isCurrent: true },
+    });
+    return { data };
   }
 }

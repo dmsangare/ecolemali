@@ -1,5 +1,7 @@
-﻿import { api } from "@/lib/axios";
-import type { Exam } from "@/types/exams";
+import { api } from "@/lib/axios";
+import type { Exam, ExamSession, ExamCandidate } from "@/types/exams";
+
+const unwrap = (res: any) => res.data?.data ?? res.data;
 
 export interface ExamListFilters {
   page?: number;
@@ -11,32 +13,54 @@ export interface ExamListFilters {
 }
 
 export const examsApi = {
-  async list(filters: ExamListFilters = {}): Promise<any> {
-    const { data } = await api.get("/exams", { params: filters });
-    return data.data ? data : data;
+  list: async (filters: ExamListFilters = {}): Promise<any> => {
+    const res = await api.get("/exams", { params: filters });
+    return res.data;
   },
-
-  async getById(id: string): Promise<Exam> {
-    const { data } = await api.get(`/exams/${id}`);
-    return data.data || data;
+  getById: async (id: string): Promise<Exam> => {
+    const res = await api.get(`/exams/${id}`);
+    return unwrap(res);
   },
-
-  async getResults(id: string): Promise<any> {
-    const { data } = await api.get(`/exams/${id}/results`);
-    return data.data || data;
+  getResults: async (id: string): Promise<any> => {
+    const res = await api.get(`/exams/${id}/results`);
+    return unwrap(res);
   },
-
-  async create(input: any): Promise<Exam> {
-    const { data } = await api.post("/exams", input);
-    return data.data || data;
+  create: async (input: any): Promise<Exam> => {
+    const res = await api.post("/exams", input);
+    return unwrap(res);
   },
-
-  async update(id: string, input: any): Promise<Exam> {
-    const { data } = await api.patch(`/exams/${id}`, input);
-    return data.data || data;
+  update: async (id: string, input: any): Promise<Exam> => {
+    const res = await api.patch(`/exams/${id}`, input);
+    return unwrap(res);
   },
-
-  async remove(id: string): Promise<void> {
+  updateStatus: async (id: string, status: string): Promise<Exam> => {
+    const res = await api.patch(`/exams/${id}/status`, { status });
+    return unwrap(res);
+  },
+  remove: async (id: string): Promise<void> => {
     await api.delete(`/exams/${id}`);
+  },
+  createSession: async (examId: string, dto: any): Promise<ExamSession> => {
+    const res = await api.post(`/exams/${examId}/sessions`, dto);
+    return unwrap(res);
+  },
+  getSession: async (sessionId: string): Promise<ExamSession> => {
+    const res = await api.get(`/exams/sessions/${sessionId}`);
+    return unwrap(res);
+  },
+  getCandidates: async (sessionId: string): Promise<ExamCandidate[]> => {
+    const res = await api.get(`/exams/sessions/${sessionId}/candidates`);
+    return unwrap(res);
+  },
+  generateCandidates: async (sessionId: string): Promise<any> => {
+    const res = await api.post(`/exams/sessions/${sessionId}/generate-candidates`);
+    return unwrap(res);
+  },
+  saveGrades: async (sessionId: string, grades: any[]): Promise<any> => {
+    const res = await api.post(`/exams/sessions/${sessionId}/grades`, { grades });
+    return unwrap(res);
+  },
+  removeSession: async (sessionId: string): Promise<void> => {
+    await api.delete(`/exams/sessions/${sessionId}`);
   },
 };

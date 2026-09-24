@@ -1,175 +1,393 @@
-﻿import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { UserPlus, User, GraduationCap, Users, FileCheck, ArrowLeft } from "lucide-react";
+import { Wizard, WizardStep, PageHeader } from "@/components/shared";
+import { Button } from "@/components/ui";
+import { api } from "@/lib/axios";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateStudent } from "@/hooks/students";
-import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { useCreateGuardian, useLinkGuardianToStudent } from "@/hooks/guardians";
+import { Step1Identity, IdentityData } from "./components/wizard/Step1Identity";
+import { Step2School, SchoolData } from "./components/wizard/Step2School";
+import { Step3Family, FamilyData } from "./components/wizard/Step3Family";
+import { Step4Summary } from "./components/wizard/Step4Summary";
 
-const StudentSchema = z.object({
-  firstName: z.string().min(2, "Le prenom est requis (min. 2 caracteres)"),
-  lastName: z.string().min(2, "Le nom est requis (min. 2 caracteres)"),
-  gender: z.enum(["M", "F"], { required_error: "Le sexe est requis" }),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format AAAA-MM-JJ requis"),
-  birthPlace: z.string().optional(),
-  nationality: z.string().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  specialSituation: z.string().optional(),
-});
+const DRAFT_KEY = "sis-mali-student-draft";
 
-type StudentForm = z.infer<typeof StudentSchema>;
+interface DraftData {
+  identity: IdentityData;
+  school: SchoolData;
+  family: FamilyData;
+  options: { generateInvoice: boolean; sendNotification: boolean };
+}
+
+const DEFAULT_IDENTITY: IdentityData = {
+  firstName: "",
+  lastName: "",
+  gender: "",
+  birthDate: "",
+  birthPlace: "",
+  nationality: "Malienne",
+  specialSituation: "",
+};
+
+const DEFAULT_SCHOOL: SchoolData = {
+  cycle: "",
+  levelId: "",
+  classId: "",
+  academicYearId: "",
+  previousSchool: "",
+};
+
+const DEFAULT_FAMILY: FamilyData = {
+  father: {
+    selected: null,
+    firstName: "",
+    lastName: "",
+    phone: "",
+    profession: "",
+    createNew: false,
+  },
+  mother: {
+    selected: null,
+    firstName: "",
+    lastName: "",
+    phone: "",
+    profession: "",
+    createNew: false,
+  },
+  primaryGuardianType: "FATHER",
+};
 
 export function StudentFormPage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const createMutation = useCreateStudent();
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<StudentForm>({
-    resolver: zodResolver(StudentSchema),
-    defaultValues: {
-      gender: "M",
-      nationality: "Malienne",
+  const [identity, setIdentity] = useState<IdentityData>(DEFAULT_IDENTITY);
+  const [school, setSchool] = useState<SchoolData>(DEFAULT_SCHOOL);
+  const [family, setFamily] = useState<FamilyData>(DEFAULT_FAMILY);
+  const [options, setOptions] = useState({
+    generateInvoice: true,
+    sendNotification: false,
+  });
+
+  const createStudent = useCreateStudent();
+  const createGuardian = useCreateGuardian();
+  const linkGuardian = useLinkGuardianToStudent();
+
+  // Charger niveaux + classes + années pour le récap
+  const { data: levelsData } = useQuery({
+    queryKey: ["levels", "for-summary"],
+    queryFn: async () => {
+      const { data } = await api.get("/levels");
+      return data.data || data;
+    },
+  });
+  const { data: classesData } = useQuery({
+    queryKey: ["classes", "for-summary"],
+    queryFn: async () => {
+      const { data } = await api.get("/classes");
+      return data.data || data;
+    },
+  });
+  const { data: yearsData } = useQuery({
+    queryKey: ["academic-years", "for-summary"],
+    queryFn: async () => {
+      const { data } = await api.get("/academic-years");
+      return data.data || data;
     },
   });
 
-  const onSubmit = async (data: StudentForm) => {
-    if (!user?.schoolId) return;
-    await createMutation.mutateAsync({
-      ...data,
-      schoolId: user.schoolId,
-    });
-    navigate("/students");
+  // Restaurer brouillon
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const draft: DraftData = JSON.parse(saved);
+        if (draft.identity) setIdentity(draft.identity);
+        if (draft.school) setSchool(draft.school);
+        if (draft.family) setFamily(draft.family);
+        if (draft.options) setOptions(draft.options);
+      } catch {}
+    }
+  }, []);
+
+  // Sauvegarder brouillon
+  useEffect(() => {
+    const draft: DraftData = { identity, school, family, options };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [identity, school, family, options]);
+
+  const validateStep1 = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!identity.lastName || identity.lastName.length < 2) {
+      errs.lastName = "Le nom est requis (min. 2 caracteres)";
+    }
+    if (!identity.firstName || identity.firstName.length < 2) {
+      errs.firstName = "Le prenom est requis (min. 2 caracteres)";
+    }
+    if (!identity.gender) errs.gender = "Le sexe est requis";
+    if (!identity.birthDate) errs.birthDate = "La date de naissance est requise";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateStep2 = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!school.cycle) errs.cycle = "Le cycle est requis";
+    if (!school.levelId) errs.levelId = "Le niveau est requis";
+    if (!school.classId) errs.classId = "La classe est requise";
+    if (!school.academicYearId) errs.academicYearId = "L annee scolaire est requise";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateStep3 = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    const fatherValid =
+      family.father.selected ||
+      (family.father.lastName && family.father.firstName && family.father.phone);
+    const motherValid =
+      family.mother.selected ||
+      (family.mother.lastName && family.mother.firstName && family.mother.phone);
+
+    if (!fatherValid && !motherValid) {
+      errs.family = "Au moins un parent ou tuteur est requis";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!user?.schoolId) {
+      toast.error("Vous devez etre rattache a un etablissement");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      // 1. Créer l'élève
+      const student = await createStudent.mutateAsync({
+        schoolId: user.schoolId,
+        firstName: identity.firstName.trim(),
+        lastName: identity.lastName.trim(),
+        gender: identity.gender as "M" | "F",
+        birthDate: identity.birthDate,
+        birthPlace: identity.birthPlace || undefined,
+        nationality: identity.nationality || "Malienne",
+        specialSituation: identity.specialSituation || undefined,
+      });
+
+      // 2. Créer / lier les tuteurs
+      const guardianTasks: Promise<any>[] = [];
+
+      // Père
+      if (family.father.selected) {
+        guardianTasks.push(
+          linkGuardian.mutateAsync({
+            guardianId: family.father.selected.id,
+            studentId: student.id,
+            isPrimary: family.primaryGuardianType === "FATHER",
+          }),
+        );
+      } else if (
+        family.father.lastName &&
+        family.father.firstName &&
+        family.father.phone
+      ) {
+        const father = await createGuardian.mutateAsync({
+          schoolId: user.schoolId,
+          firstName: family.father.firstName.trim(),
+          lastName: family.father.lastName.trim(),
+          phone: family.father.phone,
+          profession: family.father.profession || undefined,
+          relationType: "FATHER",
+          gender: "M",
+        });
+        guardianTasks.push(
+          linkGuardian.mutateAsync({
+            guardianId: father.id,
+            studentId: student.id,
+            isPrimary: family.primaryGuardianType === "FATHER",
+          }),
+        );
+      }
+
+      // Mère
+      if (family.mother.selected) {
+        guardianTasks.push(
+          linkGuardian.mutateAsync({
+            guardianId: family.mother.selected.id,
+            studentId: student.id,
+            isPrimary: family.primaryGuardianType === "MOTHER",
+          }),
+        );
+      } else if (
+        family.mother.lastName &&
+        family.mother.firstName &&
+        family.mother.phone
+      ) {
+        const mother = await createGuardian.mutateAsync({
+          schoolId: user.schoolId,
+          firstName: family.mother.firstName.trim(),
+          lastName: family.mother.lastName.trim(),
+          phone: family.mother.phone,
+          profession: family.mother.profession || undefined,
+          relationType: "MOTHER",
+          gender: "F",
+        });
+        guardianTasks.push(
+          linkGuardian.mutateAsync({
+            guardianId: mother.id,
+            studentId: student.id,
+            isPrimary: family.primaryGuardianType === "MOTHER",
+          }),
+        );
+      }
+
+      await Promise.all(guardianTasks);
+
+      // 3. Créer l'inscription
+      await api.post("/enrollments", {
+        studentId: student.id,
+        academicYearId: school.academicYearId,
+        classId: school.classId,
+        levelId: school.levelId,
+        status: "VALIDATED",
+        previousSchool: school.previousSchool || undefined,
+      });
+
+      // 4. Facture auto (si demandé)
+      if (options.generateInvoice) {
+        try {
+          await api.post(
+            `/invoices/auto/${student.id}/year/${school.academicYearId}`,
+          );
+        } catch (err) {
+          // Pas bloquant si la facture échoue
+          console.warn("Facture auto echouee:", err);
+        }
+      }
+
+      toast.success(
+        `Eleve cree avec succes — Matricule : ${student.matricule}`,
+      );
+      localStorage.removeItem(DRAFT_KEY);
+      navigate(`/students/${student.id}`);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Erreur lors de la creation",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const steps: WizardStep[] = [
+    {
+      id: "identity",
+      title: "Identite",
+      description: "Nom, naissance",
+      icon: <User className="h-4 w-4" />,
+      content: (
+        <Step1Identity
+          data={identity}
+          onChange={(d) => setIdentity({ ...identity, ...d })}
+          errors={errors}
+        />
+      ),
+      validate: validateStep1,
+    },
+    {
+      id: "school",
+      title: "Scolarite",
+      description: "Classe, niveau",
+      icon: <GraduationCap className="h-4 w-4" />,
+      content: (
+        <Step2School
+          data={school}
+          onChange={(d) => setSchool({ ...school, ...d })}
+          errors={errors}
+        />
+      ),
+      validate: validateStep2,
+    },
+    {
+      id: "family",
+      title: "Famille",
+      description: "Parents, tuteurs",
+      icon: <Users className="h-4 w-4" />,
+      content: (
+        <Step3Family
+          data={family}
+          onChange={(d) => setFamily({ ...family, ...d })}
+          errors={errors}
+        />
+      ),
+      validate: validateStep3,
+    },
+    {
+      id: "summary",
+      title: "Recapitulatif",
+      description: "Verification",
+      icon: <FileCheck className="h-4 w-4" />,
+      content: (
+        <Step4Summary
+          identity={identity}
+          school={school}
+          family={family}
+          levels={levelsData || []}
+          classes={classesData || []}
+          academicYears={yearsData || []}
+          options={options}
+          onOptionsChange={setOptions}
+        />
+      ),
+    },
+  ];
+
+  const handleCancel = () => {
+    if (confirm("Annuler la creation ? Les donnees saisies seront perdues.")) {
+      localStorage.removeItem(DRAFT_KEY);
+      navigate("/students");
+    }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* En-tete */}
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link to="/students">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Nouvel eleve</h1>
-          <p className="text-sm text-muted-foreground">
-            Le matricule sera genere automatiquement
-          </p>
-        </div>
+        <PageHeader
+          title="Nouvel eleve"
+          description="Remplissez les informations etape par etape"
+          icon={<UserPlus className="h-5 w-5" />}
+        />
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Identite */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Identite de l eleve</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Nom *</Label>
-              <Input id="lastName" {...register("lastName")} />
-              {errors.lastName && (
-                <p className="text-xs text-destructive">{errors.lastName.message}</p>
-              )}
-            </div>
+      <Wizard
+        steps={steps}
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+        onComplete={handleSubmit}
+        isSubmitting={isSubmitting}
+        completeLabel="Creer l eleve"
+        allowStepClick={true}
+      />
 
-            <div className="space-y-2">
-              <Label htmlFor="firstName">Prenom *</Label>
-              <Input id="firstName" {...register("firstName")} />
-              {errors.firstName && (
-                <p className="text-xs text-destructive">{errors.firstName.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender">Sexe *</Label>
-              <select
-                id="gender"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                {...register("gender")}
-              >
-                <option value="M">Masculin</option>
-                <option value="F">Feminin</option>
-              </select>
-              {errors.gender && (
-                <p className="text-xs text-destructive">{errors.gender.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birthDate">Date de naissance *</Label>
-              <Input id="birthDate" type="date" {...register("birthDate")} />
-              {errors.birthDate && (
-                <p className="text-xs text-destructive">{errors.birthDate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birthPlace">Lieu de naissance</Label>
-              <Input id="birthPlace" placeholder="Bamako" {...register("birthPlace")} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="nationality">Nationalite</Label>
-              <Input id="nationality" {...register("nationality")} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Coordonnees */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Coordonnees</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telephone</Label>
-              <Input id="phone" placeholder="+223 XX XX XX XX" {...register("phone")} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Adresse</Label>
-              <Input id="address" placeholder="Hamdallaye ACI 2000..." {...register("address")} />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="specialSituation">Situation particuliere</Label>
-              <Input
-                id="specialSituation"
-                placeholder="(handicap, allergie, etc.)"
-                {...register("specialSituation")}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" asChild>
-            <Link to="/students">Annuler</Link>
-          </Button>
-          <Button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Enregistrement...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Enregistrer
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+      <div className="flex justify-start">
+        <Button variant="ghost" onClick={handleCancel} type="button">
+          Annuler
+        </Button>
+      </div>
     </div>
   );
 }

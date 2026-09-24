@@ -1,4 +1,4 @@
-﻿export * from "./auth";
+export * from "./auth";
 export * from "./student";
 export * from "./class";
 export * from "./teacher";
@@ -7,3 +7,5 @@ export * from "./attendance";
 export * from "./grades";
 export * from "./finance";
 export * from "./exams";
+export * from "./user";
+export * from "./school";

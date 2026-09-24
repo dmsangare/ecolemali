@@ -1,3 +1,7 @@
-﻿export * from "./InvoicesListPage";
-export * from "./PaymentsListPage";
-export * from "./CashSessionsListPage";
+export { InvoicesListPage } from "./InvoicesListPage";
+export { InvoiceDetailPage } from "./InvoiceDetailPage";
+export { PaymentsListPage } from "./PaymentsListPage";
+export { PaymentDetailPage } from "./PaymentDetailPage";
+export { CashSessionsListPage } from "./CashSessionsListPage";
+export { FeeTypesListPage } from "./FeeTypesListPage";
+export { FeeStructuresListPage } from "./FeeStructuresListPage";

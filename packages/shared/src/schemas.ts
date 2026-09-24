@@ -142,7 +142,7 @@ export const AcademicYearCreateSchema = z
     path: ['endDate'],
   });
 
-export const AcademicYearUpdateSchema = AcademicYearCreateSchema.partial();
+export const AcademicYearUpdateSchema = AcademicYearCreateSchema.innerType().partial();
 
 export type AcademicYearCreateInput = z.infer<typeof AcademicYearCreateSchema>;
 export type AcademicYearUpdateInput = z.infer<typeof AcademicYearUpdateSchema>;
@@ -208,7 +208,7 @@ export type RoomUpdateInput = z.infer<typeof RoomUpdateSchema>;
 // ============================================================
 
 export const ClassCreateSchema = z.object({
-  schoolId: uuid,
+  schoolId: uuid.optional(),
   academicYearId: uuid,
   levelId: uuid,
   code: nonEmptyString(1).max(30),
@@ -321,7 +321,7 @@ export type TeacherUpdateInput = z.infer<typeof TeacherUpdateSchema>;
 // ============================================================
 
 export const SubjectCreateSchema = z.object({
-  schoolId: uuid,
+  schoolId: uuid.optional(),
   code: nonEmptyString(1).max(20),
   name: nonEmptyString(2).max(120),
   type: z.nativeEnum(SubjectType).default(SubjectType.CORE),
@@ -369,7 +369,7 @@ export type TeacherAssignmentCreateInput = z.infer<typeof TeacherAssignmentCreat
 
 export const TimetableSlotCreateSchema = z
   .object({
-    schoolId: uuid,
+    schoolId: uuid.optional(),
     academicYearId: uuid,
     classId: uuid,
     subjectId: uuid,
@@ -385,7 +385,7 @@ export const TimetableSlotCreateSchema = z
     path: ['endTime'],
   });
 
-export const TimetableSlotUpdateSchema = TimetableSlotCreateSchema.partial();
+export const TimetableSlotUpdateSchema = TimetableSlotCreateSchema.innerType().partial();
 
 export type TimetableSlotCreateInput = z.infer<typeof TimetableSlotCreateSchema>;
 export type TimetableSlotUpdateInput = z.infer<typeof TimetableSlotUpdateSchema>;
@@ -425,7 +425,7 @@ export type AttendanceBulkUpdateInput = z.infer<typeof AttendanceBulkUpdateSchem
 // ============================================================
 
 export const AssessmentCreateSchema = z.object({
-  schoolId: uuid,
+  schoolId: uuid.optional(),
   academicYearId: uuid,
   termId: uuid,
   classId: uuid,
@@ -511,7 +511,7 @@ export const ExamCreateSchema = z
     path: ['endDate'],
   });
 
-export const ExamUpdateSchema = ExamCreateSchema.partial();
+export const ExamUpdateSchema = ExamCreateSchema.innerType().partial();
 
 export const ExamSessionCreateSchema = z.object({
   examId: uuid,
@@ -586,13 +586,13 @@ export type InvoiceCancelInput = z.infer<typeof InvoiceCancelSchema>;
 // ============================================================
 
 export const PaymentCreateSchema = z.object({
-  schoolId: uuid,
+  schoolId: uuid.optional(),
   invoiceId: uuid,
   studentId: uuid,
   amount: z.coerce.number().positive('Le montant doit être supérieur à 0'),
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
   reference: z.string().max(80).optional(),
-  cashierId: uuid,
+  cashierId: uuid.optional(),
 });
 
 export const PaymentCancelSchema = z.object({

@@ -45,7 +45,7 @@ export function useCreateAssessment() {
 export function useUpdateAssessmentStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, action }: { id: string; action: "open" | "submit" | "validate" | "lock" }) => {
+    mutationFn: async ({ id, action }: { id: string; action: "open" | "submit" | "validate" | "lock" | "reopen" }) => {
       return assessmentsApi[action](id);
     },
     onSuccess: () => {

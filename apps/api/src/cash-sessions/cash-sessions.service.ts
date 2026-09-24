@@ -1,166 +1,134 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { CashSessionOpenDto, CashSessionCloseDto } from "./dto";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { OpenCashSessionDto } from './dto/open-cash-session.dto';
+import { CloseCashSessionDto } from './dto/close-cash-session.dto';
 
 @Injectable()
 export class CashSessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async findAll(schoolId: string | null, page = 1, limit = 20, status?: string) {
-    const where: any = {};
-    if (schoolId) where.schoolId = schoolId;
-    if (status) where.status = status;
-
-    const [data, total] = await Promise.all([
-      this.prisma.cashSession.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { openedAt: "desc" },
-        include: {
-          school: { select: { id: true, name: true } },
-        },
-      }),
-      this.prisma.cashSession.count({ where }),
-    ]);
-
-    return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
-  }
-
-  async findOne(id: string) {
-    const session = await this.prisma.cashSession.findUnique({
-      where: { id },
-      include: { school: true },
+  private async computeTotals(sessionId: string) {
+    const payments = await this.prisma.payment.findMany({
+      where: { cashSessionId: sessionId },
     });
-    if (!session) throw new NotFoundException("Session de caisse introuvable");
-    return session;
+    const totalCash = payments
+      .filter((p) => p.method === 'CASH')
+      .reduce((s, p) => s + Number(p.amount), 0);
+    const totalOther = payments
+      .filter((p) => p.method !== 'CASH')
+      .reduce((s, p) => s + Number(p.amount), 0);
+    return {
+      totalCash,
+      totalOther,
+      totalPayments: totalCash + totalOther,
+      paymentsCount: payments.length,
+    };
   }
 
-  /**
-   * Ouvre une nouvelle session de caisse.
-   * Verifie qu'aucune session n'est deja ouverte pour ce caissier.
-   */
-  async open(dto: CashSessionOpenDto) {
+  async getCurrent(schoolId: string, userId: string) {
+    const session = await this.prisma.cashSession.findFirst({
+      where: { schoolId, cashierId: userId, status: 'OPEN' },
+      orderBy: { openedAt: 'desc' },
+    });
+    if (!session) return null;
+
+    const totals = await this.computeTotals(session.id);
+    const opening = Number(session.openingAmount);
+
+    return {
+      ...session,
+      ...totals,
+      theoreticalBalance: opening + totals.totalCash,
+    };
+  }
+
+  async open(schoolId: string, userId: string, dto: OpenCashSessionDto) {
     const existing = await this.prisma.cashSession.findFirst({
-      where: {
-        schoolId: dto.schoolId,
-        cashierId: dto.cashierId,
-        status: "OPEN",
-      },
+      where: { schoolId, cashierId: userId, status: 'OPEN' },
     });
     if (existing) {
-      throw new BadRequestException("Une session de caisse est deja ouverte pour ce caissier");
+      throw new BadRequestException('Une session de caisse est déjà ouverte');
     }
 
     return this.prisma.cashSession.create({
       data: {
-        schoolId: dto.schoolId,
-        cashierId: dto.cashierId,
-        openingAmount: dto.openingAmount || 0,
-        status: "OPEN",
+        schoolId,
+        cashierId: userId,
+        openingAmount: dto.openingBalance,
+        status: 'OPEN',
       },
     });
   }
 
-  /**
-   * Ferme la session. Calcule :
-   *  - expectedAmount = openingAmount + total des paiements non annules
-   *  - difference = closingAmount - expectedAmount
-   */
-  async close(id: string, dto: CashSessionCloseDto) {
-    const session = await this.findOne(id);
-    if (session.status === "CLOSED") {
-      throw new BadRequestException("Cette session est deja fermee");
+  async close(schoolId: string, userId: string, dto: CloseCashSessionDto) {
+    const session = await this.prisma.cashSession.findFirst({
+      where: { schoolId, cashierId: userId, status: 'OPEN' },
+    });
+    if (!session) {
+      throw new NotFoundException('Aucune session de caisse ouverte');
     }
 
-    // Calculer le total des paiements depuis l'ouverture
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        schoolId: session.schoolId,
-        cashierId: session.cashierId,
-        paidAt: { gte: session.openedAt },
-        cancelledAt: null,
-      },
-    });
-
-    const paymentsTotal = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const expectedAmount = Number(session.openingAmount) + paymentsTotal;
-    const difference = dto.closingAmount - expectedAmount;
+    const totals = await this.computeTotals(session.id);
+    const expectedAmount = Number(session.openingAmount) + totals.totalCash;
+    const difference = dto.closingBalance - expectedAmount;
 
     return this.prisma.cashSession.update({
-      where: { id },
+      where: { id: session.id },
       data: {
-        closedAt: new Date(),
-        closingAmount: dto.closingAmount,
+        closingAmount: dto.closingBalance,
         expectedAmount,
         difference,
-        status: "CLOSED",
+        status: 'CLOSED',
+        closedAt: new Date(),
       },
     });
   }
 
-  /**
-   * Rapport detaille d'une session : paiements, totaux par methode, ecart.
-   */
-  async getReport(id: string) {
-    const session = await this.findOne(id);
+  async history(schoolId: string, query: any) {
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 20);
+    const where: any = { schoolId, status: 'CLOSED' };
+    if (query.cashierId) where.cashierId = query.cashierId;
 
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        schoolId: session.schoolId,
-        cashierId: session.cashierId,
-        paidAt: {
-          gte: session.openedAt,
-          ...(session.closedAt ? { lte: session.closedAt } : {}),
-        },
-        cancelledAt: null,
-      },
-      include: {
-        student: { select: { id: true, matricule: true, firstName: true, lastName: true } },
-        receipt: { select: { id: true, number: true } },
-      },
-      orderBy: { paidAt: "asc" },
-    });
-
-    // Totaux par methode
-    const byMethod: Record<string, { count: number; total: number }> = {};
-    for (const p of payments) {
-      if (!byMethod[p.method]) byMethod[p.method] = { count: 0, total: 0 };
-      byMethod[p.method].count += 1;
-      byMethod[p.method].total += Number(p.amount);
-    }
-
-    const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const [items, total] = await Promise.all([
+      this.prisma.cashSession.findMany({
+        where,
+        orderBy: { closedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.cashSession.count({ where }),
+    ]);
 
     return {
-      session,
-      summary: {
-        openingAmount: Number(session.openingAmount),
-        totalPayments,
-        expectedAmount: Number(session.openingAmount) + totalPayments,
-        closingAmount: session.closingAmount ? Number(session.closingAmount) : null,
-        difference: session.difference ? Number(session.difference) : null,
-        paymentsCount: payments.length,
-        byMethod,
-      },
-      payments,
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
-  /**
-   * Session ouverte d'un caissier (s'il en a une).
-   */
-  async getCurrentOpen(schoolId: string, cashierId: string) {
-    return this.prisma.cashSession.findFirst({
-      where: { schoolId, cashierId, status: "OPEN" },
+  async detail(schoolId: string, id: string) {
+    const session = await this.prisma.cashSession.findFirst({
+      where: { id, schoolId },
     });
-  }
+    if (!session) throw new NotFoundException('Session introuvable');
 
-  async remove(id: string) {
-    const session = await this.findOne(id);
-    if (session.status === "OPEN") {
-      throw new BadRequestException("Impossible de supprimer une session ouverte");
-    }
-    return this.prisma.cashSession.delete({ where: { id } });
+    const payments = await this.prisma.payment.findMany({
+      where: { cashSessionId: session.id },
+      orderBy: { paidAt: 'desc' },
+      include: {
+        invoice: { select: { number: true } },
+        student: { select: { firstName: true, lastName: true } },
+      },
+    });
+
+    const totals = await this.computeTotals(session.id);
+    return { ...session, payments, ...totals };
   }
 }

@@ -55,4 +55,9 @@ export const assessmentsApi = {
     const { data } = await api.post(`/assessments/${id}/lock`);
     return data.data || data;
   },
+
+  async reopen(id: string): Promise<Assessment> {
+    const { data } = await api.post(`/assessments/${id}/reopen`);
+    return data.data || data;
+  },
 };

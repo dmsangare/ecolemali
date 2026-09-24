@@ -1,108 +1,122 @@
-﻿import { Link } from "react-router-dom";
-import { School, Plus, Users, Loader2, Eye } from "lucide-react";
+import { useState, useMemo } from "react";
+import { School, Search, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui";
 import { useClasses } from "@/hooks/classes";
-import {
-  Button,
-  Card,
-  CardContent,
-} from "@/components/ui";
+import { CycleSection } from "./components/CycleSection";
+import { CreateClassModal } from "./components/CreateClassModal";
+import type { ClassItem, LevelCycle } from "@/types/class";
 
 export function ClassesListPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDefaultCycle, setModalDefaultCycle] =
+    useState<LevelCycle>("PREMIER_CYCLE");
+
   const { data: classes, isLoading } = useClasses();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  // --- Filtrage par recherche ---
+  const filteredClasses = useMemo(() => {
+    if (!classes) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return classes;
+    return classes.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.level?.name?.toLowerCase().includes(q) ||
+        c.room?.name?.toLowerCase().includes(q),
     );
-  }
+  }, [classes, searchQuery]);
+
+  // --- Repartition par cycle ---
+  const { firstCycle, secondCycle } = useMemo(() => {
+    const first: ClassItem[] = [];
+    const second: ClassItem[] = [];
+    filteredClasses.forEach((c) => {
+      if (c.level?.cycle === "PREMIER_CYCLE") first.push(c);
+      else if (c.level?.cycle === "DEUXIEME_CYCLE") second.push(c);
+    });
+    return { firstCycle: first, secondCycle: second };
+  }, [filteredClasses]);
+
+  // --- Ouverture modale ---
+  const openModal = (cycle: LevelCycle) => {
+    setModalDefaultCycle(cycle);
+    setModalOpen(true);
+  };
+
+  // --- Stats globales ---
+  const totalClasses = classes?.length ?? 0;
+  const totalStudents = useMemo(() => {
+    if (!classes) return 0;
+    return classes.reduce((sum, c) => sum + (c._count?.enrollments ?? 0), 0);
+  }, [classes]);
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* HEADER */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <School className="h-6 w-6" />
             Classes
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {classes?.length || 0} classe(s)
+            {totalClasses} classe{totalClasses > 1 ? "s" : ""} ·{" "}
+            {totalStudents} eleve{totalStudents > 1 ? "s" : ""}
           </p>
         </div>
-        <Button asChild>
-          <Link to="/classes/new">
-            <Plus className="h-4 w-4" />
-            Nouvelle classe
-          </Link>
-        </Button>
       </div>
 
-      {!classes || classes.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col h-64 items-center justify-center gap-3">
-            <School className="h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">Aucune classe</p>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/classes/new">
-                <Plus className="h-4 w-4" />
-                Creer la premiere classe
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {classes.map((cls) => (
-            <Card key={cls.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <Link
-                      to={`/classes/${cls.id}`}
-                      className="text-lg font-bold hover:underline"
-                    >
-                      {cls.name}
-                    </Link>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      {cls.code}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                    {cls.level?.name || "—"}
-                  </span>
-                </div>
+      {/* BARRE DE RECHERCHE */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher une classe (nom, code, niveau, salle)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{cls._count?.enrollments || 0} eleve(s)</span>
-                  </div>
-                  {cls.room && (
-                    <p className="text-sm text-muted-foreground">
-                      Salle : {cls.room.name}
-                    </p>
-                  )}
-                  {cls.mainTeacher && (
-                    <p className="text-sm text-muted-foreground">
-                      Prof. principal : {cls.mainTeacher.firstName}{" "}
-                      {cls.mainTeacher.lastName}
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <Button variant="outline" size="sm" asChild className="w-full">
-                    <Link to={`/classes/${cls.id}`}>
-                      <Eye className="h-4 w-4" />
-                      Voir details
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* CONTENU */}
+      {isLoading ? (
+        <div className="flex h-96 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      ) : totalClasses === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+            <School className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">Aucune classe pour le moment</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Commencez par creer votre premiere classe
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          <CycleSection
+            cycle="PREMIER_CYCLE"
+            classes={firstCycle}
+            onCreateClick={() => openModal("PREMIER_CYCLE")}
+          />
+          <CycleSection
+            cycle="DEUXIEME_CYCLE"
+            classes={secondCycle}
+            onCreateClick={() => openModal("DEUXIEME_CYCLE")}
+          />
+        </div>
+      )}
+
+      {/* MODALE DE CREATION */}
+      {modalOpen && (
+        <CreateClassModal
+          defaultCycle={modalDefaultCycle}
+          onClose={() => setModalOpen(false)}
+        />
       )}
     </div>
   );

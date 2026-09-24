@@ -1,264 +1,237 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
-  Plus,
-  Search,
-  Users,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Pencil,
-  Trash2,
-  UserPlus,
+  Users, Plus, FileSpreadsheet, Trash2, UserCheck, FileText,
 } from "lucide-react";
-import { useStudents, useDeleteStudent } from "@/hooks/students";
-import { formatDate, initials } from "@/lib/formatters";
+import { useStudents, useDeleteStudent, useStudentStats, useExportStudents } from "@/hooks/students";
 import {
-  Button,
-  Input,
-  Card,
-  CardContent,
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui";
+  PageHeader,
+  StatsCard,
+  Pagination,
+  ExportButton,
+  BulkActionsBar,
+  EmptyState,
+  ConfirmDialog,
+} from "@/components/shared";
+import { Button, Card, CardContent } from "@/components/ui";
+import { StudentFilters } from "./components/StudentFilters";
+import { StudentTable } from "./components/StudentTable";
+import type { Student, StudentListFilters } from "@/types/student";
 
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Actif",
-  TRANSFERRED: "Transfere",
-  GRADUATED: "Diplome",
-  DROPPED: "Abandon",
-  SUSPENDED: "Suspendu",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-500/10 text-green-700",
-  TRANSFERRED: "bg-blue-500/10 text-blue-700",
-  GRADUATED: "bg-purple-500/10 text-purple-700",
-  DROPPED: "bg-red-500/10 text-red-700",
-  SUSPENDED: "bg-orange-500/10 text-orange-700",
+const DEFAULT_FILTERS: StudentListFilters = {
+  page: 1,
+  limit: 20,
+  sortField: "lastName",
+  sortDirection: "asc",
 };
 
 export function StudentsListPage() {
-  const [page, setPage] = useState(1);
-  const [q, setQ] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [status, setStatus] = useState<string>("");
-
-  const filters = useMemo(
-    () => ({ page, limit: 20, q: q || undefined, status: status || undefined }),
-    [page, q, status]
-  );
+  const [filters, setFilters] = useState<StudentListFilters>(DEFAULT_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
 
   const { data, isLoading } = useStudents(filters);
+  const { data: stats } = useStudentStats();
   const deleteMutation = useDeleteStudent();
+  const exportMutation = useExportStudents();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setQ(searchInput);
-    setPage(1);
-  };
+  const students = data?.data || [];
+  const meta = data?.meta;
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Supprimer l eleve ${name} ? Cette action est reversible.`)) {
-      deleteMutation.mutate(id);
+  const handleFilterChange = useCallback((key: string, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value === "all" || value === "" ? undefined : value,
+      page: key !== "page" ? 1 : value,
+    }));
+    setSelectedIds([]);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSelectedIds([]);
+  }, []);
+
+  const handleSortChange = useCallback((field: string, direction: "asc" | "desc") => {
+    setFilters((prev) => ({ ...prev, sortField: field, sortDirection: direction }));
+  }, []);
+
+  const handleDelete = async () => {
+    if (deleteTarget) {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
+  const handleExport = (format: "csv" | "excel" | "pdf") => {
+    exportMutation.mutate({ format, filters });
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Supprimer ${selectedIds.length} eleve(s) ?`)) {
+      selectedIds.forEach((id) => deleteMutation.mutate(id));
+      setSelectedIds([]);
+    }
+  };
+
+  const hasFilters = useMemo(() => {
+    return Boolean(
+      filters.q ||
+        filters.classId ||
+        filters.levelId ||
+        filters.cycle ||
+        filters.gender ||
+        filters.ageRange ||
+        filters.status ||
+        filters.enrollmentStatus
+    );
+  }, [filters]);
+
   return (
     <div className="p-6 space-y-6">
-      {/* En-tete */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            Eleves
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data?.meta.total || 0} eleve(s) enregistre(s)
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/students/new">
-            <UserPlus className="h-4 w-4" />
-            Nouvel eleve
-          </Link>
-        </Button>
-      </div>
-
-      {/* Filtres */}
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher par nom, prenom ou matricule..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPage(1);
-              }}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="ACTIVE">Actif</option>
-              <option value="TRANSFERRED">Transfere</option>
-              <option value="GRADUATED">Diplome</option>
-              <option value="DROPPED">Abandon</option>
-              <option value="SUSPENDED">Suspendu</option>
-            </select>
-            <Button type="submit" variant="secondary">
-              Rechercher
+      <PageHeader
+        title="Eleves"
+        description={`${meta?.total || 0} eleve(s) enregistre(s)`}
+        icon={<Users className="h-5 w-5" />}
+        actions={
+          <>
+            <ExportButton
+              onExportExcel={() => handleExport("excel")}
+              onExportPDF={() => handleExport("pdf")}
+              onExportCSV={() => handleExport("csv")}
+              disabled={exportMutation.isPending}
+            />
+            <Button asChild>
+              <Link to="/students/new">
+                <Plus className="h-4 w-4" />
+                Nouvel eleve
+              </Link>
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
 
-      {/* Tableau */}
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            title="Total eleves"
+            value={stats.total}
+            icon={<Users className="h-5 w-5" />}
+            description={`${stats.boys} garcons, ${stats.girls} filles`}
+          />
+          <StatsCard
+            title="Nouveaux"
+            value={stats.newCount}
+            icon={<UserCheck className="h-5 w-5" />}
+            variant="success"
+            description="Inscrits cette annee"
+          />
+          <StatsCard
+            title="Anciens"
+            value={stats.ancienCount}
+            icon={<FileText className="h-5 w-5" />}
+            variant="info"
+            description="Deja la l annee derniere"
+          />
+          <StatsCard
+            title="Redoublants"
+            value={stats.redoublantCount}
+            icon={<FileText className="h-5 w-5" />}
+            variant="warning"
+            description="Meme niveau que l an dernier"
+          />
+        </div>
+      )}
+
+      <StudentFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleReset}
+      />
+
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : !data || data.data.length === 0 ? (
-            <div className="flex flex-col h-64 items-center justify-center gap-3">
-              <Users className="h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">Aucun eleve trouve</p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/students/new">
-                  <Plus className="h-4 w-4" />
-                  Ajouter le premier eleve
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b bg-muted/50">
-                    <tr className="text-left text-xs font-medium text-muted-foreground uppercase">
-                      <th className="px-4 py-3">Eleve</th>
-                      <th className="px-4 py-3">Matricule</th>
-                      <th className="px-4 py-3">Sexe</th>
-                      <th className="px-4 py-3">Date de naissance</th>
-                      <th className="px-4 py-3">Classe</th>
-                      <th className="px-4 py-3">Statut</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.data.map((student) => (
-                      <tr key={student.id} className="border-b hover:bg-muted/30">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {initials(student.firstName, student.lastName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <Link
-                                to={`/students/${student.id}`}
-                                className="text-sm font-medium hover:underline"
-                              >
-                                {student.lastName} {student.firstName}
-                              </Link>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-mono text-muted-foreground">
-                          {student.matricule}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {student.gender === "M" ? "Masculin" : "Feminin"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {formatDate(student.birthDate)}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {student.enrollments?.[0]?.class?.name || "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              STATUS_COLORS[student.status] || "bg-gray-500/10"
-                            }`}
-                          >
-                            {STATUS_LABELS[student.status] || student.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link to={`/students/${student.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link to={`/students/${student.id}/edit`}>
-                                <Pencil className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                handleDelete(
-                                  student.id,
-                                  `${student.firstName} ${student.lastName}`
-                                )
-                              }
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <StudentTable
+            students={students}
+            isLoading={isLoading}
+            selection={{
+              enabled: true,
+              selectedIds,
+              onSelectionChange: setSelectedIds,
+            }}
+            sort={{
+              field: filters.sortField || "lastName",
+              direction: filters.sortDirection || "asc",
+              onSortChange: handleSortChange,
+            }}
+            onDelete={(student) => setDeleteTarget(student)}
+            emptyState={
+              <EmptyState
+                icon={<Users className="h-8 w-8 text-muted-foreground/50" />}
+                title={hasFilters ? "Aucun resultat" : "Aucun eleve"}
+                description={
+                  hasFilters
+                    ? "Aucun eleve ne correspond a vos criteres de recherche."
+                    : "Commencez par ajouter votre premier eleve."
+                }
+                action={
+                  hasFilters ? (
+                    <Button variant="outline" onClick={handleReset}>
+                      Reinitialiser les filtres
+                    </Button>
+                  ) : (
+                    <Button asChild>
+                      <Link to="/students/new">
+                        <Plus className="h-4 w-4" />
+                        Ajouter un eleve
+                      </Link>
+                    </Button>
+                  )
+                }
+              />
+            }
+          />
 
-              {/* Pagination */}
-              {data.meta.pages > 1 && (
-                <div className="flex items-center justify-between border-t px-4 py-3">
-                  <p className="text-sm text-muted-foreground">
-                    Page {data.meta.page} sur {data.meta.pages} — {data.meta.total} eleve(s)
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === 1}
-                      onClick={() => setPage(page - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Precedent
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === data.meta.pages}
-                      onClick={() => setPage(page + 1)}
-                    >
-                      Suivant
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          {meta && meta.pages > 1 && (
+            <Pagination
+              page={meta.page}
+              pages={meta.pages}
+              total={meta.total}
+              limit={meta.limit}
+              onPageChange={(page) => handleFilterChange("page", page)}
+              onLimitChange={(limit) => handleFilterChange("limit", limit)}
+            />
           )}
         </CardContent>
       </Card>
+
+      <BulkActionsBar
+        selectedCount={selectedIds.length}
+        onClear={() => setSelectedIds([])}
+        actions={[
+          {
+            label: "Exporter Excel",
+            icon: <FileSpreadsheet className="h-4 w-4" />,
+            onClick: () => handleExport("excel"),
+          },
+          {
+            label: "Supprimer",
+            icon: <Trash2 className="h-4 w-4" />,
+            variant: "destructive",
+            onClick: handleBulkDelete,
+          },
+        ]}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Supprimer l eleve"
+        description={`Voulez-vous vraiment supprimer ${deleteTarget?.firstName} ${deleteTarget?.lastName} ? Cette action est reversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+      />
     </div>
   );
 }

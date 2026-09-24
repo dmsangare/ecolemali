@@ -1,74 +1,63 @@
-﻿import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query,
-  HttpCode, HttpStatus, UseGuards,
-} from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
-import { TeachersService } from "./teachers.service";
-import { TeacherCreateSchema, TeacherUpdateSchema } from "./dto";
-import { ZodValidationPipe } from "../common/pipes";
-import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
-import { SchoolScopeGuard } from "../common/guards";
-import { PaginationDto } from "../common/dto/pagination.dto";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { TeachersService } from './teachers.service';
 
-@ApiTags("Teachers")
-@ApiBearerAuth("access-token")
-@Controller("teachers")
-@UseGuards(SchoolScopeGuard)
+@Controller('teachers')
+@UseGuards(JwtAuthGuard)
 export class TeachersController {
-  constructor(private readonly service: TeachersService) {}
+  constructor(private service: TeachersService) {}
 
   @Get()
-  @RequirePermissions("teacher:view")
-  @ApiOperation({ summary: "Liste des enseignants" })
-  async findAll(
-    @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationDto,
-    @Query("status") status?: string,
-  ) {
-    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, query.page, query.limit, query.q, status);
+  findAll(@Req() req: any, @Query() query: any) {
+    return this.service.findAll(req.user.schoolId, query);
   }
 
-  @Get(":id")
-  @RequirePermissions("teacher:view")
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  @Get('subjects')
+  getSubjects(@Req() req: any) {
+    return this.service.getSubjects(req.user.schoolId);
   }
 
-  @Get(":id/assignments")
-  @RequirePermissions("teacher:view")
-  @ApiOperation({ summary: "Affectations de l enseignant" })
-  async getAssignments(@Param("id") id: string) {
-    return this.service.getAssignments(id);
+  @Get('classes')
+  getClasses(@Req() req: any) {
+    return this.service.getClasses(req.user.schoolId);
   }
 
-  @Get(":id/timetable")
-  @RequirePermissions("teacher:view")
-  @ApiOperation({ summary: "Emploi du temps de l enseignant" })
-  async getTimetable(@Param("id") id: string) {
-    return this.service.getTimetable(id);
+  @Get('academic-years')
+  getAcademicYears(@Req() req: any) {
+    return this.service.getAcademicYears(req.user.schoolId);
+  }
+
+  @Get(':id')
+  findOne(@Req() req: any, @Param('id') id: string) {
+    return this.service.findOne(req.user.schoolId, id);
   }
 
   @Post()
-  @RequirePermissions("teacher:create")
-  @ApiOperation({ summary: "Creer un enseignant" })
-  async create(
-    @CurrentUser("id") userId: string,
-    @Body(new ZodValidationPipe(TeacherCreateSchema)) dto: any,
+  create(@Req() req: any, @Body() dto: any) {
+    return this.service.create(req.user.schoolId, dto);
+  }
+
+  @Patch(':id')
+  update(@Req() req: any, @Param('id') id: string, @Body() dto: any) {
+    return this.service.update(req.user.schoolId, id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Req() req: any, @Param('id') id: string) {
+    return this.service.remove(req.user.schoolId, id);
+  }
+
+  @Post(':id/assign')
+  assign(@Req() req: any, @Param('id') id: string, @Body() dto: any) {
+    return this.service.assignSubject(req.user.schoolId, id, dto);
+  }
+
+  @Delete(':id/assign/:assignmentId')
+  removeAssignment(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('assignmentId') assignmentId: string,
   ) {
-    return this.service.create(dto, userId);
-  }
-
-  @Patch(":id")
-  @RequirePermissions("teacher:update")
-  async update(@Param("id") id: string, @Body(new ZodValidationPipe(TeacherUpdateSchema)) dto: any) {
-    return this.service.update(id, dto);
-  }
-
-  @Delete(":id")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @RequirePermissions("teacher:delete")
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+    return this.service.removeAssignment(req.user.schoolId, id, assignmentId);
   }
 }

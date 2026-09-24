@@ -16,7 +16,8 @@ import {
   UsersRound,
   Library,
   UserCog,
-} from "lucide-react";
+  Tag,
+  Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -53,7 +54,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: "Emploi du temps", to: "/timetable", icon: Calendar, permission: "timetable:view" },
       { label: "Presences", to: "/attendance", icon: ClipboardCheck, permission: "attendance:view" },
-      { label: "Notes", to: "/grades", icon: FileText, permission: "grade:view" },
+      { label: "Notes", to: "/assessments", icon: FileText, permission: "grade:view" },
       { label: "Bulletins", to: "/report-cards", icon: Award, permission: "report_card:view" },
     ],
   },
@@ -66,6 +67,8 @@ const SECTIONS: NavSection[] = [
   {
     title: "Finances",
     items: [
+      { label: "Types de frais", to: "/fee-types", icon: Tag, permission: "fee:view" },
+      { label: "Grille tarifaire", to: "/fee-structures", icon: Coins, permission: "fee:view" },
       { label: "Factures", to: "/invoices", icon: Receipt, permission: "invoice:view" },
       { label: "Paiements", to: "/payments", icon: Wallet, permission: "payment:view" },
       { label: "Caisse", to: "/cash-sessions", icon: Wallet, permission: "cash:view" },

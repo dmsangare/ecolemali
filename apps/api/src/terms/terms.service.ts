@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { TermCreateDto, TermUpdateDto } from "./dto";
 
@@ -10,6 +10,35 @@ export class TermsService {
     const where = academicYearId ? { academicYearId } : {};
     return this.prisma.term.findMany({
       where,
+      orderBy: { orderIndex: "asc" },
+    });
+  }
+
+  async findCurrent() {
+    const now = new Date();
+
+    const currentYear = await this.prisma.academicYear.findFirst({
+      where: { isCurrent: true },
+      orderBy: { startDate: "desc" },
+    });
+
+    if (!currentYear) {
+      return null;
+    }
+
+    const activeTerm = await this.prisma.term.findFirst({
+      where: {
+        academicYearId: currentYear.id,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      orderBy: { orderIndex: "asc" },
+    });
+
+    if (activeTerm) return activeTerm;
+
+    return this.prisma.term.findFirst({
+      where: { academicYearId: currentYear.id },
       orderBy: { orderIndex: "asc" },
     });
   }

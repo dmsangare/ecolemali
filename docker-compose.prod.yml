@@ -1,0 +1,125 @@
+# ============================================================
+# SIS-MALI — Docker Compose PRODUCTION
+# ============================================================
+# Utilisation : docker compose -f docker-compose.prod.yml up -d
+# ============================================================
+# Différences avec docker-compose.yml (dev) :
+#   - Ports 5432/6379/3000 NON exposés (internes au réseau Docker)
+#   - NODE_ENV forcé à production
+#   - restart: always
+# ============================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sis-mali-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./backups/postgres:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sis-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: sis-mali-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - sis-net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: sis-mali-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      PORT: 3000
+      TZ: Africa/Bamako
+    volumes:
+      - ./storage:/app/storage
+    networks:
+      - sis-net
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: sis-mali-worker
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      TZ: Africa/Bamako
+    volumes:
+      - ./storage:/app/storage
+    networks:
+      - sis-net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    container_name: sis-mali-web
+    restart: always
+    networks:
+      - sis-net
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: sis-mali-nginx
+    restart: always
+    depends_on:
+      - api
+      - web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+      - ./storage/documents:/var/www/documents:ro
+    networks:
+      - sis-net
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  sis-net:
+    driver: bridge

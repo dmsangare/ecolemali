@@ -701,3 +701,39 @@ export const GlobalSearchSchema = z.object({
 });
 
 export type GlobalSearchInput = z.infer<typeof GlobalSearchSchema>;
+// ============================================================
+// BACKUP — Configuration sauvegarde automatique
+// ============================================================
+
+export const BackupRetentionSchema = z.object({
+  daily: z.coerce.number().int().min(1).max(365).default(7),
+  weekly: z.coerce.number().int().min(0).max(52).default(4),
+  monthly: z.coerce.number().int().min(0).max(120).default(12),
+});
+
+export const BackupSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  cron: z
+    .string()
+    .regex(
+      /^(\*|[0-5]?\d)(\s+(\*|[01]?\d|2[0-3]))(\s+(\*|[0-2]?\d|3[01]))(\s+(\*|[0-1]?\d))(\s+(\*|[0-7]))$/,
+      "Format cron invalide (ex: '0 23 * * *' pour 23h00 tous les jours)"
+    )
+    .default("0 23 * * *"),
+  includeFiles: z.boolean().default(true),
+  retention: BackupRetentionSchema.default({}),
+  lastRun: z.string().datetime().nullable().optional(),
+  lastStatus: z.enum(["SUCCESS", "FAILED", "IN_PROGRESS"]).nullable().optional(),
+  nextRun: z.string().datetime().nullable().optional(),
+});
+
+export const BackupSettingsUpdateSchema = BackupSettingsSchema.partial().omit({
+  lastRun: true,
+  lastStatus: true,
+  nextRun: true,
+});
+
+export type BackupSettings = z.infer<typeof BackupSettingsSchema>;
+export type BackupSettingsUpdate = z.infer<typeof BackupSettingsUpdateSchema>;
+export type BackupRetention = z.infer<typeof BackupRetentionSchema>;
+

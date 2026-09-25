@@ -94,8 +94,9 @@ export function CreateClassModal({
 
   // --- Validation ---
   const isFirstCycle = cycle === "PREMIER_CYCLE";
-  const teacherRequired = isFirstCycle;
-  const teacherMissing = teacherRequired && !mainTeacherId;
+  // Prof principal désormais facultatif pour tous les cycles
+  const teacherRequired = false;
+  const teacherMissing = false;
 
   const formValid =
     academicYearId &&

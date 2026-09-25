@@ -18,8 +18,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@sis-mali/shared": ["packages/shared/src/index.ts"],
-      "@sis-mali/shared/*": ["packages/shared/src/*"]
+      "@sis-mali/shared": ["packages/shared/dist/index.d.ts"],
+      "@sis-mali/shared/*": ["packages/shared/dist/*"]
     }
   },
   "exclude": ["node_modules", "dist", "build"]

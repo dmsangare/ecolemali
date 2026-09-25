@@ -39,4 +39,4 @@ COPY --from=builder /app/prisma ./prisma
 RUN mkdir -p /app/storage/documents /app/storage/uploads /app/storage/backups /app/storage/generated
 EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+CMD ["node", "apps/api/dist/main.js"]

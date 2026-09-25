@@ -100,6 +100,7 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 
 export const SchoolCreateSchema = z.object({
   code: nonEmptyString(2).max(20),
+  sigle: z.string().max(20).optional().or(z.literal('')),
   name: nonEmptyString(3).max(150),
   type: z.nativeEnum(SchoolType),
   status: z.nativeEnum(SchoolStatus),

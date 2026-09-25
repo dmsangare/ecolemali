@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@sis-mali/shared": ["../../packages/shared/src/index.ts"]
+      "@sis-mali/shared": ["../../packages/shared/dist/index.d.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

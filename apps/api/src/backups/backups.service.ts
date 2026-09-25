@@ -248,6 +248,8 @@ export class BackupsService {
       `-d ${db.database}`,
       "--no-owner",
       "--no-acl",
+      "--clean",
+      "--if-exists",
       `| gzip -6 > "${outputPath}"`,
     ].join(" ");
 

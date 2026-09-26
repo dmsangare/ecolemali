@@ -1,9 +1,17 @@
-import { Settings as SettingsIcon, Building2, Users, Cog, Shield } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Building2,
+  Users,
+  Cog,
+  Shield,
+  HardDrive,
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SchoolTab } from "./SchoolTab";
 import { UsersTab } from "./UsersTab";
 import { SystemTab } from "./SystemTab";
 import { RolesTab } from "./RolesTab";
+import { BackupsTab } from "./BackupsTab";
 
 export function SettingsPage() {
   return (
@@ -14,12 +22,13 @@ export function SettingsPage() {
           Parametres
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configuration de l etablissement, gestion des utilisateurs, des roles et reglages systeme
+          Configuration de l etablissement, gestion des utilisateurs, des roles
+          et reglages systeme
         </p>
       </div>
 
       <Tabs defaultValue="school" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-5">
           <TabsTrigger value="school" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Etablissement
@@ -31,6 +40,10 @@ export function SettingsPage() {
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             Roles
+          </TabsTrigger>
+          <TabsTrigger value="backups" className="flex items-center gap-2">
+            <HardDrive className="h-4 w-4" />
+            Sauvegardes
           </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
@@ -48,6 +61,10 @@ export function SettingsPage() {
 
         <TabsContent value="roles">
           <RolesTab />
+        </TabsContent>
+
+        <TabsContent value="backups">
+          <BackupsTab />
         </TabsContent>
 
         <TabsContent value="system">

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  OnModuleInit,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { exec } from "child_process";
@@ -23,13 +24,56 @@ interface DbParams {
 }
 
 @Injectable()
-export class BackupsService {
+export class BackupsService implements OnModuleInit {
   private readonly logger = new Logger(BackupsService.name);
   private readonly storageRoot = process.env.STORAGE_ROOT || "./storage";
+
+  // Flag pour empêcher les restaurations concurrentes
+  private isRestoring = false;
   private readonly backupsDir = path.join(this.storageRoot, "backups");
   private readonly documentsDir = path.join(this.storageRoot, "documents");
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // ═══════════════════════════════════════════════════════════
+  // INITIALISATION — Nettoyage des backups orphelins
+  // ═══════════════════════════════════════════════════════════
+
+  async onModuleInit() {
+    try {
+      const orphans = await this.prisma.backup.findMany({
+        where: { status: "IN_PROGRESS" },
+        select: { id: true, fileUrl: true },
+      });
+
+      if (orphans.length === 0) {
+        this.logger.log("[INIT] Aucun backup orphelin à nettoyer");
+        return;
+      }
+
+      this.logger.warn(
+        `[INIT] ${orphans.length} backup(s) orphelin(s) trouvé(s) — passage en FAILED`,
+      );
+
+      for (const orphan of orphans) {
+        try {
+          await this.prisma.backup.update({
+            where: { id: orphan.id },
+            data: { status: "FAILED" },
+          });
+          this.logger.log(`[INIT] Backup ${orphan.fileUrl} → FAILED`);
+        } catch (err: any) {
+          this.logger.error(
+            `[INIT] Impossible de nettoyer ${orphan.id} : ${err.message}`,
+          );
+        }
+      }
+
+      this.logger.log(`[INIT] ${orphans.length} backup(s) nettoyé(s)`);
+    } catch (err: any) {
+      this.logger.error(`[INIT] Erreur nettoyage : ${err.message}`);
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // PARSE DATABASE_URL
@@ -77,8 +121,14 @@ export class BackupsService {
       this.prisma.backup.count({ where }),
     ]);
 
+    // Convertir BigInt → Number pour JSON.stringify
+    const serialized = data.map((b) => ({
+      ...b,
+      sizeBytes: b.sizeBytes !== null ? Number(b.sizeBytes) : null,
+    }));
+
     return {
-      data,
+      data: serialized,
       meta: { page, limit, total, pages: Math.ceil(total / limit) },
     };
   }
@@ -86,7 +136,12 @@ export class BackupsService {
   async findOne(id: string) {
     const backup = await this.prisma.backup.findUnique({ where: { id } });
     if (!backup) throw new NotFoundException("Sauvegarde introuvable");
-    return backup;
+
+    // Convertir BigInt → Number pour JSON.stringify
+    return {
+      ...backup,
+      sizeBytes: backup.sizeBytes !== null ? Number(backup.sizeBytes) : null,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -327,12 +382,23 @@ export class BackupsService {
     userId: string,
     createSafetyBackup = true
   ) {
-    const backup = await this.findOne(id);
-    if (backup.status !== "SUCCESS") {
+    // Vérifier qu'aucune restauration n'est en cours
+    if (this.isRestoring) {
       throw new BadRequestException(
-        "Impossible de restaurer une sauvegarde en echec"
+        "Une restauration est déjà en cours. Veuillez patienter."
       );
     }
+
+    // Activer le flag — libéré dans le finally
+    this.isRestoring = true;
+
+    try {
+      const backup = await this.findOne(id);
+      if (backup.status !== "SUCCESS") {
+        throw new BadRequestException(
+          "Impossible de restaurer une sauvegarde en echec"
+        );
+      }
 
     const timestamp = path.basename(backup.fileUrl);
     const dbFile = path.join(
@@ -418,7 +484,19 @@ export class BackupsService {
       }
     }
 
-    // 6. Log audit
+    // 6. Forcer le statut du backup restauré à SUCCESS
+    // (car le dump contient son statut au moment de la création = IN_PROGRESS)
+    try {
+      await this.prisma.backup.update({
+        where: { id },
+        data: { status: "SUCCESS" },
+      });
+      this.logger.log(`[RESTORE] Backup ${timestamp} repassé à SUCCESS`);
+    } catch (err: any) {
+      this.logger.warn(`[RESTORE] Impossible de mettre à jour le statut : ${err.message}`);
+    }
+
+    // 7. Log audit
     try {
       await this.prisma.auditLog.create({
         data: {
@@ -439,15 +517,19 @@ export class BackupsService {
       this.logger.warn(`[RESTORE] Log audit échoué : ${err.message}`);
     }
 
-    this.logger.log(`[RESTORE] ✅ Terminé pour ${timestamp}`);
+      this.logger.log(`[RESTORE] ✅ Terminé pour ${timestamp}`);
 
-    return {
-      message: "Restauration reussie",
-      backupId: id,
-      timestamp,
-      safetyBackupId,
-      checksumVerified: checksumOk,
-    };
+      return {
+        message: "Restauration reussie",
+        backupId: id,
+        timestamp,
+        safetyBackupId,
+        checksumVerified: checksumOk,
+      };
+    } finally {
+      this.isRestoring = false;
+      this.logger.log(`[RESTORE] Flag isRestoring libéré`);
+    }
   }
 
   private async restoreDatabase(filePath: string): Promise<void> {

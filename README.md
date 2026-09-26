@@ -71,6 +71,46 @@ Présences, évaluations, notes, bulletins, examens.
 ### Finance
 Grille tarifaire, factures, paiements, caisse, rapports.
 
+## Sauvegardes
+
+Le module de sauvegarde permet de créer, télécharger et restaurer des sauvegardes complètes (base + documents).
+
+### Fonctionnalités
+
+- Sauvegarde manuelle (bouton dans Paramètres → Sauvegardes)
+- Sauvegarde automatique (heure quotidienne configurable, rétention 7j / 4sem / 12mo)
+- Téléchargement : DB (.sql.gz), documents (.tar.gz), checksum (.sha256)
+- Restauration avec double confirmation (saisir RESTAURER)
+- Checksum SHA-256 vérifié avant restauration
+- Backup de sécurité automatique avant chaque restauration
+
+### Format des fichiers
+
+storage/backups/
+- backup-YYYY-MM-DD_HH-MM-SS-DB.sql.gz
+- backup-YYYY-MM-DD_HH-MM-SS-FILES.tar.gz
+- backup-YYYY-MM-DD_HH-MM-SS.sha256
+
+### Safety Backup
+
+Un backup de sécurité est créé avant chaque restauration. ATTENTION : ce backup
+est écrasé par la restauration elle-même (la restauration écrase TOUTE la base,
+y compris la table backups). Il est utile si la restauration échoue AVANT
+l'écrasement DB. Pour conserver une copie, créer manuellement un backup avant.
+
+### Sécurité
+
+- SUPER_ADMIN : créer, restaurer, supprimer
+- PROMOTEUR : consulter, télécharger
+- DIRECTOR : aucun accès
+- Restaurations tracées dans audit_logs
+- Une seule restauration à la fois (protection anti-double-clic)
+
+### Stockage
+
+Les backups sont dans storage/backups/. Recommandation : copier ce dossier
+régulièrement vers un stockage externe (NAS, cloud) via une tâche cron système.
+
 ## Sécurité
 
 - Mots de passe hashés bcrypt (cost 12)

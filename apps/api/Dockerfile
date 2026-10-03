@@ -17,8 +17,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 COPY prisma ./prisma
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund --prefer-offline
+RUN npm install --no-audit --no-fund --prefer-offline
 RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/api
 RUN cd apps/api && npx prisma generate --schema=../../prisma/schema.prisma || npx prisma generate

@@ -126,11 +126,17 @@ export class InvoicesService {
     }
 
     // Recuperer la grille tarifaire
+    // Seuls les frais INSCRIPTION, SCOLARITE et UNIFORME sont factures automatiquement.
+    // Les frais CANTINE, TRANSPORT, EXAMEN, FOURNITURES, AUTRE sont optionnels
+    // et ajoutes manuellement par l'agent.
     const structures = await this.prisma.feeStructure.findMany({
       where: {
         schoolId,
         academicYearId,
         OR: [{ levelId: enrollment.levelId }, { levelId: null }],
+        feeType: {
+          category: { in: ["INSCRIPTION", "SCOLARITE", "UNIFORME"] },
+        },
       },
       include: { feeType: true },
     });

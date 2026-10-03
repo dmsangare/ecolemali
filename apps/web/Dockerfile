@@ -16,8 +16,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund --prefer-offline
+RUN npm install --no-audit --no-fund --prefer-offline
 RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/web
 

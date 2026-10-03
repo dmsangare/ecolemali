@@ -1,10 +1,13 @@
+import { useState } from "react";
 import {
   Wallet, Receipt, AlertCircle, CheckCircle2, Clock, TrendingUp,
-  TrendingDown, Printer, FileText,
+  TrendingDown, Printer, FileText, Plus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
 import { StatusBadge, BadgeVariant, EmptyState } from "@/components/shared";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { GenerateInvoiceButton } from "@/pages/finance/components/GenerateInvoiceButton";
+import { CreatePaymentModal } from "@/pages/finance/components/CreatePaymentModal";
 import type { StudentDetail } from "@/types/student";
 
 interface FinanceTabProps {
@@ -36,8 +39,25 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 export function FinanceTab({ student }: FinanceTabProps) {
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [preselectedInvoiceId, setPreselectedInvoiceId] = useState<string | undefined>(undefined);
+
   const invoices = student.invoices || [];
   const unpaidAmount = Number(student.unpaidAmount || 0);
+
+  // Recuperer l'annee scolaire depuis le premier enrollment
+  const enrollments = (student as any).enrollments || [];
+  const academicYearId = (student as any).academicYearId
+    || (student as any).currentEnrollment?.academicYearId
+    || enrollments[0]?.academicYearId
+    || enrollments[0]?.academicYear?.id
+    || "";
+  const studentName = `${student.lastName} ${student.firstName}`;
+
+  const openPaymentFor = (invoiceId?: string) => {
+    setPreselectedInvoiceId(invoiceId);
+    setPaymentModalOpen(true);
+  };
 
   // Calculer les totaux
   const totalBilled = invoices.reduce((sum, i) => sum + Number(i.totalAmount), 0);
@@ -141,20 +161,39 @@ export function FinanceTab({ student }: FinanceTabProps) {
             <span className="flex items-center gap-2">
               <Receipt className="h-4 w-4 text-primary" />
               Factures
+              {invoices.length > 0 && (
+                <StatusBadge label={`${invoices.length}`} variant="info" />
+              )}
             </span>
-            {invoices.length > 0 && (
-              <StatusBadge label={`${invoices.length}`} variant="info" />
+            {academicYearId && (
+              <GenerateInvoiceButton
+                studentId={student.id}
+                academicYearId={academicYearId}
+                studentName={studentName}
+                size="sm"
+              />
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {invoices.length === 0 ? (
-            <EmptyState
-              icon={<Receipt className="h-8 w-8 text-muted-foreground/50" />}
-              title="Aucune facture"
-              description="Les factures apparaitront ici une fois emises."
-              className="h-40"
-            />
+            <div className="flex flex-col items-center justify-center py-10 space-y-3">
+              <Receipt className="h-8 w-8 text-muted-foreground/50" />
+              <div className="text-center">
+                <p className="text-sm font-medium">Aucune facture</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Generez une facture a partir de la grille tarifaire
+                </p>
+              </div>
+              {academicYearId && (
+                <GenerateInvoiceButton
+                  studentId={student.id}
+                  academicYearId={academicYearId}
+                  studentName={studentName}
+                  size="sm"
+                />
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -196,16 +235,28 @@ export function FinanceTab({ student }: FinanceTabProps) {
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Imprimer la facture"
-                          onClick={() =>
-                            alert("Impression facture a implementer")
-                          }
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {Number(inv.balance) > 0 && inv.status !== "CANCELLED" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Encaisser un paiement"
+                              onClick={() => openPaymentFor(inv.id)}
+                            >
+                              <Wallet className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Imprimer la facture"
+                            onClick={() =>
+                              alert("Impression facture a implementer")
+                            }
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -219,9 +270,25 @@ export function FinanceTab({ student }: FinanceTabProps) {
       {/* Historique paiements */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Wallet className="h-4 w-4 text-primary" />
-            Historique des paiements
+          <CardTitle className="flex items-center justify-between text-base">
+            <span className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              Historique des paiements
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openPaymentFor()}
+              disabled={invoices.filter((i) => Number(i.balance) > 0).length === 0}
+              title={
+                invoices.filter((i) => Number(i.balance) > 0).length === 0
+                  ? "Aucune facture avec solde a encaisser"
+                  : "Encaisser un paiement"
+              }
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Encaisser
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -243,6 +310,17 @@ export function FinanceTab({ student }: FinanceTabProps) {
         </CardContent>
       </Card>
 
+      {/* MODALE PAIEMENT */}
+      {paymentModalOpen && (
+        <CreatePaymentModal
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setPreselectedInvoiceId(undefined);
+          }}
+          preselectedInvoiceId={preselectedInvoiceId}
+        />
+      )}
+
       {/* Actions */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="py-4">
@@ -257,11 +335,11 @@ export function FinanceTab({ student }: FinanceTabProps) {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled title="Bientot disponible">
                 <Printer className="h-4 w-4" />
                 Attestation de paiement
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled title="Bientot disponible">
                 <Receipt className="h-4 w-4" />
                 Releve financier
               </Button>

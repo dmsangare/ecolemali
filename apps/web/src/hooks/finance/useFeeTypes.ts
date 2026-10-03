@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { feeTypesApi, type FeeTypeFilters } from "@/api/fee-types";
 import { getErrorMessage } from "@/lib/axios";
@@ -16,8 +17,15 @@ export function useFeeTypes(filters: FeeTypeFilters = {}) {
 
 export function useCreateFeeType() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: CreateFeeTypeInput) => feeTypesApi.create(input),
+    mutationFn: (input: CreateFeeTypeInput) => {
+      const payload = {
+        ...input,
+        schoolId: (input as any).schoolId || user?.schoolId,
+      };
+      return feeTypesApi.create(payload);
+    },
     onSuccess: () => {
       toast.success("Type de frais créé");
       qc.invalidateQueries({ queryKey: [KEY] });

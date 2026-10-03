@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { invoicesApi } from "@/api/invoices";
 import { getErrorMessage } from "@/lib/axios";
@@ -29,8 +30,15 @@ export function useFinanceDashboard(academicYearId?: string) {
 
 export function useCreateInvoice() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: any) => invoicesApi.create(input),
+    mutationFn: (input: any) => {
+      const payload = {
+        ...input,
+        schoolId: input.schoolId || user?.schoolId,
+      };
+      return invoicesApi.create(payload);
+    },
     onSuccess: () => {
       toast.success("Facture creee");
       qc.invalidateQueries({ queryKey: [KEY] });

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { School, Search, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui";
+import { School, Search, Loader2, Plus } from "lucide-react";
+import { Input, Button } from "@/components/ui";
 import { useClasses } from "@/hooks/classes";
 import { CycleSection } from "./components/CycleSection";
 import { CreateClassModal } from "./components/CreateClassModal";
@@ -66,6 +66,10 @@ export function ClassesListPage() {
             {totalStudents} eleve{totalStudents > 1 ? "s" : ""}
           </p>
         </div>
+        <Button onClick={() => openModal("PREMIER_CYCLE")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle classe
+        </Button>
       </div>
 
       {/* BARRE DE RECHERCHE */}
@@ -95,6 +99,10 @@ export function ClassesListPage() {
               Commencez par creer votre premiere classe
             </p>
           </div>
+          <Button onClick={() => openModal("PREMIER_CYCLE")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle classe
+          </Button>
         </div>
       ) : (
         <div className="space-y-10">

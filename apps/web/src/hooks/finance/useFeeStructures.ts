@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { feeStructuresApi, type FeeStructureFilters } from "@/api/fee-structures";
 import { getErrorMessage } from "@/lib/axios";
@@ -16,8 +17,15 @@ export function useFeeStructures(filters: FeeStructureFilters = {}) {
 
 export function useCreateFeeStructure() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: (input: CreateFeeStructureInput) => feeStructuresApi.create(input),
+    mutationFn: (input: CreateFeeStructureInput) => {
+      const payload = {
+        ...input,
+        schoolId: (input as any).schoolId || user?.schoolId,
+      };
+      return feeStructuresApi.create(payload);
+    },
     onSuccess: () => {
       toast.success("Tarif enregistré");
       qc.invalidateQueries({ queryKey: [KEY] });

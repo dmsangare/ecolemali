@@ -16,8 +16,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared ./packages/shared
 COPY apps/worker ./apps/worker
 COPY prisma ./prisma
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-audit --no-fund --prefer-offline
+RUN npm install --no-audit --no-fund --prefer-offline
 RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/worker
 

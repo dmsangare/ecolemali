@@ -4,9 +4,8 @@ import {
   TrendingDown, Printer, FileText, Plus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
-import { StatusBadge, BadgeVariant, EmptyState } from "@/components/shared";
+import { StatusBadge, BadgeVariant } from "@/components/shared";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { GenerateInvoiceButton } from "@/pages/finance/components/GenerateInvoiceButton";
 import { CreatePaymentModal } from "@/pages/finance/components/CreatePaymentModal";
 import type { StudentDetail } from "@/types/student";
 
@@ -165,14 +164,7 @@ export function FinanceTab({ student }: FinanceTabProps) {
                 <StatusBadge label={`${invoices.length}`} variant="info" />
               )}
             </span>
-            {academicYearId && (
-              <GenerateInvoiceButton
-                studentId={student.id}
-                academicYearId={academicYearId}
-                studentName={studentName}
-                size="sm"
-              />
-            )}
+
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -185,14 +177,7 @@ export function FinanceTab({ student }: FinanceTabProps) {
                   Generez une facture a partir de la grille tarifaire
                 </p>
               </div>
-              {academicYearId && (
-                <GenerateInvoiceButton
-                  studentId={student.id}
-                  academicYearId={academicYearId}
-                  studentName={studentName}
-                  size="sm"
-                />
-              )}
+
             </div>
           ) : (
             <div className="overflow-x-auto">

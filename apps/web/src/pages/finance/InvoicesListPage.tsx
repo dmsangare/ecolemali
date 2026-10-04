@@ -10,7 +10,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Plus,
-  Sparkles,
 } from "lucide-react";
 import { Button, Input, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -19,8 +18,6 @@ import { useClasses, useLevels } from "@/hooks/classes";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { CreateInvoiceModal } from "./components/CreateInvoiceModal";
-import { GenerateInvoiceButton } from "./components/GenerateInvoiceButton";
-import { StudentPicker } from "./components/StudentPicker";
 import {
   INVOICE_STATUS_LABELS,
   formatFCFA,
@@ -40,8 +37,6 @@ export function InvoicesListPage() {
   const [classFilter, setClassFilter] = useState("");
   const [academicYearId, setAcademicYearId] = useState("");
   const [manualModalOpen, setManualModalOpen] = useState(false);
-  const [autoModalOpen, setAutoModalOpen] = useState(false);
-  const [autoStudent, setAutoStudent] = useState<any>(null);
 
   const { data: academicYears } = useQuery({
     queryKey: ["academic-years", "list"],
@@ -142,16 +137,6 @@ export function InvoicesListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setAutoStudent(null);
-              setAutoModalOpen(true);
-            }}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Générer facture auto
-          </Button>
           <Button onClick={() => setManualModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle facture manuelle
@@ -355,57 +340,7 @@ export function InvoicesListPage() {
         />
       )}
 
-      {/* MODALE GENERER FACTURE AUTO (avec picker eleve) */}
-      {autoModalOpen && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setAutoModalOpen(false)}
-        >
-          <div
-            className="bg-background rounded-lg shadow-xl max-w-lg w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Générer une facture auto
-              </h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Sélectionnez un élève puis cliquez sur « Générer »
-              </p>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Élève
-                </label>
-                <StudentPicker
-                  value={autoStudent}
-                  onChange={setAutoStudent}
-                />
-              </div>
-              {autoStudent?.enrollments?.[0]?.academicYearId && (
-                <GenerateInvoiceButton
-                  studentId={autoStudent.id}
-                  academicYearId={autoStudent.enrollments[0].academicYearId}
-                  studentName={`${autoStudent.lastName} ${autoStudent.firstName}`}
-                  variant="default"
-                  size="default"
-                  label="Générer la facture"
-                />
-              )}
-            </div>
-            <div className="flex justify-end gap-2 px-6 py-4 border-t bg-muted/30">
-              <Button
-                variant="outline"
-                onClick={() => setAutoModalOpen(false)}
-              >
-                Fermer
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

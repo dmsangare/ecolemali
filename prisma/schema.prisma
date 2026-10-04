@@ -343,6 +343,8 @@ model School {
   notifications       Notification[]
   auditLogs           AuditLog[]
   backups             Backup[]
+  expenseCategories   ExpenseCategory[]
+  expenses            Expense[]
 
   @@map("schools")
 }
@@ -527,6 +529,8 @@ model User {
   gradesEntered      Grade[]             @relation("GradeEnteredBy")
   documentsGenerated GeneratedDocument[] @relation("DocumentGeneratedBy")
   backupsCreated     Backup[]            @relation("BackupCreatedBy")
+  expensesMade       Expense[]           @relation("ExpenseCashier")
+  cashSessionsOpened CashSession[]      @relation("CashSessionCashier")
 
   @@index([schoolId])
   @@map("users")
@@ -1249,7 +1253,9 @@ model CashSession {
   createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  cashier  User      @relation("CashSessionCashier", fields: [cashierId], references: [id])
+  expenses Expense[]
 
   @@index([schoolId, status])
   @@map("cash_sessions")
@@ -1410,4 +1416,53 @@ model StudentTransfer {
   @@index([type, status])
   @@index([verificationCode])
   @@map("student_transfers")
+}
+
+// ============================================================
+// 16. BLOC DEPENSES
+// ============================================================
+
+model ExpenseCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @map("school_id") @db.Uuid
+  code        String   @db.VarChar(50)
+  name        String   @db.VarChar(120)
+  description String?
+  emoji       String?  @db.VarChar(10)
+  isActive    Boolean  @default(true) @map("is_active")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, isActive])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @map("school_id") @db.Uuid
+  categoryId     String   @map("category_id") @db.Uuid
+  cashierId      String   @map("cashier_id") @db.Uuid
+  cashSessionId  String?  @map("cash_session_id") @db.Uuid
+  amount         Decimal  @db.Decimal(14, 2)
+  description    String
+  beneficiary    String?  @db.VarChar(150)
+  receiptUrl     String?  @map("receipt_url")
+  spentAt        DateTime @default(now()) @map("spent_at") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school      School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+  cashier     User            @relation("ExpenseCashier", fields: [cashierId], references: [id])
+  cashSession CashSession?    @relation(fields: [cashSessionId], references: [id])
+
+  @@index([schoolId, spentAt])
+  @@index([cashSessionId])
+  @@index([categoryId])
+  @@map("expenses")
 }

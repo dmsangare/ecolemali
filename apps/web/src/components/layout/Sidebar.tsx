@@ -17,7 +17,8 @@ import {
   Library,
   UserCog,
   Tag,
-  Coins } from "lucide-react";
+  Coins,
+  TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -70,6 +71,7 @@ const SECTIONS: NavSection[] = [
       { label: "Types de frais", to: "/fee-types", icon: Tag, permission: "fee:view" },
       { label: "Grille tarifaire", to: "/fee-structures", icon: Coins, permission: "fee:view" },
       { label: "Factures", to: "/invoices", icon: Receipt, permission: "invoice:view" },
+      { label: "Depenses", to: "/expenses", icon: TrendingDown, permission: "expense:view" },
       { label: "Paiements", to: "/payments", icon: Wallet, permission: "payment:view" },
       { label: "Caisse", to: "/cash-sessions", icon: Wallet, permission: "cash:view" },
     ],

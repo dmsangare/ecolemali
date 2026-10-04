@@ -23,6 +23,7 @@ import {
   CashSessionsListPage,
   FeeTypesListPage,
   FeeStructuresListPage,
+  ExpensesListPage,
 } from "@/pages/finance";
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
@@ -253,6 +254,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="payment:view">
                 <PaymentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <ProtectedRoute requiredPermission="expense:view">
+                <ExpensesListPage />
               </ProtectedRoute>
             }
           />

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useExpenses } from "@/hooks/finance";
 import { formatFCFA } from "@/types/finance";
 import type { Expense } from "@/types/finance";
+import { CreateExpenseModal } from "./components/CreateExpenseModal";
 
 export function ExpensesListPage() {
   const [search, setSearch] = useState("");
@@ -208,6 +209,11 @@ export function ExpensesListPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* MODALE CREATION */}
+      {modalOpen && (
+        <CreateExpenseModal onClose={() => setModalOpen(false)} />
       )}
     </div>
   );

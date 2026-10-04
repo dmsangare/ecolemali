@@ -15,11 +15,11 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: process.env.VITE_API_TARGET || "http://localhost:3000",
+        target: "http://192.168.0.150:3000",
         changeOrigin: true,
       },
       "/uploads": {
-        target: process.env.VITE_API_TARGET || "http://localhost:3000",
+        target: "http://192.168.0.150:3000",
         changeOrigin: true,
       },
     },

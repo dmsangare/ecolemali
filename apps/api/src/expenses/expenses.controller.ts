@@ -42,7 +42,7 @@ export class ExpensesController {
     if (!user.schoolId) {
       throw new BadRequestException("Utilisateur sans ecole");
     }
-    return this.service.create(dto, user.userId, user.schoolId);
+    return this.service.create(dto, user.id, user.schoolId);
   }
 
   @Patch(":id")

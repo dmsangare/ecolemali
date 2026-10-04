@@ -231,11 +231,12 @@ export function PaymentDetailPage() {
             matricule: payment.student.matricule,
             guardians: (payment.student as any).guardians || [],
           }}
-          schoolName="SIS-MALI"
+          school={(payment as any).school || null}
           paymentAmount={Number(payment.amount)}
           paymentDate={payment.paidAt}
           receiptNumber={payment.receiptNumber}
           invoiceNumber={(payment.invoice as any)?.number || null}
+          invoiceItems={(payment.invoice as any)?.items || []}
           onClose={() => setWhatsappOpen(false)}
         />
       )}

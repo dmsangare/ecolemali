@@ -75,6 +75,17 @@ export class PaymentsService {
         invoice: { include: { items: { include: { feeType: true } } } },
         receipt: true,
         cashier: { select: { id: true, firstName: true, lastName: true } },
+        school: {
+          select: {
+            id: true,
+            name: true,
+            sigle: true,
+            logoUrl: true,
+            motto: true,
+            address: true,
+            phone: true,
+          },
+        },
       },
     });
     if (!payment) throw new NotFoundException("Paiement introuvable");

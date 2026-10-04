@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, MessageCircle, Loader2, Send } from "lucide-react";
+import { X, MessageCircle, Send } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { formatFCFA } from "@/types/finance";
@@ -12,6 +12,21 @@ interface Guardian {
   relationType?: string;
 }
 
+interface SchoolInfo {
+  name: string;
+  sigle?: string | null;
+  logoUrl?: string | null;
+  motto?: string | null;
+}
+
+interface InvoiceItem {
+  feeType?: { name: string; code: string; category: string } | null;
+  description?: string | null;
+  quantity: number;
+  unitAmount: number | string;
+  totalAmount: number | string;
+}
+
 interface Props {
   student: {
     firstName: string;
@@ -19,44 +34,53 @@ interface Props {
     matricule: string;
     guardians?: Array<{ guardian: Guardian }>;
   };
-  schoolName: string;
+  school: SchoolInfo | null | undefined;
   paymentAmount: number;
   paymentDate: string;
   receiptNumber?: string | null;
   invoiceNumber?: string | null;
+  invoiceItems?: InvoiceItem[];
   onClose: () => void;
 }
 
-/**
- * Normalise un numero malien :
- * - 76 12 34 56 → +223 76 12 34 56 (si format 8 chiffres)
- * - +223 76... → +22376123456
- * - 0022376... → +22376...
- */
 function normalizePhone(raw: string): string {
   if (!raw) return "";
   let digits = raw.replace(/[^\d]/g, "");
-
-  // Retirer prefixe 00223
   if (digits.startsWith("00223")) digits = digits.slice(5);
-  // Retirer prefixe 223 si suivi de 8 chiffres
   if (digits.startsWith("223") && digits.length === 11) digits = digits.slice(3);
-
-  // Si 8 chiffres (format malien standard)
   if (digits.length === 8) return `223${digits}`;
-  // Si 11 chiffres commencant par 223
   if (digits.length === 11 && digits.startsWith("223")) return digits;
-
   return digits;
+}
+
+function civility(relationType?: string): string {
+  if (!relationType) return "M.";
+  const r = relationType.toUpperCase();
+  if (r === "MOTHER" || r === "MERE") return "Mme";
+  if (r === "FATHER" || r === "PERE" || r === "TUTOR" || r === "TUTEUR") return "M.";
+  return "M.";
+}
+
+function formatMotif(items?: InvoiceItem[]): string {
+  if (!items || items.length === 0) return "";
+  const labels = items
+    .map((it) => {
+      if (it.feeType?.name) return it.feeType.name;
+      if (it.description) return it.description;
+      return null;
+    })
+    .filter((l): l is string => !!l);
+  return labels.join(", ");
 }
 
 export function SendWhatsAppModal({
   student,
-  schoolName,
+  school,
   paymentAmount,
   paymentDate,
   receiptNumber,
   invoiceNumber,
+  invoiceItems,
   onClose,
 }: Props) {
   const guardians = useMemo<Guardian[]>(() => {
@@ -65,19 +89,41 @@ export function SendWhatsAppModal({
       .filter((g): g is Guardian => !!g && !!g.phone);
   }, [student.guardians]);
 
+  const [selectedGuardian, setSelectedGuardian] = useState<Guardian | null>(
+    guardians.length > 0 ? guardians[0] : null,
+  );
   const [phone, setPhone] = useState(
     guardians.length > 0 ? guardians[0].phone : "",
   );
-  const [message, setMessage] = useState(() => {
-    const school = schoolName || "notre etablissement";
+
+  const buildMessage = (g: Guardian | null) => {
+    const schoolName = school?.name || "notre etablissement";
     const amount = formatFCFA(paymentAmount);
-    const date = new Date(paymentDate).toLocaleDateString("fr-FR");
-    const parent = guardians.length > 0 ? guardians[0].firstName : "Cher parent";
-    return `Bonjour ${parent},\n\nNous confirmons la reception de votre paiement de ${amount} pour ${student.firstName} ${student.lastName} le ${date}.${receiptNumber ? `\n\nRecu N° : ${receiptNumber}` : ""}${invoiceNumber ? `\nFacture : ${invoiceNumber}` : ""}\n\nMerci de votre confiance.\n${school}`;
-  });
+    const date = new Date(paymentDate).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const greeting = g
+      ? `Bonjour ${civility(g.relationType)} ${g.lastName.toUpperCase()} ${g.firstName},\n\n`
+      : `Bonjour,\n\n`;
+    const motif = formatMotif(invoiceItems);
+    const motifLine = motif ? `\nMotif : ${motif}` : "";
+    const receiptLine = receiptNumber ? `\nRecu N° : ${receiptNumber}` : "";
+    const invoiceLine = invoiceNumber ? `\nFacture : ${invoiceNumber}` : "";
+    return `${greeting}Nous confirmons la reception de votre paiement de ${amount} pour ${student.firstName} ${student.lastName} le ${date}.${motifLine}${invoiceLine}${receiptLine}\n\nMerci de votre confiance.\n${schoolName}`;
+  };
+
+  const [message, setMessage] = useState(() => buildMessage(selectedGuardian));
 
   const normalizedPhone = normalizePhone(phone);
   const isValid = normalizedPhone.length >= 11;
+
+  const handleSelectGuardian = (g: Guardian) => {
+    setSelectedGuardian(g);
+    setPhone(g.phone);
+    setMessage(buildMessage(g));
+  };
 
   const handleSend = () => {
     if (!isValid) return;
@@ -95,7 +141,6 @@ export function SendWhatsAppModal({
         className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
@@ -114,30 +159,27 @@ export function SendWhatsAppModal({
           </Button>
         </div>
 
-        {/* CORPS */}
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* CHOIX TUTEUR */}
           {guardians.length > 0 && (
             <div>
-              <Label className="text-sm font-medium">
-                Choisir un tuteur
-              </Label>
+              <Label className="text-sm font-medium">Choisir un tuteur</Label>
               <div className="mt-2 space-y-1.5">
                 {guardians.map((g) => (
                   <button
                     key={g.id}
                     type="button"
-                    onClick={() => setPhone(g.phone)}
+                    onClick={() => handleSelectGuardian(g)}
                     className={cn(
                       "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border-2 text-left text-sm transition-all",
-                      phone === g.phone
+                      selectedGuardian?.id === g.id
                         ? "border-primary bg-primary/5"
                         : "border-input hover:border-primary/50",
                     )}
                   >
                     <div>
                       <span className="font-medium">
-                        {g.lastName} {g.firstName}
+                        {civility(g.relationType)} {g.lastName.toUpperCase()}{" "}
+                        {g.firstName}
                       </span>
                       {g.relationType && (
                         <span className="ml-2 text-xs text-muted-foreground">
@@ -154,7 +196,6 @@ export function SendWhatsAppModal({
             </div>
           )}
 
-          {/* NUMERO */}
           <div>
             <Label htmlFor="phone" className="text-sm font-medium">
               Numero WhatsApp *
@@ -176,7 +217,6 @@ export function SendWhatsAppModal({
             )}
           </div>
 
-          {/* MESSAGE */}
           <div>
             <Label htmlFor="message" className="text-sm font-medium">
               Message
@@ -185,7 +225,7 @@ export function SendWhatsAppModal({
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="mt-1 w-full min-h-[160px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              className="mt-1 w-full min-h-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm"
               maxLength={2000}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -194,7 +234,6 @@ export function SendWhatsAppModal({
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="flex justify-end gap-2 px-6 py-4 border-t bg-muted/30">
           <Button type="button" variant="outline" onClick={onClose}>
             Annuler

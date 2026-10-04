@@ -269,7 +269,11 @@ export function PaymentDetailPage() {
               Téléchargez le reçu officiel au format PDF
             </p>
           </div>
-          <ReceiptPDFButton paymentId={payment.id} disabled={isCancelled} />
+          <ReceiptPDFButton
+            receiptId={(payment as any).receipt?.id || null}
+            receiptNumber={payment.receiptNumber}
+            disabled={isCancelled}
+          />
         </CardContent>
       </Card>
 

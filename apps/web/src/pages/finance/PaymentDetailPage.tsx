@@ -10,10 +10,12 @@ import {
   FileText,
   Ban,
   MessageCircle,
+  Download,
 } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { usePayment } from "@/hooks/finance";
+import { api } from "@/lib/axios";
 import { SendWhatsAppModal } from "./components/SendWhatsAppModal";
 import {
   PAYMENT_METHOD_LABELS,
@@ -25,6 +27,7 @@ export function PaymentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: payment, isLoading } = usePayment(id);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   if (isLoading) {
     return (
@@ -49,6 +52,39 @@ export function PaymentDetailPage() {
       </div>
     );
   }
+
+  const handleDownloadPdf = async () => {
+    if (!payment?.id || !payment.receiptNumber) {
+      alert("Aucun recu associe a ce paiement");
+      return;
+    }
+    setDownloading(true);
+    try {
+      // On doit passer par le receipt.id, pas le payment.id
+      // Le backend expose /receipts/:id/pdf
+      // Il faut recuperer le receiptId depuis le payment
+      const receiptId = (payment as any).receipt?.id || (payment as any).receiptId;
+      if (!receiptId) {
+        alert("Identifiant de recu introuvable");
+        return;
+      }
+      const response = await api.get(`/receipts/${receiptId}/pdf`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `recu-${payment.receiptNumber || "paiement"}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("Erreur lors du telechargement du recu");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const methodInfo =
     PAYMENT_METHOD_LABELS[payment.method as PaymentMethod] ||
@@ -85,7 +121,21 @@ export function PaymentDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isCancelled && payment.receiptNumber && (
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Telecharger le recu
+              </Button>
+            )}
             {!isCancelled && (
               <Button
                 variant="outline"

@@ -11,6 +11,7 @@ interface Movement {
 
 interface CashSessionReportData {
   schoolName: string;
+  schoolLogoBase64?: string | null;
   schoolSigle?: string | null;
   schoolAddress?: string | null;
   schoolPhone?: string | null;
@@ -115,6 +116,7 @@ function buildHTML(data: CashSessionReportData): string {
 body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #1F2937; padding: 8px; }
 .header { display: flex; align-items: center; gap: 15px; padding-bottom: 10px; border-bottom: 3px double #1E40AF; margin-bottom: 15px; }
 .logo { width: 50px; height: 50px; background: #1E40AF; color: white; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 20px; font-weight: bold; }
+.logo-img { width: 50px; height: 50px; object-fit: contain; border-radius: 8px; }
 .school-name { font-size: 15px; font-weight: bold; color: #1E40AF; text-transform: uppercase; }
 .school-info { font-size: 9px; color: #6B7280; margin-top: 2px; }
 .school-motto { font-size: 9px; font-style: italic; color: #6B7280; margin-top: 2px; }
@@ -169,7 +171,7 @@ table.movements td.empty { text-align: center; color: #9CA3AF; padding: 20px; fo
 .footer { text-align: center; font-size: 8px; color: #9CA3AF; margin-top: 25px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-style: italic; }
 </style></head><body>
 <div class="header">
-  <div class="logo">${(data.schoolSigle || data.schoolName || "S").charAt(0)}</div>
+  ${data.schoolLogoBase64 ? `<img src="${data.schoolLogoBase64}" class="logo-img" alt="Logo"/>` : `<div class="logo">${(data.schoolSigle || data.schoolName || "S").charAt(0)}</div>`}
   <div>
     <div class="school-name">${data.schoolName}</div>
     ${data.schoolAddress ? `<div class="school-info">${data.schoolAddress}</div>` : ""}

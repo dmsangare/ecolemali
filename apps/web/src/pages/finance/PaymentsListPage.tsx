@@ -5,6 +5,7 @@ import {
   Search,
   Loader2,
   Eye,
+  Download,
   Plus,
   TrendingUp,
   Ban,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button, Input, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/axios";
 import {
   usePayments,
   useTodayTotal,
@@ -31,6 +33,7 @@ export function PaymentsListPage() {
   const [search, setSearch] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const filters: any = {};
   if (methodFilter) filters.method = methodFilter;
@@ -49,7 +52,8 @@ export function PaymentsListPage() {
     const q = search.toLowerCase();
     return paymentList.filter((p: Payment) => {
       const name = `${p.student?.lastName || ""} ${p.student?.firstName || ""}`;
-      return (
+
+  return (
         name.toLowerCase().includes(q) ||
         p.student?.matricule?.toLowerCase().includes(q) ||
         p.reference?.toLowerCase().includes(q) ||
@@ -71,6 +75,30 @@ export function PaymentsListPage() {
     );
     if (!reason) return;
     cancelMutation.mutate({ id: payment.id, dto: { reason } });
+  };
+
+  const handleDownloadPdf = async (
+    receiptId: string,
+    receiptNumber: string,
+  ) => {
+    setDownloadingId(receiptId);
+    try {
+      const response = await api.get(`/receipts/${receiptId}/pdf`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `recu-${receiptNumber || "paiement"}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("Erreur lors du telechargement du recu");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -251,6 +279,26 @@ export function PaymentsListPage() {
                                 <Eye className="h-3.5 w-3.5" />
                               </Link>
                             </Button>
+                            {p.receipt?.id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Telecharger le recu PDF"
+                                onClick={() =>
+                                  handleDownloadPdf(
+                                    p.receipt!.id,
+                                    p.receipt!.number,
+                                  )
+                                }
+                                disabled={downloadingId === p.receipt.id}
+                              >
+                                {downloadingId === p.receipt.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Download className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            )}
                             {!isCancelled && (
                               <Button
                                 variant="ghost"

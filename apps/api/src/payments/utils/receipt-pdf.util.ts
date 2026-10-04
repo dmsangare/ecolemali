@@ -2,6 +2,7 @@ import puppeteer from "puppeteer";
 
 interface ReceiptData {
   schoolName: string;
+  schoolLogoBase64?: string | null;
   schoolAddress?: string | null;
   schoolPhone?: string | null;
   schoolMotto?: string | null;
@@ -83,6 +84,7 @@ function buildHTML(data: ReceiptData, qrDataUrl: string): string {
 body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1F2937; padding: 10px; }
 .header { display: flex; align-items: center; gap: 15px; padding-bottom: 12px; border-bottom: 3px double #1E40AF; margin-bottom: 20px; position: relative; }
 .logo { width: 60px; height: 60px; background: #1E40AF; color: white; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 24px; font-weight: bold; }
+.logo-img { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
 .school-name { font-size: 16px; font-weight: bold; color: #1E40AF; text-transform: uppercase; }
 .school-info { font-size: 9px; color: #6B7280; margin-top: 2px; }
 .school-motto { font-size: 9px; font-style: italic; color: #6B7280; margin-top: 2px; }
@@ -116,7 +118,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1F293
 .footer { text-align: center; font-size: 8px; color: #9CA3AF; margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; font-style: italic; }
 </style></head><body>
 <div class="header">
-  <div class="logo">S</div>
+  ${data.schoolLogoBase64 ? `<img src="${data.schoolLogoBase64}" class="logo-img" alt="Logo"/>` : `<div class="logo">${(data.schoolName || "S").charAt(0)}</div>`}
   <div>
     <div class="school-name">${data.schoolName}</div>
     ${data.schoolAddress ? `<div class="school-info">${data.schoolAddress}</div>` : ""}

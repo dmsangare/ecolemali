@@ -21,6 +21,7 @@ import {
   TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSchool } from "@/hooks/school/useSchool";
 
 interface NavItem {
   label: string;
@@ -87,6 +88,11 @@ const SECTIONS: NavSection[] = [
 
 export function Sidebar() {
   const { hasPermission } = useAuth();
+  const { data: school } = useSchool();
+
+  const hasLogo = !!school?.logoUrl;
+  const schoolName = school?.name || "SIS-MALI";
+  const sigle = school?.sigle || "S";
 
   const visibleSections = SECTIONS.map((section) => ({
     ...section,
@@ -97,11 +103,21 @@ export function Sidebar() {
     <aside className="hidden md:flex w-64 flex-col border-r bg-card h-screen sticky top-0">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-          S
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-bold leading-none">SIS-MALI</span>
+        {hasLogo ? (
+          <img
+            src={school!.logoUrl!}
+            alt={schoolName}
+            className="h-8 w-8 rounded-md object-contain shrink-0"
+          />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold shrink-0">
+            {sigle.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-bold leading-none truncate" title={schoolName}>
+            {schoolName}
+          </span>
           <span className="text-xs text-muted-foreground leading-none mt-0.5">
             Gestion scolaire
           </span>

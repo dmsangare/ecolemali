@@ -1,3 +1,66 @@
+import { useState, useMemo } from "react";
+import { X, Loader2, Save, TrendingDown } from "lucide-react";
+import { Button, Input, Label } from "@/components/ui";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/axios";
+import { useCreateExpense } from "@/hooks/finance";
+import { formatFCFA } from "@/types/finance";
+import type { ExpenseCategory } from "@/types/finance";
+
+interface Props {
+  onClose: () => void;
+}
+
+export function CreateExpenseModal({ onClose }: Props) {
+  const [categoryId, setCategoryId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [beneficiary, setBeneficiary] = useState("");
+  const [spentAt, setSpentAt] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+
+  const createMutation = useCreateExpense();
+
+  const { data: categoriesData, isLoading: loadingCategories } = useQuery({
+    queryKey: ["expense-categories", "list"],
+    queryFn: async () => {
+      const { data } = await api.get("/expense-categories");
+      return (data.data || data) as ExpenseCategory[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const categories = useMemo<ExpenseCategory[]>(() => {
+    if (!categoriesData) return [];
+    return Array.isArray(categoriesData) ? categoriesData : [];
+  }, [categoriesData]);
+
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const amountNum = parseInt(amount, 10) || 0;
+
+  const isValid =
+    categoryId.length > 0 &&
+    amountNum > 0 &&
+    description.trim().length >= 2;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid) return;
+
+    try {
+      await createMutation.mutateAsync({
+        categoryId,
+        amount: amountNum,
+        description: description.trim(),
+        beneficiary: beneficiary.trim() || undefined,
+        spentAt: spentAt ? new Date(spentAt).toISOString() : undefined,
+      });
+      onClose();
+    } catch {
+      // erreur geree par le hook
+    }
+  };
 
   return (
     <div
@@ -47,7 +110,7 @@
                   <option value="">-- Selectionner une categorie --</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.emoji || "📦"} {cat.name}
+                      {cat.emoji || "X"} {cat.name}
                     </option>
                   ))}
                 </select>

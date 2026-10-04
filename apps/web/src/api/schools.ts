@@ -16,6 +16,15 @@ export const schoolsApi = {
     const { data } = await api.patch(`/schools/${id}`, input);
     return data.data || data;
   },
+
+  async uploadLogo(id: string, file: File): Promise<School> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post(`/schools/${id}/logo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data.data || data;
+  },
 };
 
 export const settingsApi = {

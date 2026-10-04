@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, Save, Building2, Mail, Phone, Globe, MapPin, Quote } from "lucide-react";
+import { Loader2, Save, Building2, Mail, Phone, Globe, MapPin, Quote, Image as ImageIcon, Upload, Trash2, CheckCircle2 } from "lucide-react";
 import { useSchool, useUpdateSchool } from "@/hooks/users";
+import { useUploadLogo } from "@/hooks/school/useSchool";
 import {
   Button, Input, Label, Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui";
@@ -9,6 +10,9 @@ import {
 export function SchoolTab() {
   const { data: school, isLoading } = useSchool();
   const updateMutation = useUpdateSchool();
+  const uploadLogoMutation = useUploadLogo();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -32,6 +36,39 @@ export function SchoolTab() {
     }
   }, [school, reset]);
 
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !school) return;
+
+    // Validation cote client
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Format non supporte. Utilisez PNG, JPG ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Fichier trop volumineux (max 2 Mo).");
+      return;
+    }
+
+    // Apercu local immediat
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    // Upload
+    try {
+      await uploadLogoMutation.mutateAsync({ id: school.id, file });
+    } catch {
+      setLogoPreview(null);
+    }
+  };
+
+  const handleRemovePreview = () => {
+    setLogoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const onSubmit = async (data: any) => {
     if (!school) return;
     await updateMutation.mutateAsync({ id: school.id, dto: data });
@@ -47,6 +84,87 @@ export function SchoolTab() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* LOGO */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Logo de l etablissement
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-6">
+            {/* Apercu */}
+            <div className="h-28 w-28 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+              {logoPreview || school?.logoUrl ? (
+                <img
+                  src={logoPreview || `${school?.logoUrl}`}
+                  alt="Logo"
+                  className="h-full w-full object-contain p-2"
+                />
+              ) : (
+                <div className="text-center text-xs text-muted-foreground">
+                  <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                  <p className="mt-1">Aucun logo</p>
+                </div>
+              )}
+            </div>
+
+            {/* Boutons */}
+            <div className="flex-1 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Format PNG, JPG ou SVG · Taille max : 2 Mo · Recommande : image carree 500x500 px
+              </p>
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadLogoMutation.isPending}
+                >
+                  {uploadLogoMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Upload en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {school?.logoUrl ? "Changer le logo" : "Ajouter un logo"}
+                    </>
+                  )}
+                </Button>
+                {logoPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemovePreview}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Annuler l apercu
+                  </Button>
+                )}
+              </div>
+              {school?.logoUrl && !logoPreview && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Logo actuel actif
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

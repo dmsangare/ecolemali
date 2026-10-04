@@ -48,3 +48,26 @@ export function useUpdateSchool() {
     },
   });
 }
+
+export function useUploadLogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post(`/schools/${id}/logo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data.data || data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["school"] });
+      toast.success("Logo mis a jour");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.message || "Erreur lors de l upload du logo",
+      );
+    },
+  });
+}

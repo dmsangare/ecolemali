@@ -42,45 +42,276 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
 
           {/* Eleves */}
-          <Route path="/students" element={<StudentsListPage />} />
-          <Route path="/students/new" element={<StudentFormPage />} />
-          <Route path="/students/:id" element={<StudentDetailPage />} />
-          <Route path="/students/:id/edit" element={<StudentFormPage />} />
+          <Route
+            path="/students"
+            element={
+              <ProtectedRoute requiredPermission="student:view">
+                <StudentsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students/new"
+            element={
+              <ProtectedRoute requiredPermission="student:create">
+                <StudentFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students/:id"
+            element={
+              <ProtectedRoute requiredPermission="student:view">
+                <StudentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/students/:id/edit"
+            element={
+              <ProtectedRoute requiredPermission="student:update">
+                <StudentFormPage />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Autres modules */}
-          <Route path="/classes" element={<ClassesListPage />} />
-          <Route path="/classes/:id" element={<ClassDetailPage />} />
-          <Route path="/teachers" element={<TeachersListPage />} />
-          <Route path="/teachers/new" element={<TeacherFormPage />} />
-          <Route path="/teachers/:id/edit" element={<TeacherFormPage />} />
-          <Route path="/teachers/:id" element={<TeacherDetailPage />} />
-          <Route path="/subjects" element={<SubjectsListPage />} />
-          <Route path="/subjects/new" element={<SubjectFormPage />} />
-          <Route path="/subjects/:id/edit" element={<SubjectFormPage />} />
+          {/* Classes */}
+          <Route
+            path="/classes"
+            element={
+              <ProtectedRoute requiredPermission="class:view">
+                <ClassesListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classes/:id"
+            element={
+              <ProtectedRoute requiredPermission="class:view">
+                <ClassDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/attendance" element={<AttendanceListPage />} />
-          <Route path="/attendance/:id" element={<AttendanceDetailPage />} />
+          {/* Enseignants */}
+          <Route
+            path="/teachers"
+            element={
+              <ProtectedRoute requiredPermission="teacher:view">
+                <TeachersListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teachers/new"
+            element={
+              <ProtectedRoute requiredPermission="teacher:create">
+                <TeacherFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teachers/:id/edit"
+            element={
+              <ProtectedRoute requiredPermission="teacher:update">
+                <TeacherFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teachers/:id"
+            element={
+              <ProtectedRoute requiredPermission="teacher:view">
+                <TeacherDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/assessments" element={<AssessmentsListPage />} />
-          <Route path="/assessments/:id/grades" element={<AssessmentGradesPage />} />
+          {/* Matieres */}
+          <Route
+            path="/subjects"
+            element={
+              <ProtectedRoute requiredPermission="subject:view">
+                <SubjectsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subjects/new"
+            element={
+              <ProtectedRoute requiredPermission="subject:create">
+                <SubjectFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subjects/:id/edit"
+            element={
+              <ProtectedRoute requiredPermission="subject:update">
+                <SubjectFormPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/report-cards" element={<ReportCardsListPage />} />
-          <Route path="/report-cards/:id" element={<ReportCardDetailPage />} />
+          {/* Presences */}
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute requiredPermission="attendance:view">
+                <AttendanceListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/attendance/:id"
+            element={
+              <ProtectedRoute requiredPermission="attendance:view">
+                <AttendanceDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/fee-types" element={<FeeTypesListPage />} />
-          <Route path="/fee-structures" element={<FeeStructuresListPage />} />
-          <Route path="/invoices" element={<InvoicesListPage />} />
-          <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
-          <Route path="/payments" element={<PaymentsListPage />} />
-          <Route path="/payments/:id" element={<PaymentDetailPage />} />
-          <Route path="/cash-sessions" element={<CashSessionsListPage />} />
+          {/* Notes / Evaluations */}
+          <Route
+            path="/assessments"
+            element={
+              <ProtectedRoute requiredPermission="grade:view">
+                <AssessmentsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assessments/:id/grades"
+            element={
+              <ProtectedRoute requiredPermission="grade:view">
+                <AssessmentGradesPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/exams" element={<ExamsListPage />} />
-          <Route path="/exams/:id" element={<ExamDetailPage />} />
+          {/* Bulletins */}
+          <Route
+            path="/report-cards"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <ReportCardsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/report-cards/:id"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <ReportCardDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/timetable" element={<TimetablePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          {/* Finances */}
+          <Route
+            path="/fee-types"
+            element={
+              <ProtectedRoute requiredPermission="fee:view">
+                <FeeTypesListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fee-structures"
+            element={
+              <ProtectedRoute requiredPermission="fee:view">
+                <FeeStructuresListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <InvoicesListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/:id"
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <InvoiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payments"
+            element={
+              <ProtectedRoute requiredPermission="payment:view">
+                <PaymentsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payments/:id"
+            element={
+              <ProtectedRoute requiredPermission="payment:view">
+                <PaymentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cash-sessions"
+            element={
+              <ProtectedRoute requiredPermission="cash:view">
+                <CashSessionsListPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Examens */}
+          <Route
+            path="/exams"
+            element={
+              <ProtectedRoute requiredPermission="exam:view">
+                <ExamsListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/exams/:id"
+            element={
+              <ProtectedRoute requiredPermission="exam:view">
+                <ExamDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rapports */}
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute requiredPermission="report:view">
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Emploi du temps */}
+          <Route
+            path="/timetable"
+            element={
+              <ProtectedRoute requiredPermission="timetable:view">
+                <TimetablePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Parametres */}
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute requiredPermission="settings:view">
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Route>
 

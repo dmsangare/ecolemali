@@ -11,21 +11,43 @@ import { CloseCashSessionDto } from './dto/close-cash-session.dto';
 export class CashSessionsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Calcule les totaux d'une session :
+   * - encaissements especes
+   * - encaissements autres methodes
+   * - depenses (toutes en especes)
+   */
   private async computeTotals(sessionId: string) {
-    const payments = await this.prisma.payment.findMany({
-      where: { cashSessionId: sessionId },
-    });
-    const totalCash = payments
+    const [payments, expenses] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { cashSessionId: sessionId },
+      }),
+      this.prisma.expense.findMany({
+        where: { cashSessionId: sessionId },
+      }),
+    ]);
+
+    const totalCashIn = payments
       .filter((p) => p.method === 'CASH')
       .reduce((s, p) => s + Number(p.amount), 0);
-    const totalOther = payments
+
+    const totalOtherIn = payments
       .filter((p) => p.method !== 'CASH')
       .reduce((s, p) => s + Number(p.amount), 0);
+
+    const totalExpenses = expenses.reduce(
+      (s, e) => s + Number(e.amount),
+      0,
+    );
+
     return {
-      totalCash,
-      totalOther,
-      totalPayments: totalCash + totalOther,
+      totalCash: totalCashIn,
+      totalOther: totalOtherIn,
+      totalExpenses,
+      totalPayments: totalCashIn + totalOtherIn,
       paymentsCount: payments.length,
+      expensesCount: expenses.length,
+      movementsCount: payments.length + expenses.length,
     };
   }
 
@@ -39,10 +61,14 @@ export class CashSessionsService {
     const totals = await this.computeTotals(session.id);
     const opening = Number(session.openingAmount);
 
+    // Solde theorique = fond + encaissements especes - depenses
+    const theoreticalBalance =
+      opening + totals.totalCash - totals.totalExpenses;
+
     return {
       ...session,
       ...totals,
-      theoreticalBalance: opening + totals.totalCash,
+      theoreticalBalance,
     };
   }
 
@@ -51,7 +77,7 @@ export class CashSessionsService {
       where: { schoolId, cashierId: userId, status: 'OPEN' },
     });
     if (existing) {
-      throw new BadRequestException('Une session de caisse est déjà ouverte');
+      throw new BadRequestException('Une session de caisse est deja ouverte');
     }
 
     return this.prisma.cashSession.create({
@@ -73,7 +99,10 @@ export class CashSessionsService {
     }
 
     const totals = await this.computeTotals(session.id);
-    const expectedAmount = Number(session.openingAmount) + totals.totalCash;
+    const expectedAmount =
+      Number(session.openingAmount) +
+      totals.totalCash -
+      totals.totalExpenses;
     const difference = dto.closingBalance - expectedAmount;
 
     return this.prisma.cashSession.update({
@@ -100,6 +129,11 @@ export class CashSessionsService {
         orderBy: { closedAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
+        include: {
+          cashier: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
       }),
       this.prisma.cashSession.count({ where }),
     ]);
@@ -116,19 +150,55 @@ export class CashSessionsService {
   async detail(schoolId: string, id: string) {
     const session = await this.prisma.cashSession.findFirst({
       where: { id, schoolId },
+      include: {
+        cashier: { select: { id: true, firstName: true, lastName: true } },
+        school: {
+          select: {
+            id: true,
+            name: true,
+            sigle: true,
+            address: true,
+            phone: true,
+            email: true,
+            logoUrl: true,
+            motto: true,
+          },
+        },
+      },
     });
     if (!session) throw new NotFoundException('Session introuvable');
 
-    const payments = await this.prisma.payment.findMany({
-      where: { cashSessionId: session.id },
-      orderBy: { paidAt: 'desc' },
-      include: {
-        invoice: { select: { number: true } },
-        student: { select: { firstName: true, lastName: true } },
-      },
-    });
+    const [payments, expenses] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { cashSessionId: session.id },
+        orderBy: { paidAt: 'desc' },
+        include: {
+          invoice: { select: { id: true, number: true } },
+          student: {
+            select: { id: true, firstName: true, lastName: true, matricule: true },
+          },
+        },
+      }),
+      this.prisma.expense.findMany({
+        where: { cashSessionId: session.id },
+        orderBy: { spentAt: 'desc' },
+        include: {
+          category: { select: { code: true, name: true, emoji: true } },
+        },
+      }),
+    ]);
 
     const totals = await this.computeTotals(session.id);
-    return { ...session, payments, ...totals };
+    const opening = Number(session.openingAmount);
+    const theoreticalBalance =
+      opening + totals.totalCash - totals.totalExpenses;
+
+    return {
+      ...session,
+      payments,
+      expenses,
+      ...totals,
+      theoreticalBalance,
+    };
   }
 }

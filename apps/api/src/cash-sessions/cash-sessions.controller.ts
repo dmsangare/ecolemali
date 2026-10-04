@@ -6,12 +6,16 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CashSessionsService } from './cash-sessions.service';
 import { OpenCashSessionDto } from './dto/open-cash-session.dto';
 import { CloseCashSessionDto } from './dto/close-cash-session.dto';
+import { generateCashSessionPDF } from './utils/cash-session-pdf.util';
 
 @Controller('cash-sessions')
 @UseGuards(JwtAuthGuard)
@@ -41,5 +45,83 @@ export class CashSessionsController {
   @Get(':id')
   detail(@Req() req: any, @Param('id') id: string) {
     return this.service.detail(req.user.schoolId, id);
+  }
+
+  @Get(':id/pdf')
+  async pdf(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const session = await this.service.detail(req.user.schoolId, id);
+
+    // Fusionner payments + expenses en mouvements chronologiques
+    const movements = [
+      ...(session.payments || []).map((p: any) => ({
+        time: new Date(p.paidAt).toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        type: 'IN' as const,
+        label: p.student
+          ? `${p.student.lastName} ${p.student.firstName}`
+          : 'Encaissement',
+        detail: p.invoice ? `Facture ${p.invoice.number}` : undefined,
+        amount: Number(p.amount),
+        method: p.method,
+        date: new Date(p.paidAt),
+      })),
+      ...(session.expenses || []).map((e: any) => ({
+        time: new Date(e.spentAt).toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        type: 'OUT' as const,
+        label: e.category
+          ? `${e.category.emoji || ''} ${e.category.name}`
+          : 'Depense',
+        detail: e.description,
+        amount: Number(e.amount),
+        method: 'Especes',
+        date: new Date(e.spentAt),
+      })),
+    ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    const cashierName = session.cashier
+      ? `${session.cashier.firstName} ${session.cashier.lastName}`
+      : 'Caissier';
+
+    const pdfBuffer = await generateCashSessionPDF({
+      schoolName: session.school?.name || 'Ecole',
+      schoolSigle: session.school?.sigle,
+      schoolAddress: session.school?.address,
+      schoolPhone: session.school?.phone,
+      schoolMotto: session.school?.motto,
+      sessionId: session.id,
+      cashierName,
+      openedAt: session.openedAt,
+      closedAt: session.closedAt,
+      openingAmount: Number(session.openingAmount),
+      totalCash: session.totalCash || 0,
+      totalOther: session.totalOther || 0,
+      totalExpenses: session.totalExpenses || 0,
+      paymentsCount: session.paymentsCount || 0,
+      expensesCount: session.expensesCount || 0,
+      theoreticalBalance: session.theoreticalBalance || 0,
+      closingAmount: session.closingAmount
+        ? Number(session.closingAmount)
+        : null,
+      difference: session.difference ? Number(session.difference) : null,
+      movements,
+    });
+
+    const filename = `rapport-caisse-${session.id.slice(0, 8)}.pdf`;
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    return new StreamableFile(pdfBuffer);
   }
 }

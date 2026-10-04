@@ -47,7 +47,12 @@ packages/*/src/**/*.d.ts
 storage/
 !storage/.gitkeep
 uploads/
-backups/
+
+# Dossiers de sauvegardes physiques (uniquement a la racine ou dans storage/)
+/backups/
+storage/backups/
+*.sql.gz
+*.tar.gz
 
 # ============================================================
 # Prisma

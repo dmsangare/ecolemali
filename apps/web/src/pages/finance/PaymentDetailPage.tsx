@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -8,10 +9,12 @@ import {
   User,
   FileText,
   Ban,
+  MessageCircle,
 } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { usePayment } from "@/hooks/finance";
+import { SendWhatsAppModal } from "./components/SendWhatsAppModal";
 import {
   PAYMENT_METHOD_LABELS,
   formatFCFA,
@@ -21,6 +24,7 @@ import {
 export function PaymentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: payment, isLoading } = usePayment(id);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -81,11 +85,23 @@ export function PaymentDetailPage() {
             </div>
           </div>
 
-          {isCancelled && (
-            <span className="inline-block px-3 py-1.5 rounded text-sm font-medium bg-red-500/10 text-red-700">
-              Annulé
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {!isCancelled && (
+              <Button
+                variant="outline"
+                onClick={() => setWhatsappOpen(true)}
+                className="text-green-700 border-green-300 hover:bg-green-50"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Envoyer par WhatsApp
+              </Button>
+            )}
+            {isCancelled && (
+              <span className="inline-block px-3 py-1.5 rounded text-sm font-medium bg-red-500/10 text-red-700">
+                Annulé
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -206,6 +222,24 @@ export function PaymentDetailPage() {
           <ReceiptPDFButton paymentId={payment.id} disabled={isCancelled} />
         </CardContent>
       </Card>
+
+      {whatsappOpen && payment.student && (
+        <SendWhatsAppModal
+          student={{
+            firstName: payment.student.firstName,
+            lastName: payment.student.lastName,
+            matricule: payment.student.matricule,
+            guardians: (payment.student as any).guardians || [],
+          }}
+          schoolName="SIS-MALI"
+          paymentAmount={Number(payment.amount)}
+          paymentDate={payment.paidAt}
+          receiptNumber={payment.receiptNumber}
+          invoiceNumber={(payment.invoice as any)?.number || null}
+          onClose={() => setWhatsappOpen(false)}
+        />
+      )}
+
     </div>
   );
 }

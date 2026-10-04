@@ -55,7 +55,23 @@ export class PaymentsService {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
       include: {
-        student: true,
+        student: {
+          include: {
+            guardians: {
+              include: {
+                guardian: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    relationType: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         invoice: { include: { items: { include: { feeType: true } } } },
         receipt: true,
         cashier: { select: { id: true, firstName: true, lastName: true } },

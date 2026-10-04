@@ -345,6 +345,7 @@ model School {
   backups             Backup[]
   expenseCategories   ExpenseCategory[]
   expenses            Expense[]
+  topStudents         TopStudent[]
 
   @@map("schools")
 }
@@ -477,6 +478,7 @@ model Class {
   @@unique([academicYearId, code])
   @@index([schoolId])
   @@index([levelId])
+  topStudents TopStudent[]
   @@map("classes")
 }
 
@@ -661,6 +663,7 @@ model Student {
   @@unique([schoolId, matricule])
   @@index([schoolId])
   @@index([lastName, firstName])
+  topStudents      TopStudent[]
   @@map("students")
 }
 
@@ -1465,4 +1468,31 @@ model Expense {
   @@index([cashSessionId])
   @@index([categoryId])
   @@map("expenses")
+}
+
+// ============================================================
+// 17. BLOC TOP STUDENTS (tableau d'honneur)
+// ============================================================
+
+model TopStudent {
+  id          String     @id @default(uuid()) @db.Uuid
+  schoolId    String     @map("school_id") @db.Uuid
+  cycle       LevelCycle
+  periodType  String     @map("period_type") @db.VarChar(20)
+  periodLabel String     @map("period_label") @db.VarChar(100)
+  termId      String?    @map("term_id") @db.Uuid
+  rank        Int        @db.SmallInt
+  studentId   String     @map("student_id") @db.Uuid
+  classId     String     @map("class_id") @db.Uuid
+  average     Decimal    @db.Decimal(5, 2)
+  scale       Int        @default(20) @db.SmallInt
+  computedAt  DateTime   @default(now()) @map("computed_at") @db.Timestamptz
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, cycle, periodLabel, rank])
+  @@index([schoolId, cycle, periodLabel])
+  @@map("top_students")
 }

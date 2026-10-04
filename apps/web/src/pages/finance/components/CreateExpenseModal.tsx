@@ -3,7 +3,7 @@ import { X, Loader2, Save, TrendingDown } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
-import { useCreateExpense } from "@/hooks/finance";
+import { useCreateExpense, useCurrentCashSession } from "@/hooks/finance";
 import { formatFCFA } from "@/types/finance";
 import type { ExpenseCategory } from "@/types/finance";
 
@@ -21,6 +21,7 @@ export function CreateExpenseModal({ onClose }: Props) {
   );
 
   const createMutation = useCreateExpense();
+  const { data: currentSession } = useCurrentCashSession();
 
   const { data: categoriesData, isLoading: loadingCategories } = useQuery({
     queryKey: ["expense-categories", "list"],
@@ -55,6 +56,7 @@ export function CreateExpenseModal({ onClose }: Props) {
         description: description.trim(),
         beneficiary: beneficiary.trim() || undefined,
         spentAt: spentAt ? new Date(spentAt).toISOString() : undefined,
+        cashSessionId: (currentSession as any)?.id || undefined,
       });
       onClose();
     } catch {

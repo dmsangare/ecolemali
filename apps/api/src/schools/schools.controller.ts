@@ -1,6 +1,9 @@
 ﻿import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus,
+  UseInterceptors, UploadedFile, BadRequestException,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { SchoolsService } from "./schools.service";
 import { SchoolCreateSchema, SchoolUpdateSchema } from "./dto";
@@ -40,6 +43,23 @@ export class SchoolsController {
   @ApiOperation({ summary: "Modifier un etablissement" })
   async update(@Param("id") id: string, @Body(new ZodValidationPipe(SchoolUpdateSchema)) dto: any) {
     return this.schoolsService.update(id, dto);
+  }
+
+  @Post(":id/logo")
+  @RequirePermissions("school:update")
+  @ApiOperation({ summary: "Uploader le logo de l etablissement" })
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo
+    }),
+  )
+  async uploadLogo(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException("Aucun fichier fourni");
+    return this.schoolsService.uploadLogo(id, file);
   }
 
   @Delete(":id")

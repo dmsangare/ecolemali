@@ -4,12 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3000);
@@ -24,7 +26,13 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
-  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
+  // Servir les fichiers uploades (logos, documents)
+  const storageRoot = config.get<string>('storage.root', './storage');
+  app.useStaticAssets(join(process.cwd(), storageRoot, 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+  app.setGlobalPrefix('api/v1', { exclude: ['health', 'uploads'] });
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -3,3 +3,4 @@ export * from "./useFeeStructures";
 export * from "./useInvoices";
 export * from "./usePayments";
 export * from "./useCashSessions";
+export * from "./useExpenses";

@@ -255,3 +255,90 @@ export function formatFCFA(amount: number | string | null | undefined): string {
   if (isNaN(value)) return "0 FCFA";
   return `${value.toLocaleString("fr-FR")} FCFA`;
 }
+
+// ============================================================
+// EXPENSE (depense) — Module Caisse
+// ============================================================
+export interface ExpenseCategory {
+  id: string;
+  schoolId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  emoji?: string | null;
+  isActive: boolean;
+  isSystem: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    expenses: number;
+  };
+}
+
+export interface Expense {
+  id: string;
+  schoolId: string;
+  categoryId: string;
+  cashierId: string;
+  cashSessionId?: string | null;
+  amount: number | string;
+  description: string;
+  beneficiary?: string | null;
+  receiptUrl?: string | null;
+  spentAt: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: ExpenseCategory;
+  cashier?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  cashSession?: {
+    id: string;
+    openedAt: string;
+    status: string;
+  } | null;
+}
+
+export interface CreateExpenseInput {
+  categoryId: string;
+  amount: number;
+  description: string;
+  beneficiary?: string;
+  receiptUrl?: string;
+  spentAt?: string;
+  cashSessionId?: string | null;
+}
+
+export interface ExpenseFilters {
+  categoryId?: string;
+  cashierId?: string;
+  cashSessionId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ExpenseListResponse {
+  items: Expense[];
+  total: number;
+  limit: number;
+  offset: number;
+  totalAmount: number;
+}
+
+export const EXPENSE_CATEGORY_EMOJIS: Record<string, string> = {
+  SALAIRES: "💼",
+  FOURNITURES: "📚",
+  ENTRETIEN: "🧹",
+  ELECTRICITE: "💡",
+  LOYER: "🏠",
+  REPARATIONS: "🔧",
+  TRANSPORT: "🚗",
+  GARDIEN: "🛡️",
+  SANTE: "💊",
+  AUTRE: "📦",
+};

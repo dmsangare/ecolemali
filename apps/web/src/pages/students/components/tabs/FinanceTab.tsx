@@ -1,12 +1,10 @@
-import { useState } from "react";
 import {
   Wallet, Receipt, AlertCircle, CheckCircle2, Clock, TrendingUp,
-  TrendingDown, Printer, FileText, Plus,
+  TrendingDown, Printer, FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
 import { StatusBadge, BadgeVariant } from "@/components/shared";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CreatePaymentModal } from "@/pages/finance/components/CreatePaymentModal";
 import type { StudentDetail } from "@/types/student";
 
 interface FinanceTabProps {
@@ -38,8 +36,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 export function FinanceTab({ student }: FinanceTabProps) {
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [preselectedInvoiceId, setPreselectedInvoiceId] = useState<string | undefined>(undefined);
 
   const invoices = student.invoices || [];
   const unpaidAmount = Number(student.unpaidAmount || 0);
@@ -53,10 +49,6 @@ export function FinanceTab({ student }: FinanceTabProps) {
     || "";
   const studentName = `${student.lastName} ${student.firstName}`;
 
-  const openPaymentFor = (invoiceId?: string) => {
-    setPreselectedInvoiceId(invoiceId);
-    setPaymentModalOpen(true);
-  };
 
   // Calculer les totaux
   const totalBilled = invoices.reduce((sum, i) => sum + Number(i.totalAmount), 0);
@@ -221,16 +213,6 @@ export function FinanceTab({ student }: FinanceTabProps) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {Number(inv.balance) > 0 && inv.status !== "CANCELLED" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Encaisser un paiement"
-                              onClick={() => openPaymentFor(inv.id)}
-                            >
-                              <Wallet className="h-4 w-4 text-green-600" />
-                            </Button>
-                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -255,28 +237,15 @@ export function FinanceTab({ student }: FinanceTabProps) {
       {/* Historique paiements */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base">
-            <span className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-primary" />
-              Historique des paiements
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openPaymentFor()}
-              disabled={invoices.filter((i) => Number(i.balance) > 0).length === 0}
-              title={
-                invoices.filter((i) => Number(i.balance) > 0).length === 0
-                  ? "Aucune facture avec solde a encaisser"
-                  : "Encaisser un paiement"
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Encaisser
-            </Button>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wallet className="h-4 w-4 text-primary" />
+            Historique des paiements
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+            💡 Les encaissements se font depuis le module <strong>Caisse</strong>.
+          </div>
           {student._count?.payments && student._count.payments > 0 ? (
             <p className="text-sm text-muted-foreground">
               {student._count.payments} paiement(s) enregistre(s)
@@ -296,15 +265,6 @@ export function FinanceTab({ student }: FinanceTabProps) {
       </Card>
 
       {/* MODALE PAIEMENT */}
-      {paymentModalOpen && (
-        <CreatePaymentModal
-          onClose={() => {
-            setPaymentModalOpen(false);
-            setPreselectedInvoiceId(undefined);
-          }}
-          preselectedInvoiceId={preselectedInvoiceId}
-        />
-      )}
 
       {/* Actions */}
       <Card className="border-primary/20 bg-primary/5">

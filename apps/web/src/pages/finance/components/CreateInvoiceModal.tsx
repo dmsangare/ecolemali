@@ -347,6 +347,7 @@ export function CreateInvoiceModal({ onClose, preselectedStudent }: Props) {
       {/* MODALE AJOUT/MODIF LIGNE */}
       {lineModalOpen && (
         <AddInvoiceLineModal
+          structures={structures}
           editLine={
             editingLineIndex !== null ? lines[editingLineIndex] : null
           }

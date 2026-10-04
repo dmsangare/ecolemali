@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
-import { X, Loader2, Save, Tag } from "lucide-react";
+import { X, Save, Tag, Lock, Unlock, AlertCircle } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useFeeTypes } from "@/hooks/finance";
 import {
   FEE_CATEGORY_LABELS,
   formatFCFA,
-  type FeeType,
+  type FeeStructure,
   type FeeCategory,
 } from "@/types/finance";
 
@@ -18,64 +17,107 @@ export interface InvoiceLineDraft {
   description: string;
   quantity: number;
   unitAmount: number;
+  officialAmount?: number;
+  isModified?: boolean;
+  motif?: string;
 }
 
 interface Props {
+  structures: FeeStructure[];
   editLine?: InvoiceLineDraft | null;
-  defaultFeeTypeId?: string;
   onSave: (line: InvoiceLineDraft) => void;
   onClose: () => void;
 }
 
+const MOTIFS = [
+  "Bourse",
+  "Cas social",
+  "Reduction famille",
+  "Erreur de saisie",
+  "Autre",
+] as const;
+
 export function AddInvoiceLineModal({
+  structures,
   editLine,
-  defaultFeeTypeId,
   onSave,
   onClose,
 }: Props) {
   const isEdit = !!editLine;
 
-  const { data: feeTypesData, isLoading: loadingTypes } = useFeeTypes();
-  const feeTypes = useMemo<FeeType[]>(() => {
-    if (!feeTypesData) return [];
-    const list = Array.isArray(feeTypesData)
-      ? feeTypesData
-      : (feeTypesData as any).data || [];
-    return list.filter((ft: FeeType) => ft.isActive);
-  }, [feeTypesData]);
+  const availableStructures = useMemo(() => {
+    return structures.filter((s) => s.feeType);
+  }, [structures]);
 
-  const [feeTypeId, setFeeTypeId] = useState(
-    editLine?.feeTypeId || defaultFeeTypeId || "",
-  );
-  const [description, setDescription] = useState(editLine?.description || "");
+  const [feeTypeId, setFeeTypeId] = useState(editLine?.feeTypeId || "");
   const [quantity, setQuantity] = useState(String(editLine?.quantity ?? 1));
   const [unitAmount, setUnitAmount] = useState(
     editLine ? String(editLine.unitAmount) : "",
   );
+  const [isEditingPrice, setIsEditingPrice] = useState(
+    editLine?.isModified ?? false,
+  );
+  const [motif, setMotif] = useState<string>(editLine?.motif || "");
+  const [customMotif, setCustomMotif] = useState("");
 
-  // Frais courant
-  const selectedFeeType = feeTypes.find((ft) => ft.id === feeTypeId);
+  const selectedStructure = availableStructures.find(
+    (s) => s.feeType?.id === feeTypeId,
+  );
+  const officialAmount = selectedStructure
+    ? Number(selectedStructure.amount)
+    : 0;
 
-  // Totaux
+  const handleFeeTypeChange = (newFeeTypeId: string) => {
+    setFeeTypeId(newFeeTypeId);
+    const struct = availableStructures.find(
+      (s) => s.feeType?.id === newFeeTypeId,
+    );
+    if (struct) {
+      setUnitAmount(String(Number(struct.amount)));
+    }
+    setIsEditingPrice(false);
+    setMotif("");
+    setCustomMotif("");
+  };
+
   const quantityNum = parseInt(quantity, 10) || 0;
   const unitAmountNum = parseInt(unitAmount, 10) || 0;
   const total = quantityNum * unitAmountNum;
+  const priceModified = isEditingPrice && unitAmountNum !== officialAmount;
+
+  const motifFilled =
+    motif === "Autre" ? customMotif.trim().length > 0 : motif.trim().length > 0;
 
   const isValid =
-    feeTypeId && quantityNum > 0 && unitAmountNum >= 0 && total > 0;
+    !!feeTypeId &&
+    !!selectedStructure &&
+    quantityNum > 0 &&
+    unitAmountNum > 0 &&
+    total > 0 &&
+    (!priceModified || motifFilled);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid || !selectedFeeType) return;
+    if (!isValid || !selectedStructure?.feeType) return;
+
+    const ft = selectedStructure.feeType;
+    const motifText = priceModified
+      ? motif === "Autre"
+        ? "Modifie : " + customMotif.trim()
+        : "Modifie : " + motif
+      : "";
 
     onSave({
-      feeTypeId: selectedFeeType.id,
-      feeTypeName: selectedFeeType.name,
-      feeTypeCode: selectedFeeType.code,
-      category: selectedFeeType.category,
-      description: description.trim(),
+      feeTypeId: ft.id,
+      feeTypeName: ft.name,
+      feeTypeCode: ft.code,
+      category: ft.category,
+      description: motifText,
       quantity: quantityNum,
       unitAmount: unitAmountNum,
+      officialAmount,
+      isModified: priceModified,
+      motif: priceModified ? motif : undefined,
     });
     onClose();
   };
@@ -90,7 +132,6 @@ export function AddInvoiceLineModal({
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
-          {/* HEADER */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -101,9 +142,7 @@ export function AddInvoiceLineModal({
                   {isEdit ? "Modifier la ligne" : "Ajouter un frais"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {isEdit
-                    ? "Modifier les informations de cette ligne"
-                    : "Sélectionner un frais et préciser le montant"}
+                  Les prix proviennent de la grille tarifaire du niveau
                 </p>
               </div>
             </div>
@@ -112,33 +151,30 @@ export function AddInvoiceLineModal({
             </Button>
           </div>
 
-          {/* CORPS */}
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-            {/* FRAIS */}
             <div>
               <Label>Type de frais *</Label>
-              {loadingTypes ? (
-                <div className="flex items-center justify-center py-4 mt-1 border rounded-md">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                </div>
-              ) : feeTypes.length === 0 ? (
+              {availableStructures.length === 0 ? (
                 <div className="py-4 mt-1 text-center text-sm text-muted-foreground border rounded-md border-dashed">
-                  Aucun type de frais actif. Créez-en dans Finances → Types de frais.
+                  Aucun frais dans la grille tarifaire pour ce niveau.
+                  <br />
+                  Creez-en dans Finances, Grille tarifaire.
                 </div>
               ) : (
                 <select
                   value={feeTypeId}
-                  onChange={(e) => setFeeTypeId(e.target.value)}
+                  onChange={(e) => handleFeeTypeChange(e.target.value)}
                   className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   required
                   disabled={isEdit}
                 >
-                  <option value="">-- Sélectionner un frais --</option>
-                  {feeTypes.map((ft) => {
+                  <option value="">-- Selectionner un frais --</option>
+                  {availableStructures.map((s) => {
+                    const ft = s.feeType!;
                     const info = FEE_CATEGORY_LABELS[ft.category];
                     return (
                       <option key={ft.id} value={ft.id}>
-                        {info.emoji} {ft.name} ({ft.code})
+                        {info.emoji} {ft.name} - {formatFCFA(Number(s.amount))}
                       </option>
                     );
                   })}
@@ -146,58 +182,121 @@ export function AddInvoiceLineModal({
               )}
             </div>
 
-            {/* DESCRIPTION */}
-            <div>
-              <Label htmlFor="description">
-                Description (optionnel)
-              </Label>
-              <Input
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Bourse partielle accordée par le promoteur"
-                className="mt-1"
-                maxLength={200}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Précision visible sur la facture
-              </p>
-            </div>
+            {selectedStructure && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="quantity">Quantite *</Label>
+                    <Input
+                      id="quantity"
+                      type="text"
+                      inputMode="numeric"
+                      value={quantity}
+                      onChange={(e) =>
+                        setQuantity(e.target.value.replace(/[^0-9]/g, ""))
+                      }
+                      className="mt-1 font-mono text-center"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="unitAmount">Prix unitaire *</Label>
+                      {!isEditingPrice ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingPrice(true)}
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Unlock className="h-3 w-3" />
+                          Modifier
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingPrice(false);
+                            setUnitAmount(String(officialAmount));
+                            setMotif("");
+                            setCustomMotif("");
+                          }}
+                          className="text-xs text-muted-foreground hover:underline flex items-center gap-1"
+                        >
+                          <Lock className="h-3 w-3" />
+                          Annuler
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      id="unitAmount"
+                      type="text"
+                      inputMode="numeric"
+                      value={unitAmount}
+                      onChange={(e) =>
+                        setUnitAmount(e.target.value.replace(/[^0-9]/g, ""))
+                      }
+                      readOnly={!isEditingPrice}
+                      className={cn(
+                        "mt-1 font-mono text-right",
+                        !isEditingPrice && "bg-muted/50 cursor-not-allowed",
+                      )}
+                      required
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Tarif officiel : {formatFCFA(officialAmount)}
+                    </p>
+                  </div>
+                </div>
 
-            {/* QTE + MONTANT */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="quantity">Quantité *</Label>
-                <Input
-                  id="quantity"
-                  type="text"
-                  inputMode="numeric"
-                  value={quantity}
-                  onChange={(e) =>
-                    setQuantity(e.target.value.replace(/[^\d]/g, ""))
-                  }
-                  className="mt-1 font-mono text-center"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="unitAmount">Prix unitaire (FCFA) *</Label>
-                <Input
-                  id="unitAmount"
-                  type="text"
-                  inputMode="numeric"
-                  value={unitAmount}
-                  onChange={(e) =>
-                    setUnitAmount(e.target.value.replace(/[^\d]/g, ""))
-                  }
-                  placeholder="Ex: 10000"
-                  className="mt-1 font-mono text-right"
-                  required
-                />
-              </div>
-            </div>
+                {priceModified && (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50/40 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-900">
+                          Montant modifie - motif obligatoire
+                        </p>
+                        <p className="text-xs text-orange-700 mt-0.5">
+                          Ecart : {formatFCFA(unitAmountNum - officialAmount)}
+                        </p>
+                      </div>
+                    </div>
 
-            {/* TOTAL */}
+                    <div>
+                      <Label className="text-xs">Motif *</Label>
+                      <select
+                        value={motif}
+                        onChange={(e) => setMotif(e.target.value)}
+                        className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        required
+                      >
+                        <option value="">-- Selectionner un motif --</option>
+                        {MOTIFS.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {motif === "Autre" && (
+                      <div>
+                        <Label className="text-xs">Precisez le motif *</Label>
+                        <Input
+                          value={customMotif}
+                          onChange={(e) => setCustomMotif(e.target.value)}
+                          placeholder="Ex: Enfant du personnel enseignant"
+                          className="mt-1"
+                          maxLength={100}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
             {total > 0 && (
               <div className="rounded-lg bg-muted/50 border px-4 py-3 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
@@ -210,7 +309,6 @@ export function AddInvoiceLineModal({
             )}
           </div>
 
-          {/* FOOTER */}
           <div className="flex justify-end gap-2 px-6 py-4 border-t bg-muted/30">
             <Button type="button" variant="outline" onClick={onClose}>
               Annuler

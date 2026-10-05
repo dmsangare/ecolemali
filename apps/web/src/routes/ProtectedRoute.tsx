@@ -26,9 +26,13 @@ export function ProtectedRoute({
   }
 
   // Si l'utilisateur doit changer son mot de passe, on le force
-  // SAUF s'il est deja sur la page dediee (sinon boucle infinie)
+  // SAUF :
+  //   - s'il est SUPER_ADMIN (le patron est libre)
+  //   - s'il est deja sur la page dediee (sinon boucle infinie)
+  const isSuperAdmin = user?.roles?.includes("SUPER_ADMIN") ?? false;
   if (
     user?.mustChangePassword &&
+    !isSuperAdmin &&
     location.pathname !== "/change-password-required"
   ) {
     return <Navigate to="/change-password-required" replace />;

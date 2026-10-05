@@ -68,6 +68,13 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
+    // Verifier si SUPER_ADMIN fait partie des roles : dans ce cas, ne pas forcer
+    const roles = await this.prisma.role.findMany({
+      where: { id: { in: dto.roleIds } },
+      select: { code: true },
+    });
+    const isSuperAdmin = roles.some((r) => r.code === "SUPER_ADMIN");
+
     const createdUser = await this.prisma.user.create({
       data: {
         schoolId: dto.schoolId,
@@ -77,7 +84,7 @@ export class UsersService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         status: "ACTIVE",
-        mustChangePassword: true,
+        mustChangePassword: !isSuperAdmin,
         userRoles: {
           create: dto.roleIds.map((roleId) => ({
             roleId,

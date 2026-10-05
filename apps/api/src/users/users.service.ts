@@ -41,7 +41,9 @@ export class UsersService {
       select: {
         id: true, email: true, phone: true, firstName: true, lastName: true,
         status: true, schoolId: true, lastLoginAt: true, createdAt: true,
+        mustChangePassword: true,
         userRoles: { select: { role: { select: { id: true, code: true, name: true } } } },
+        teacher: { select: { id: true, matricule: true, firstName: true, lastName: true } },
       },
     });
     if (!user) throw new NotFoundException("Utilisateur introuvable");
@@ -56,6 +58,7 @@ export class UsersService {
     firstName: string;
     lastName: string;
     roleIds: string[];
+    teacherId?: string;
   }) {
     if (dto.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -64,7 +67,7 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    return this.prisma.user.create({
+    const createdUser = await this.prisma.user.create({
       data: {
         schoolId: dto.schoolId,
         email: dto.email,
@@ -87,6 +90,16 @@ export class UsersService {
         userRoles: { select: { role: { select: { id: true, code: true, name: true } } } },
       },
     });
+
+    // Si teacherId fourni, lier la fiche Teacher a ce user
+    if (dto.teacherId) {
+      await this.prisma.teacher.update({
+        where: { id: dto.teacherId },
+        data: { userId: createdUser.id },
+      });
+    }
+
+    return createdUser;
   }
 
   async update(id: string, dto: any) {
@@ -107,6 +120,18 @@ export class UsersService {
       });
       if (existing) throw new ConflictException("Cet email est deja utilise");
       data.email = dto.email;
+    }
+
+    // Si roleIds fourni, on remplace tous les roles
+    if (dto.roleIds && Array.isArray(dto.roleIds)) {
+      await this.prisma.userRole.deleteMany({ where: { userId: id } });
+      await this.prisma.userRole.createMany({
+        data: dto.roleIds.map((roleId: string) => ({
+          userId: id,
+          roleId,
+          schoolId: dto.schoolId,
+        })),
+      });
     }
 
     return this.prisma.user.update({

@@ -53,6 +53,7 @@ export class UsersController {
       firstName: string;
       lastName: string;
       roleIds: string[];
+      teacherId?: string;
     },
   ) {
     if (!dto.password || dto.password.length < 8) {

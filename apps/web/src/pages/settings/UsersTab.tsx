@@ -427,45 +427,165 @@ function CreateUserModal({
 // ============================================================
 
 function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
-  const [firstName, setFirstName] = useState(user.firstName);
-  const [lastName, setLastName] = useState(user.lastName);
+  // Form state
+  const [firstName, setFirstName] = useState(user.firstName || "");
+  const [lastName, setLastName] = useState(user.lastName || "");
+  const [email, setEmail] = useState(user.email || "");
   const [phone, setPhone] = useState(user.phone || "");
-  const [status, setStatus] = useState(user.status);
+  const [status, setStatus] = useState(user.status || "ACTIVE");
+
+  // Roles : recuperer les IDs initiaux
+  const initialRoleIds = (user.userRoles || []).map((ur: any) => ur.role.id);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(initialRoleIds);
+
+  // Fiche liee : Teacher / Guardian
+  const [linkedTeacherId, setLinkedTeacherId] = useState(user.teacher?.id || "");
+  const [linkedGuardianId, setLinkedGuardianId] = useState("");
+  const [changeFiche, setChangeFiche] = useState(false);
+
+  // Reset password
+  const [showResetPwd, setShowResetPwd] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetResult, setResetResult] = useState<string | null>(null);
+
+  const { data: roles = [] } = useRoles();
+  const { data: availableTeachers = [] } = useAvailableTeachers();
+  const { data: availableGuardians = [] } = useAvailableGuardians();
+  const { data: school } = useSchool();
+
   const updateMutation = useUpdateUser();
+  const deleteMutation = useDeleteUser();
+
+  // Detection des roles
+  const selectedRoleCodes = useMemo(() => {
+    return selectedRoleIds
+      .map((id) => (roles as any[]).find((r: any) => r.id === id)?.code)
+      .filter(Boolean) as string[];
+  }, [selectedRoleIds, roles]);
+
+  const hasTeacherRole = selectedRoleCodes.includes("TEACHER");
+  const hasParentRole = selectedRoleCodes.includes("PARENT");
+
+  const emailDomain = school?.sigle
+    ? `@${school.sigle.toLowerCase()}.ml`
+    : "@sis-mali.local";
+
+  // Extraction du local part de l'email
+  const emailLocal = email.includes("@") ? email.split("@")[0] : email;
+  const fullEmail = emailLocal ? `${emailLocal}${emailDomain}` : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateMutation.mutateAsync({
-      id: user.id,
-      dto: { firstName, lastName, phone, status },
-    });
+    const dto: any = {
+      firstName,
+      lastName,
+      phone: phone || undefined,
+      status,
+      roleIds: selectedRoleIds,
+    };
+    if (fullEmail && fullEmail !== user.email) {
+      dto.email = fullEmail;
+    }
+    // Fiche liee
+    if (changeFiche) {
+      dto.teacherId = hasTeacherRole && linkedTeacherId ? linkedTeacherId : undefined;
+      dto.guardianId = hasParentRole && linkedGuardianId ? linkedGuardianId : undefined;
+    }
+    await updateMutation.mutateAsync({ id: user.id, dto });
     onClose();
   };
 
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      alert("Mot de passe trop court (min 8)");
+      return;
+    }
+    try {
+      const { api } = await import("@/lib/axios");
+      await api.post(`/users/${user.id}/reset-password`, { newPassword });
+      setResetResult(newPassword);
+      setNewPassword("");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Erreur reset password");
+    }
+  };
+
+  const handleGeneratePassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let pwd = "Sis";
+    for (let i = 0; i < 7; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    pwd += "!";
+    setNewPassword(pwd);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Supprimer definitivement ${user.firstName} ${user.lastName} ?`)) return;
+    try {
+      await deleteMutation.mutateAsync(user.id);
+      onClose();
+    } catch {}
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto my-8">
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Modifier l utilisateur</CardTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+          >
+            Fermer
+          </Button>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* IDENTITE */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Prenom</Label>
-                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <Label>Prenom *</Label>
+                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Nom</Label>
-                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                <Label>Nom *</Label>
+                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} required />
               </div>
             </div>
 
+            {/* EMAIL */}
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={emailLocal}
+                  onChange={(e) =>
+                    setEmail(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""))
+                  }
+                  className="flex-1"
+                />
+                <div className="flex items-center px-3 bg-muted rounded-md text-sm font-mono whitespace-nowrap">
+                  {emailDomain}
+                </div>
+              </div>
+              {fullEmail && (
+                <p className="text-xs text-muted-foreground">
+                  Email final : <strong>{fullEmail}</strong>
+                </p>
+              )}
+            </div>
+
+            {/* TELEPHONE */}
             <div className="space-y-2">
               <Label>Telephone</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
 
+            {/* STATUT */}
             <div className="space-y-2">
               <Label>Statut</Label>
               <select
@@ -479,20 +599,210 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
               </select>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Annuler
-              </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  "Enregistrer"
+            {/* ROLES */}
+            <div className="space-y-2 border-t pt-4">
+              <Label>Roles (au moins un)</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                {(roles as any[]).map((role: any) => (
+                  <label
+                    key={role.id}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRoleIds.includes(role.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRoleIds([...selectedRoleIds, role.id]);
+                        } else {
+                          setSelectedRoleIds(selectedRoleIds.filter((r) => r !== role.id));
+                        }
+                      }}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm">{role.name}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {selectedRoleIds.length} role(s) selectionne(s)
+              </p>
+            </div>
+
+            {/* FICHE LIEE */}
+            {(hasTeacherRole || hasParentRole) && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Fiche liee</Label>
+                  {!changeFiche && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setChangeFiche(true)}
+                    >
+                      Modifier la fiche
+                    </Button>
+                  )}
+                </div>
+
+                {!changeFiche && (
+                  <p className="text-sm text-muted-foreground">
+                    {user.teacher ? (
+                      <>Fiche actuelle : <strong>{user.teacher.matricule} · {user.teacher.lastName} {user.teacher.firstName}</strong></>
+                    ) : (
+                      "Aucune fiche liee"
+                    )}
+                  </p>
                 )}
+
+                {changeFiche && hasTeacherRole && (
+                  <div className="border-l-4 border-primary/40 pl-4 bg-primary/5 rounded-md p-3 space-y-2">
+                    <Label>Fiche enseignant</Label>
+                    <select
+                      value={linkedTeacherId}
+                      onChange={(e) => setLinkedTeacherId(e.target.value)}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">-- Aucune fiche liee --</option>
+                      {availableTeachers.map((t: any) => (
+                        <option key={t.id} value={t.id}>
+                          {t.matricule} · {t.lastName} {t.firstName}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {availableTeachers.length} fiche(s) enseignant disponible(s)
+                    </p>
+                  </div>
+                )}
+
+                {changeFiche && hasParentRole && (
+                  <div className="border-l-4 border-blue-400/40 pl-4 bg-blue-50/30 rounded-md p-3 space-y-2">
+                    <Label>Fiche tuteur</Label>
+                    <select
+                      value={linkedGuardianId}
+                      onChange={(e) => setLinkedGuardianId(e.target.value)}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="">-- Aucune fiche liee --</option>
+                      {availableGuardians.map((g: any) => (
+                        <option key={g.id} value={g.id}>
+                          {g.lastName} {g.firstName} · {g.phone || "—"}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {availableGuardians.length} fiche(s) tuteur disponible(s)
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* RESET PASSWORD */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Mot de passe</Label>
+                {!showResetPwd && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowResetPwd(true)}
+                  >
+                    <Key className="h-3.5 w-3.5 mr-2" />
+                    Reinitialiser le mot de passe
+                  </Button>
+                )}
+              </div>
+
+              {showResetPwd && (
+                <div className="border rounded-md p-3 bg-amber-50/30 space-y-2">
+                  <p className="text-xs text-amber-800">
+                    Le mot de passe actuel sera remplace. L utilisateur devra le changer a sa prochaine connexion.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Nouveau mot de passe (min 8)"
+                      className="flex-1 font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGeneratePassword}
+                    >
+                      Generer
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleResetPassword}
+                      disabled={!newPassword || newPassword.length < 8}
+                    >
+                      Appliquer
+                    </Button>
+                  </div>
+
+                  {resetResult && (
+                    <div className="bg-green-50 border border-green-200 rounded p-2 space-y-1">
+                      <p className="text-xs text-green-800 font-medium">
+                        Mot de passe reinitialise !
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 bg-white px-2 py-1 rounded text-sm font-mono border">
+                          {resetResult}
+                        </code>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(resetResult);
+                            alert("Copie !");
+                          }}
+                        >
+                          Copier
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Notez ce mot de passe : il ne sera plus affiche.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-between gap-2 pt-4 border-t">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
               </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    "Enregistrer"
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>

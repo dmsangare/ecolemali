@@ -53,6 +53,7 @@ services:
       redis:
         condition: service_started
     environment:
+      FRONTEND_URL: ${FRONTEND_URL}
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}

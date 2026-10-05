@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Users as UsersIcon, Plus, Loader2, Mail, Phone,
   Shield, Trash2, Key, Pencil,
@@ -6,6 +6,8 @@ import {
 import {
   useUsers, useRoles, useCreateUser, useDeleteUser, useUpdateUser,
 } from "@/hooks/users";
+import { useAvailableTeachers } from "@/hooks/teachers";
+import { useAvailableGuardians } from "@/hooks/guardians";
 import { useSchool } from "@/hooks/users";
 import { formatDateTime, initials } from "@/lib/formatters";
 import {
@@ -207,7 +209,22 @@ function CreateUserModal({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("SisMali2026!");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  const [selectedGuardianId, setSelectedGuardianId] = useState("");
   const createMutation = useCreateUser();
+
+  const { data: availableTeachers = [] } = useAvailableTeachers();
+  const { data: availableGuardians = [] } = useAvailableGuardians();
+
+  // Detection des roles par code
+  const selectedRoleCodes = useMemo(() => {
+    return selectedRoles
+      .map((id) => roles.find((r) => r.id === id)?.code)
+      .filter(Boolean) as string[];
+  }, [selectedRoles, roles]);
+
+  const hasTeacherRole = selectedRoleCodes.includes("TEACHER");
+  const hasParentRole = selectedRoleCodes.includes("PARENT");
 
   const emailDomain = schoolSigle ? `@${schoolSigle.toLowerCase()}.ml` : "@sis-mali.local";
   const fullEmail = emailLocal ? `${emailLocal}${emailDomain}` : "";
@@ -225,7 +242,9 @@ function CreateUserModal({
       firstName,
       lastName,
       roleIds: selectedRoles,
-    });
+      teacherId: hasTeacherRole && selectedTeacherId ? selectedTeacherId : undefined,
+      guardianId: hasParentRole && selectedGuardianId ? selectedGuardianId : undefined,
+    } as any);
     onClose();
   };
 
@@ -332,6 +351,51 @@ function CreateUserModal({
                 ))}
               </div>
             </div>
+
+            {/* Dropdown Fiche Enseignant (si role TEACHER selectionne) */}
+            {hasTeacherRole && (
+              <div className="space-y-2 border-l-4 border-primary/40 pl-4 bg-primary/5 rounded-md p-3">
+                <Label>Fiche enseignant a lier</Label>
+                <select
+                  value={selectedTeacherId}
+                  onChange={(e) => setSelectedTeacherId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">-- Aucune fiche liee --</option>
+                  {availableTeachers.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.matricule} · {t.lastName} {t.firstName}
+                      {t.specialty ? ` (${t.specialty})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {availableTeachers.length} fiche(s) enseignant disponible(s)
+                </p>
+              </div>
+            )}
+
+            {/* Dropdown Fiche Tuteur (si role PARENT selectionne) */}
+            {hasParentRole && (
+              <div className="space-y-2 border-l-4 border-blue-400/40 pl-4 bg-blue-50/30 rounded-md p-3">
+                <Label>Fiche tuteur a lier</Label>
+                <select
+                  value={selectedGuardianId}
+                  onChange={(e) => setSelectedGuardianId(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">-- Aucune fiche liee --</option>
+                  {availableGuardians.map((g: any) => (
+                    <option key={g.id} value={g.id}>
+                      {g.lastName} {g.firstName} · {g.phone || "—"} ({g.relationType})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {availableGuardians.length} fiche(s) tuteur disponible(s)
+                </p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline" onClick={onClose}>

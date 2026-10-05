@@ -1,6 +1,7 @@
 ﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { teachersApi, TeacherListFilters } from "@/api/teachers";
+import { api } from "@/lib/axios";
 import { getErrorMessage } from "@/lib/axios";
 import type { CreateTeacherInput } from "@/types/teacher";
 
@@ -42,5 +43,22 @@ export function useDeleteTeacher() {
       qc.invalidateQueries({ queryKey: [KEY] });
     },
     onError: (error) => toast.error(getErrorMessage(error)),
+  });
+}
+
+export function useAvailableTeachers() {
+  return useQuery({
+    queryKey: ["teachers", "available"],
+    queryFn: async () => {
+      const { data } = await api.get("/teachers/available");
+      return (data.data || data) as Array<{
+        id: string;
+        matricule: string;
+        firstName: string;
+        lastName: string;
+        specialty?: string | null;
+      }>;
+    },
+    staleTime: 60_000,
   });
 }

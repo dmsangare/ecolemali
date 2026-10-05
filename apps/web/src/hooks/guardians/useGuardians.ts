@@ -75,3 +75,21 @@ export function useLinkGuardianToStudent() {
     },
   });
 }
+
+export function useAvailableGuardians() {
+  return useQuery({
+    queryKey: ["guardians", "available"],
+    queryFn: async () => {
+      const { data } = await api.get("/guardians/available");
+      return (data.data || data) as Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        phone: string | null;
+        email: string | null;
+        relationType: string;
+      }>;
+    },
+    staleTime: 60_000,
+  });
+}

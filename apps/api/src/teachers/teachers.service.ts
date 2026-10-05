@@ -43,6 +43,25 @@ export class TeachersService {
     };
   }
 
+  async findAvailable(schoolId: string) {
+    return this.prisma.teacher.findMany({
+      where: {
+        schoolId,
+        userId: null,
+        status: "ACTIVE",
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      select: {
+        id: true,
+        matricule: true,
+        firstName: true,
+        lastName: true,
+        specialty: true,
+        status: true,
+      },
+    });
+  }
+
   async findOne(schoolId: string, id: string) {
     const teacher = await this.prisma.teacher.findFirst({
       where: { id, schoolId },

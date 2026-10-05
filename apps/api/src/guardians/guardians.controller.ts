@@ -25,6 +25,14 @@ export class GuardiansController {
     return this.service.findAll(schoolId, query.page, query.limit, query.q);
   }
 
+  @Get("available")
+  @RequirePermissions("parent:view")
+  @ApiOperation({ summary: "Tuteurs sans compte utilisateur" })
+  async findAvailable(@CurrentUser() user: CurrentUserPayload) {
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+    return this.service.findAvailable(schoolId);
+  }
+
   @Get(":id")
   @RequirePermissions("parent:view")
   async findOne(@Param("id") id: string) {

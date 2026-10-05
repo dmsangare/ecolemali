@@ -42,6 +42,25 @@ export class GuardiansService {
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
 
+  async findAvailable(schoolId: string | null) {
+    const where: any = { userId: null };
+    if (schoolId) where.schoolId = schoolId;
+
+    return this.prisma.guardian.findMany({
+      where,
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      take: 100,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        email: true,
+        relationType: true,
+      },
+    });
+  }
+
   async findOne(id: string) {
     const guardian = await this.prisma.guardian.findUnique({
       where: { id },

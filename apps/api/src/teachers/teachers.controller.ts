@@ -27,6 +27,11 @@ export class TeachersController {
     return this.service.getAcademicYears(req.user.schoolId);
   }
 
+  @Get('available')
+  findAvailable(@Req() req: any) {
+    return this.service.findAvailable(req.user.schoolId);
+  }
+
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
     return this.service.findOne(req.user.schoolId, id);

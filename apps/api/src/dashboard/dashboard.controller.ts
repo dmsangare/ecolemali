@@ -1,0 +1,87 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from "@nestjs/common";
+import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { DashboardService } from "./dashboard.service";
+import { TopStudentsQuerySchema } from "./dto";
+import { ZodValidationPipe } from "../common/pipes";
+import {
+  RequirePermissions,
+  CurrentUser,
+  CurrentUserPayload,
+} from "../common/decorators";
+import { SchoolScopeGuard } from "../common/guards";
+
+@ApiTags("Dashboard")
+@ApiBearerAuth("access-token")
+@Controller("dashboard")
+@UseGuards(SchoolScopeGuard)
+export class DashboardController {
+  constructor(private readonly service: DashboardService) {}
+
+  @Get("top-students")
+  @ApiOperation({ summary: "Top 3 eleves par cycle (tableau d'honneur)" })
+  async topStudents(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query(new ZodValidationPipe(TopStudentsQuerySchema)) query: any,
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN")
+      ? await this.getSuperAdminSchoolId(user)
+      : user.schoolId;
+    if (!schoolId) throw new BadRequestException("Ecole introuvable");
+    return this.service.getTopStudents(schoolId, query.termId);
+  }
+
+  @Post("top-students/recompute")
+  @RequirePermissions("report_card:create")
+  @ApiOperation({ summary: "Recalculer le Top 3 (admin/directeur)" })
+  async recompute(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query("termId") termId?: string,
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN")
+      ? await this.getSuperAdminSchoolId(user)
+      : user.schoolId;
+    if (!schoolId) throw new BadRequestException("Ecole introuvable");
+    return this.service.recomputeTopStudents(schoolId, termId);
+  }
+
+  @Get("teacher")
+  @ApiOperation({ summary: "Dashboard enseignant" })
+  async teacherDashboard(@CurrentUser() user: CurrentUserPayload) {
+    if (!user.schoolId) throw new BadRequestException("Utilisateur sans ecole");
+    return this.service.getTeacherDashboard(user.id, user.schoolId);
+  }
+
+  @Get("supervisor")
+  @ApiOperation({ summary: "Dashboard surveillant" })
+  async supervisorDashboard(@CurrentUser() user: CurrentUserPayload) {
+    if (!user.schoolId) throw new BadRequestException("Utilisateur sans ecole");
+    return this.service.getSupervisorDashboard(user.schoolId);
+  }
+
+  @Get("secretary")
+  @ApiOperation({ summary: "Dashboard secretariat" })
+  async secretaryDashboard(@CurrentUser() user: CurrentUserPayload) {
+    if (!user.schoolId) throw new BadRequestException("Utilisateur sans ecole");
+    return this.service.getSecretaryDashboard(user.schoolId);
+  }
+
+  /**
+   * Pour un SUPER_ADMIN, on prend la premiere ecole active
+   * (utile en mode mono-etablissement).
+   */
+  private async getSuperAdminSchoolId(
+    user: CurrentUserPayload,
+  ): Promise<string | null> {
+    if (user.schoolId) return user.schoolId;
+    // A defaut, on prend la premiere ecole
+    // Note : cette methode ne devrait pas exister si le SUPER_ADMIN a toujours une ecole
+    return null;
+  }
+}

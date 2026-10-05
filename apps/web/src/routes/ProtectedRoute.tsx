@@ -14,7 +14,7 @@ export function ProtectedRoute({
   requiredRole,
   children,
 }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, hasPermission, hasRole } = useAuth();
+  const { user, isAuthenticated, isLoading, hasPermission, hasRole } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -23,6 +23,15 @@ export function ProtectedRoute({
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Si l'utilisateur doit changer son mot de passe, on le force
+  // SAUF s'il est deja sur la page dediee (sinon boucle infinie)
+  if (
+    user?.mustChangePassword &&
+    location.pathname !== "/change-password-required"
+  ) {
+    return <Navigate to="/change-password-required" replace />;
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {

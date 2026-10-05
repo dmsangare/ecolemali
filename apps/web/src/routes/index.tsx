@@ -3,6 +3,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import { PublicRoute } from "./PublicRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { ChangePasswordRequiredPage } from "@/pages/auth/ChangePasswordRequiredPage";
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
@@ -35,6 +36,14 @@ export function AppRoutes() {
     <Routes>
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<LoginPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute />}>
+        {/* Page de changement de mot de passe force (sans sidebar ni header) */}
+        <Route
+          path="/change-password-required"
+          element={<ChangePasswordRequiredPage />}
+        />
       </Route>
 
       <Route element={<ProtectedRoute />}>

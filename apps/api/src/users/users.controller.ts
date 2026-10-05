@@ -54,6 +54,7 @@ export class UsersController {
       lastName: string;
       roleIds: string[];
       teacherId?: string;
+      guardianId?: string;
     },
   ) {
     if (!dto.password || dto.password.length < 8) {

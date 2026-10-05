@@ -59,6 +59,7 @@ export class UsersService {
     lastName: string;
     roleIds: string[];
     teacherId?: string;
+    guardianId?: string;
   }) {
     if (dto.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -95,6 +96,14 @@ export class UsersService {
     if (dto.teacherId) {
       await this.prisma.teacher.update({
         where: { id: dto.teacherId },
+        data: { userId: createdUser.id },
+      });
+    }
+
+    // Si guardianId fourni, lier la fiche Guardian a ce user
+    if (dto.guardianId) {
+      await this.prisma.guardian.update({
+        where: { id: dto.guardianId },
         data: { userId: createdUser.id },
       });
     }

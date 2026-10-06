@@ -140,7 +140,6 @@ export function CreateInvoiceModal({ onClose, preselectedStudent }: Props) {
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
-      onClick={onClose}
     >
       <div
         className="bg-background rounded-lg shadow-xl max-w-3xl w-full my-8"

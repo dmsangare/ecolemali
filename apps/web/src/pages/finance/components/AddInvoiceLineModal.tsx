@@ -125,7 +125,6 @@ export function AddInvoiceLineModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
-      onClick={onClose}
     >
       <div
         className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8"

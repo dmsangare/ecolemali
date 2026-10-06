@@ -25,6 +25,7 @@ import { StudentPicker } from "./StudentPicker";
 
 interface Props {
   onClose: () => void;
+  preselectedInvoiceId?: string;
 }
 
 interface StudentLite {
@@ -42,9 +43,9 @@ const METHODS: PaymentMethod[] = [
   "OTHER",
 ];
 
-export function CreatePaymentModal({ onClose }: Props) {
+export function CreatePaymentModal({ onClose, preselectedInvoiceId }: Props) {
   const [student, setStudent] = useState<StudentLite | null>(null);
-  const [invoiceId, setInvoiceId] = useState("");
+  const [invoiceId, setInvoiceId] = useState(preselectedInvoiceId || "");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("CASH");
   const [reference, setReference] = useState("");

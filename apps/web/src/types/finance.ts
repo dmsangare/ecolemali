@@ -94,6 +94,11 @@ export interface Payment {
     firstName: string;
     lastName: string;
   } | null;
+  receipt?: {
+    id: string;
+    number: string;
+    pdfUrl?: string | null;
+  } | null;
 }
 
 export interface CreatePaymentInput {
@@ -126,11 +131,15 @@ export interface CashSession {
   totalPayments?: number;
   paymentsCount?: number;
   theoreticalBalance?: number;
+  movementsCount?: number;
+  totalExpenses?: number;
   cashier?: {
     id: string;
     firstName: string;
     lastName: string;
   };
+  payments?: Payment[];
+  expenses?: Expense[];
   _count?: {
     payments: number;
   };

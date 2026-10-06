@@ -8,7 +8,6 @@ import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters';
-import type { Response } from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -61,7 +60,7 @@ async function bootstrap() {
     logger.log(`Swagger: http://localhost:${port}/api/docs`);
   }
 
-  app.getHttpAdapter().get('/health', (_req, res: Response) => {
+  app.getHttpAdapter().get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 

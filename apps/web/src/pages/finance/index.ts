@@ -6,3 +6,4 @@ export { CashSessionsListPage } from "./CashSessionsListPage";
 export { FeeTypesListPage } from "./FeeTypesListPage";
 export { FeeStructuresListPage } from "./FeeStructuresListPage";
 export { ExpensesListPage } from "./ExpensesListPage";
+export { RemindersListPage } from "./RemindersListPage";

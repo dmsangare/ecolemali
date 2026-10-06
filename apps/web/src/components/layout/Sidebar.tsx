@@ -1,4 +1,4 @@
-﻿import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -18,7 +18,7 @@ import {
   UserCog,
   Tag,
   Coins,
-  TrendingDown } from "lucide-react";
+  TrendingDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/hooks/school/useSchool";
@@ -73,6 +73,7 @@ const SECTIONS: NavSection[] = [
       { label: "Grille tarifaire", to: "/fee-structures", icon: Coins, permission: "fee:view" },
       { label: "Factures", to: "/invoices", icon: Receipt, permission: "invoice:view" },
       { label: "Depenses", to: "/expenses", icon: TrendingDown, permission: "expense:view" },
+      { label: "Relances", to: "/reminders", icon: AlertTriangle, permission: "invoice:view" },
       { label: "Paiements", to: "/payments", icon: Wallet, permission: "payment:view" },
       { label: "Caisse", to: "/cash-sessions", icon: Wallet, permission: "cash:view" },
     ],

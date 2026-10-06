@@ -25,6 +25,7 @@ import {
   FeeTypesListPage,
   FeeStructuresListPage,
   ExpensesListPage,
+  RemindersListPage,
 } from "@/pages/finance";
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
@@ -271,6 +272,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="expense:view">
                 <ExpensesListPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/reminders"
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <RemindersListPage />
               </ProtectedRoute>
             }
           />

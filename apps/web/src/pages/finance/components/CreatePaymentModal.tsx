@@ -143,7 +143,7 @@ export function CreatePaymentModal({ onClose }: Props) {
           </div>
 
           {/* CORPS */}
-          <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          <div className="p-6 space-y-5">
             {/* ETAPE 1 - ELEVE */}
             <div>
               <Label className="text-sm font-medium">

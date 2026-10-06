@@ -21,8 +21,11 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import { api } from '@/lib/axios';
+import { CreatePaymentModal } from './components/CreatePaymentModal';
+import { CreateExpenseModal } from './components/CreateExpenseModal';
 
 export function CashSessionsListPage() {
   const { data: current, isLoading } = useCurrentCashSession();
@@ -33,6 +36,8 @@ export function CashSessionsListPage() {
   const [openingBalance, setOpeningBalance] = useState('');
   const [closingBalance, setClosingBalance] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   // Detail de la session courante (pour les mouvements)
   const { data: sessionDetail } = useCashSession(current?.id);
@@ -79,6 +84,22 @@ export function CashSessionsListPage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Wallet className="w-6 h-6" /> Caisse
         </h1>
+        {isOpen && (
+          <div className="flex items-center gap-2">
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => setPaymentModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Encaisser un paiement
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setExpenseModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Enregistrer une depense
+            </Button>
+          </div>
+        )}
         {isOpen ? (
           <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium flex items-center gap-1">
             <Unlock className="w-4 h-4" /> Session ouverte
@@ -385,6 +406,14 @@ export function CashSessionsListPage() {
           </table>
         )}
       </Card>
+
+      {/* MODALES */}
+      {paymentModalOpen && (
+        <CreatePaymentModal onClose={() => setPaymentModalOpen(false)} />
+      )}
+      {expenseModalOpen && (
+        <CreateExpenseModal onClose={() => setExpenseModalOpen(false)} />
+      )}
     </div>
   );
 }

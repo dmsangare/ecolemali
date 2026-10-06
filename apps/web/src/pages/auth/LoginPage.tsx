@@ -151,17 +151,6 @@ export function LoginPage() {
                   )}
                 </Button>
               </form>
-
-              {/* Comptes de demonstration */}
-              <div className="mt-6 rounded-lg bg-muted p-3 text-xs space-y-1">
-                <p className="font-semibold text-foreground mb-2">
-                  💡 Comptes de demonstration :
-                </p>
-                <p className="font-mono">admin@aiglons.ml / Admin@2026!</p>
-                <p className="text-muted-foreground text-[10px] mt-1">
-                  Apres connexion, changez le mot de passe dans Parametres.
-                </p>
-              </div>
             </CardContent>
           </Card>
 

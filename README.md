@@ -33,7 +33,12 @@ Durée : 15-30 min selon débit réseau.
 
 ## Comptes de démonstration
 
-Mot de passe : Admin@2026!
+Le mot de passe initial est **généré automatiquement** à la fin de `npm run prisma:seed`
+(ou défini via la variable d'environnement `SEED_PASSWORD`).
+
+Il est affiché **une seule fois** dans la console lors du seed.
+
+**Il doit être changé à la première connexion** (obligatoire).
 
 | Email | Rôle |
 |---|---|

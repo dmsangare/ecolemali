@@ -6,6 +6,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -409,7 +410,10 @@ async function main() {
 
   // --- 12. Demo Users ---
   console.log('👥 Creating demo users...');
-  const passwordHash = await bcrypt.hash('Admin@2026!', 12);
+  // Mot de passe initial : variable SEED_PASSWORD, sinon un mot de passe aleatoire
+  // affiche une seule fois a la fin du seed. Doit etre change a la premiere connexion.
+  const seedPassword = process.env.SEED_PASSWORD || `${randomBytes(9).toString('base64url')}Aa1!`;
+  const passwordHash = await bcrypt.hash(seedPassword, 12);
 
   const usersData = [
     {
@@ -659,7 +663,7 @@ async function main() {
 
   console.log('\n✅ Seed completed successfully!\n');
   console.log('📌 Login credentials (all users):');
-  console.log('   Password: Admin@2026!');
+  console.log(`   Mot de passe initial : ${seedPassword}  (a changer a la premiere connexion)`);
   console.log('   admin@sis-mali.local       → SUPER_ADMIN');
   console.log('   director@sis-mali.local    → DIRECTOR');
   console.log('   secretary@sis-mali.local   → SECRETARY');

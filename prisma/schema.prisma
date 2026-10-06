@@ -345,6 +345,7 @@ model School {
   backups             Backup[]
   expenseCategories   ExpenseCategory[]
   expenses            Expense[]
+  messageLogs         MessageLog[]
   topStudents         TopStudent[]
 
   @@map("schools")
@@ -533,6 +534,7 @@ model User {
   backupsCreated     Backup[]            @relation("BackupCreatedBy")
   expensesMade       Expense[]           @relation("ExpenseCashier")
   cashSessionsOpened CashSession[]      @relation("CashSessionCashier")
+  messageLogs        MessageLog[]
 
   @@index([schoolId])
   @@map("users")
@@ -664,6 +666,8 @@ model Student {
   @@index([schoolId])
   @@index([lastName, firstName])
   topStudents      TopStudent[]
+  messageLogs  MessageLog[]
+
   @@map("students")
 }
 
@@ -688,6 +692,8 @@ model Guardian {
   notifications Notification[]
 
   @@index([schoolId])
+  messageLogs  MessageLog[]
+
   @@map("guardians")
 }
 
@@ -1178,6 +1184,8 @@ model Invoice {
   @@unique([schoolId, number])
   @@index([studentId])
   @@index([schoolId, status])
+  messageLogs  MessageLog[]
+
   @@map("invoices")
 }
 
@@ -1495,4 +1503,35 @@ model TopStudent {
   @@unique([schoolId, cycle, periodLabel, rank])
   @@index([schoolId, cycle, periodLabel])
   @@map("top_students")
+}
+
+// ============================================================
+// 17. BLOC MESSAGERIE (relances, recus, notifications externes)
+// ============================================================
+
+model MessageLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @map("school_id") @db.Uuid
+  studentId      String?  @map("student_id") @db.Uuid
+  guardianId     String?  @map("guardian_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  invoiceId      String?  @map("invoice_id") @db.Uuid
+  type           String   @db.VarChar(50)
+  channel        String   @db.VarChar(20)
+  recipientPhone String   @map("recipient_phone") @db.VarChar(30)
+  recipientName  String?  @map("recipient_name") @db.VarChar(150)
+  message        String   @db.Text
+  status         String   @default("SENT") @db.VarChar(20)
+  sentAt         DateTime @default(now()) @map("sent_at") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student  Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invoice  Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, sentAt])
+  @@index([invoiceId])
+  @@map("message_logs")
 }

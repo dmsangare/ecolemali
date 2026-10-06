@@ -1,10 +1,35 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import * as bcrypt from "bcryptjs";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess, isSuperAdmin } from "../common/utils";
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Verifie qu'un utilisateur cible existe et que l'appelant a le droit d'y acceder.
+   * - 404 si l'utilisateur n'existe pas ou appartient a une autre ecole (anti-enumeration)
+   * - 403 si la cible est SUPER_ADMIN et que l'appelant ne l'est pas
+   */
+  private async getTargetOrFail(id: string, caller: CurrentUserPayload) {
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        schoolId: true,
+        userRoles: { select: { role: { select: { code: true } } } },
+      },
+    });
+    if (!target) throw new NotFoundException("Utilisateur introuvable");
+    assertSchoolAccess(caller, target.schoolId, "Utilisateur introuvable");
+    const targetIsSuperAdmin = target.userRoles.some((ur) => ur.role.code === "SUPER_ADMIN");
+    if (targetIsSuperAdmin && !isSuperAdmin(caller)) {
+      throw new ForbiddenException("Action reservee au super administrateur");
+    }
+    return target;
+  }
 
   async findAll(schoolId: string | null, page = 1, limit = 20, q?: string) {
     const where: any = {};
@@ -35,7 +60,8 @@ export class UsersService {
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, caller: CurrentUserPayload) {
+    await this.getTargetOrFail(id, caller);
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -60,7 +86,7 @@ export class UsersService {
     roleIds: string[];
     teacherId?: string;
     guardianId?: string;
-  }) {
+  }, caller: CurrentUserPayload) {
     if (dto.email) {
       const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
       if (existing) throw new ConflictException("Cet email est deja utilise");
@@ -68,12 +94,18 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // Verifier si SUPER_ADMIN fait partie des roles : dans ce cas, ne pas forcer
+    // Verifier que les roles existent et que l'appelant a le droit de les attribuer
     const roles = await this.prisma.role.findMany({
       where: { id: { in: dto.roleIds } },
-      select: { code: true },
+      select: { id: true, code: true },
     });
-    const isSuperAdmin = roles.some((r) => r.code === "SUPER_ADMIN");
+    if (roles.length !== new Set(dto.roleIds).size) {
+      throw new BadRequestException("Un ou plusieurs roles sont invalides");
+    }
+    const targetIsSuperAdmin = roles.some((r) => r.code === "SUPER_ADMIN");
+    if (targetIsSuperAdmin && !isSuperAdmin(caller)) {
+      throw new ForbiddenException("Seul un super administrateur peut attribuer le role SUPER_ADMIN");
+    }
 
     const createdUser = await this.prisma.user.create({
       data: {
@@ -84,7 +116,7 @@ export class UsersService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         status: "ACTIVE",
-        mustChangePassword: !isSuperAdmin,
+        mustChangePassword: !targetIsSuperAdmin,
         userRoles: {
           create: dto.roleIds.map((roleId) => ({
             roleId,
@@ -118,8 +150,8 @@ export class UsersService {
     return createdUser;
   }
 
-  async update(id: string, dto: any) {
-    await this.findOne(id);
+  async update(id: string, dto: any, caller: CurrentUserPayload) {
+    await this.getTargetOrFail(id, caller);
 
     const data: any = {
       firstName: dto.firstName,
@@ -161,8 +193,13 @@ export class UsersService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, caller: CurrentUserPayload) {
+    const target = await this.getTargetOrFail(id, caller);
+
+    if (target.id === caller.id) {
+      throw new BadRequestException("Vous ne pouvez pas supprimer votre propre compte");
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: { userRoles: { include: { role: true } } },
@@ -180,18 +217,25 @@ export class UsersService {
     return this.prisma.user.delete({ where: { id } });
   }
 
-  async resetPassword(id: string, newPassword: string) {
-    await this.findOne(id);
+  async resetPassword(id: string, newPassword: string, caller: CurrentUserPayload) {
+    await this.getTargetOrFail(id, caller);
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
       data: { passwordHash, mustChangePassword: true },
       select: { id: true, email: true },
     });
+    // Deconnecter toutes les sessions ouvertes de cet utilisateur
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return updated;
   }
 
-  async listRoles() {
+  async listRoles(caller: CurrentUserPayload) {
     return this.prisma.role.findMany({
+      where: isSuperAdmin(caller) ? {} : { code: { not: "SUPER_ADMIN" } },
       orderBy: { name: "asc" },
       select: { id: true, code: true, name: true, description: true },
     });

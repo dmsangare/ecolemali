@@ -1,6 +1,8 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { RoomCreateDto, RoomUpdateDto } from "./dto";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess } from "../common/utils";
 
 @Injectable()
 export class RoomsService {
@@ -18,9 +20,10 @@ export class RoomsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const room = await this.prisma.room.findUnique({ where: { id } });
     if (!room) throw new NotFoundException("Salle introuvable");
+    assertSchoolAccess(user, room.schoolId, "Salle introuvable");
     return room;
   }
 
@@ -28,13 +31,13 @@ export class RoomsService {
     return this.prisma.room.create({ data: dto as any });
   }
 
-  async update(id: string, dto: RoomUpdateDto) {
-    await this.findOne(id);
+  async update(id: string, dto: RoomUpdateDto, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.room.update({ where: { id }, data: dto as any });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.room.delete({ where: { id } });
   }
 }

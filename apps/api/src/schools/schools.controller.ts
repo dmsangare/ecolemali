@@ -1,6 +1,6 @@
 ﻿import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus,
-  UseInterceptors, UploadedFile, BadRequestException,
+  UseInterceptors, UploadedFile, BadRequestException, UseGuards,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
@@ -8,7 +8,8 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { SchoolsService } from "./schools.service";
 import { SchoolCreateSchema, SchoolUpdateSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
-import { RequirePermissions } from "../common/decorators";
+import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
+import { SuperAdminOnlyGuard } from "../common/guards";
 import { PaginationDto } from "../common/dto/pagination.dto";
 
 @ApiTags("Schools")
@@ -20,15 +21,15 @@ export class SchoolsController {
   @Get()
   @RequirePermissions("school:view")
   @ApiOperation({ summary: "Liste des etablissements" })
-  async findAll(@Query() query: PaginationDto) {
-    return this.schoolsService.findAll(query.page, query.limit, query.q);
+  async findAll(@CurrentUser() user: CurrentUserPayload, @Query() query: PaginationDto) {
+    return this.schoolsService.findAll(user, query.page, query.limit, query.q);
   }
 
   @Get(":id")
   @RequirePermissions("school:view")
   @ApiOperation({ summary: "Detail d un etablissement" })
-  async findOne(@Param("id") id: string) {
-    return this.schoolsService.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.schoolsService.findOne(id, user);
   }
 
   @Post()
@@ -41,8 +42,12 @@ export class SchoolsController {
   @Patch(":id")
   @RequirePermissions("school:update")
   @ApiOperation({ summary: "Modifier un etablissement" })
-  async update(@Param("id") id: string, @Body(new ZodValidationPipe(SchoolUpdateSchema)) dto: any) {
-    return this.schoolsService.update(id, dto);
+  async update(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(SchoolUpdateSchema)) dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.schoolsService.update(id, dto, user);
   }
 
   @Post(":id/logo")
@@ -57,16 +62,18 @@ export class SchoolsController {
   async uploadLogo(
     @Param("id") id: string,
     @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     if (!file) throw new BadRequestException("Aucun fichier fourni");
-    return this.schoolsService.uploadLogo(id, file);
+    return this.schoolsService.uploadLogo(id, file, user);
   }
 
   @Delete(":id")
+  @UseGuards(SuperAdminOnlyGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("school:delete")
-  @ApiOperation({ summary: "Supprimer un etablissement" })
-  async remove(@Param("id") id: string) {
-    await this.schoolsService.remove(id);
+  @ApiOperation({ summary: "Supprimer un etablissement (SUPER_ADMIN uniquement)" })
+  async remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.schoolsService.remove(id, user);
   }
 }

@@ -38,8 +38,9 @@ export class AuditController {
   async findByObject(
     @Param("objectType") objectType: string,
     @Param("objectId") objectId: string,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.service.findByObject(objectType, objectId);
+    return this.service.findByObject(objectType, objectId, user);
   }
 
   @Get("user/:userId")
@@ -47,14 +48,15 @@ export class AuditController {
   @ApiOperation({ summary: "Actions d un utilisateur" })
   async findByUser(
     @Param("userId") userId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Query() query: PaginationDto,
   ) {
-    return this.service.findByUser(userId, query.page, query.limit);
+    return this.service.findByUser(userId, user, query.page, query.limit);
   }
 
   @Get(":id")
   @RequirePermissions("audit:view")
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.findOne(id, user);
   }
 }

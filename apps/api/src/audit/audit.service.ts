@@ -1,5 +1,7 @@
 ﻿import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess, schoolWhere } from "../common/utils";
 
 @Injectable()
 export class AuditService {
@@ -35,28 +37,30 @@ export class AuditService {
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const log = await this.prisma.auditLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException("Entree d audit introuvable");
+    assertSchoolAccess(user, log.schoolId, "Entree d audit introuvable");
     return log;
   }
 
-  async findByObject(objectType: string, objectId: string) {
+  async findByObject(objectType: string, objectId: string, user: CurrentUserPayload) {
     return this.prisma.auditLog.findMany({
-      where: { objectType, objectId },
+      where: { objectType, objectId, ...schoolWhere(user) },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async findByUser(userId: string, page = 1, limit = 20) {
+  async findByUser(userId: string, user: CurrentUserPayload, page = 1, limit = 20) {
+    const where = { userId, ...schoolWhere(user) };
     const [data, total] = await Promise.all([
       this.prisma.auditLog.findMany({
-        where: { userId },
+        where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
-      this.prisma.auditLog.count({ where: { userId } }),
+      this.prisma.auditLog.count({ where }),
     ]);
 
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };

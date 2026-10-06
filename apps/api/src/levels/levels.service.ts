@@ -1,6 +1,8 @@
-﻿import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { LevelCreateDto, LevelUpdateDto } from "./dto";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess } from "../common/utils";
 
 @Injectable()
 export class LevelsService {
@@ -18,12 +20,13 @@ export class LevelsService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const level = await this.prisma.level.findUnique({
       where: { id },
       include: { subjectCoefficients: true, _count: { select: { classes: true } } },
     });
     if (!level) throw new NotFoundException("Niveau introuvable");
+    assertSchoolAccess(user, level.schoolId, "Niveau introuvable");
     return level;
   }
 
@@ -31,13 +34,13 @@ export class LevelsService {
     return this.prisma.level.create({ data: dto as any });
   }
 
-  async update(id: string, dto: LevelUpdateDto) {
-    await this.findOne(id);
+  async update(id: string, dto: LevelUpdateDto, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.level.update({ where: { id }, data: dto as any });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.level.delete({ where: { id } });
   }
 }

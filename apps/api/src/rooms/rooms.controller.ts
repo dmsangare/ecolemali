@@ -23,8 +23,8 @@ export class RoomsController {
 
   @Get(":id")
   @RequirePermissions("class:view")
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.findOne(id, user);
   }
 
   @Post()
@@ -35,14 +35,18 @@ export class RoomsController {
 
   @Patch(":id")
   @RequirePermissions("class:update")
-  async update(@Param("id") id: string, @Body(new ZodValidationPipe(RoomUpdateSchema)) dto: any) {
-    return this.service.update(id, dto);
+  async update(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(RoomUpdateSchema)) dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.update(id, dto, user);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("class:delete")
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.service.remove(id, user);
   }
 }

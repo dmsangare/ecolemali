@@ -1,6 +1,8 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AcademicYearCreateDto, AcademicYearUpdateDto } from "./dto";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess } from "../common/utils";
 
 @Injectable()
 export class AcademicYearsService {
@@ -23,12 +25,13 @@ export class AcademicYearsService {
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const year = await this.prisma.academicYear.findUnique({
       where: { id },
       include: { terms: { orderBy: { orderIndex: "asc" } } },
     });
     if (!year) throw new NotFoundException("Annee scolaire introuvable");
+    assertSchoolAccess(user, year.schoolId, "Annee scolaire introuvable");
     return year;
   }
 
@@ -38,7 +41,6 @@ export class AcademicYearsService {
     });
     if (existing) throw new BadRequestException("Cette annee scolaire existe deja pour cet etablissement");
 
-    // Si isCurrent = true, désactiver les autres
     if (dto.isCurrent) {
       await this.prisma.academicYear.updateMany({
         where: { schoolId: dto.schoolId, isCurrent: true },
@@ -55,8 +57,8 @@ export class AcademicYearsService {
     });
   }
 
-  async update(id: string, dto: AcademicYearUpdateDto) {
-    const year = await this.findOne(id);
+  async update(id: string, dto: AcademicYearUpdateDto, user: CurrentUserPayload) {
+    const year = await this.findOne(id, user);
     if (year.status === "CLOTUREE" || year.status === "ARCHIVEE") {
       throw new BadRequestException("Impossible de modifier une annee cloturee ou archivee");
     }
@@ -75,8 +77,8 @@ export class AcademicYearsService {
     return this.prisma.academicYear.update({ where: { id }, data });
   }
 
-  async activate(id: string) {
-    const year = await this.findOne(id);
+  async activate(id: string, user: CurrentUserPayload) {
+    const year = await this.findOne(id, user);
     await this.prisma.academicYear.updateMany({
       where: { schoolId: year.schoolId, isCurrent: true },
       data: { isCurrent: false },
@@ -87,24 +89,24 @@ export class AcademicYearsService {
     });
   }
 
-  async close(id: string) {
-    await this.findOne(id);
+  async close(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.academicYear.update({
       where: { id },
       data: { status: "CLOTUREE", isCurrent: false, closedAt: new Date() },
     });
   }
 
-  async archive(id: string) {
-    await this.findOne(id);
+  async archive(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.academicYear.update({
       where: { id },
       data: { status: "ARCHIVEE", archivedAt: new Date() },
     });
   }
 
-  async remove(id: string) {
-    const year = await this.findOne(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    const year = await this.findOne(id, user);
     if (year.status === "ACTIVE") {
       throw new BadRequestException("Impossible de supprimer une annee active");
     }

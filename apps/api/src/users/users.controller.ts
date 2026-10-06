@@ -6,6 +6,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
 import { CurrentUser, CurrentUserPayload, RequirePermissions } from "../common/decorators";
 import { SchoolScopeGuard } from "../common/guards";
+import { isSuperAdmin } from "../common/utils";
 import { PaginationDto } from "../common/dto/pagination.dto";
 
 @ApiTags("Users")
@@ -19,8 +20,8 @@ export class UsersController {
   @Get("roles")
   @RequirePermissions("user:view")
   @ApiOperation({ summary: "Liste des roles disponibles" })
-  async listRoles() {
-    return this.usersService.listRoles();
+  async listRoles(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.listRoles(user);
   }
 
   @Get()
@@ -37,8 +38,8 @@ export class UsersController {
   @Get(":id")
   @RequirePermissions("user:view")
   @ApiOperation({ summary: "Detail d un utilisateur" })
-  async findOne(@Param("id") id: string) {
-    return this.usersService.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findOne(id, user);
   }
 
   @Post()
@@ -64,19 +65,27 @@ export class UsersController {
       throw new BadRequestException("Au moins un role est requis");
     }
 
-    const schoolId = currentUser.roles.includes("SUPER_ADMIN") ? undefined : currentUser.schoolId!;
+    // Non-SUPER_ADMIN : toujours rattache a son ecole.
+    // SUPER_ADMIN : peut choisir l'ecole (dto.schoolId) ou aucune.
+    const schoolId = isSuperAdmin(currentUser)
+      ? dto.schoolId
+      : currentUser.schoolId!;
 
     return this.usersService.create({
       ...dto,
       schoolId: schoolId || undefined,
-    });
+    }, currentUser);
   }
 
   @Patch(":id")
   @RequirePermissions("user:update")
   @ApiOperation({ summary: "Modifier un utilisateur" })
-  async update(@Param("id") id: string, @Body() dto: any) {
-    return this.usersService.update(id, dto);
+  async update(
+    @Param("id") id: string,
+    @Body() dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.update(id, dto, user);
   }
 
   @Post(":id/reset-password")
@@ -85,18 +94,19 @@ export class UsersController {
   async resetPassword(
     @Param("id") id: string,
     @Body() body: { newPassword: string },
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     if (!body.newPassword || body.newPassword.length < 8) {
       throw new BadRequestException("Mot de passe trop court (min 8)");
     }
-    return this.usersService.resetPassword(id, body.newPassword);
+    return this.usersService.resetPassword(id, body.newPassword, user);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("user:delete")
   @ApiOperation({ summary: "Supprimer un utilisateur" })
-  async remove(@Param("id") id: string) {
-    await this.usersService.remove(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.usersService.remove(id, user);
   }
 }

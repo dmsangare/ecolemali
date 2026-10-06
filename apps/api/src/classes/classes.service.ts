@@ -1,6 +1,8 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ClassCreateDto, ClassUpdateDto } from "./dto";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess, assertRefsInSchool } from "../common/utils";
 
 @Injectable()
 export class ClassesService {
@@ -25,7 +27,7 @@ export class ClassesService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const cls = await this.prisma.class.findUnique({
       where: { id },
       include: {
@@ -37,11 +39,12 @@ export class ClassesService {
       },
     });
     if (!cls) throw new NotFoundException("Classe introuvable");
+    assertSchoolAccess(user, cls.schoolId, "Classe introuvable");
     return cls;
   }
 
-  async getDashboard(id: string) {
-    const cls = await this.findOne(id);
+  async getDashboard(id: string, user: CurrentUserPayload) {
+    const cls = await this.findOne(id, user);
 
     const enrollments = await this.prisma.enrollment.findMany({
       where: { classId: id, status: "VALIDATED" },
@@ -70,6 +73,14 @@ export class ClassesService {
   }
 
   async create(dto: ClassCreateDto) {
+    // Verifier que les references appartiennent bien a la meme ecole
+    await assertRefsInSchool(this.prisma, dto.schoolId!, {
+      academicYearId: dto.academicYearId,
+      levelId: dto.levelId,
+      roomId: dto.roomId,
+      teacherId: dto.mainTeacherId,
+    });
+
     const existing = await this.prisma.class.findFirst({
       where: { academicYearId: dto.academicYearId, code: dto.code },
     });
@@ -79,13 +90,19 @@ export class ClassesService {
     return this.prisma.class.create({ data: dto as any });
   }
 
-  async update(id: string, dto: ClassUpdateDto) {
-    await this.findOne(id);
+  async update(id: string, dto: ClassUpdateDto, user: CurrentUserPayload) {
+    const cls = await this.findOne(id, user);
+    await assertRefsInSchool(this.prisma, cls.schoolId, {
+      academicYearId: dto.academicYearId,
+      levelId: dto.levelId,
+      roomId: dto.roomId,
+      teacherId: dto.mainTeacherId,
+    });
     return this.prisma.class.update({ where: { id }, data: dto as any });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.class.delete({ where: { id } });
   }
 }

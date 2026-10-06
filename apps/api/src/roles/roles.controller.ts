@@ -14,7 +14,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { RolesService } from "./roles.service";
 import { RequirePermissions } from "../common/decorators";
-import { SchoolScopeGuard } from "../common/guards";
+import { SchoolScopeGuard, SuperAdminOnlyGuard } from "../common/guards";
 
 @ApiTags("Roles")
 @ApiBearerAuth("access-token")
@@ -45,8 +45,9 @@ export class RolesController {
   }
 
   @Post()
+  @UseGuards(SuperAdminOnlyGuard)
   @RequirePermissions("role:create")
-  @ApiOperation({ summary: "Creer un role" })
+  @ApiOperation({ summary: "Creer un role (SUPER_ADMIN uniquement)" })
   async create(
     @Body() dto: { code: string; name: string; description?: string },
   ) {
@@ -54,8 +55,9 @@ export class RolesController {
   }
 
   @Patch(":id")
+  @UseGuards(SuperAdminOnlyGuard)
   @RequirePermissions("role:update")
-  @ApiOperation({ summary: "Modifier un role" })
+  @ApiOperation({ summary: "Modifier un role (SUPER_ADMIN uniquement)" })
   async update(
     @Param("id") id: string,
     @Body() dto: { name?: string; description?: string },
@@ -64,8 +66,9 @@ export class RolesController {
   }
 
   @Put(":id/permissions")
+  @UseGuards(SuperAdminOnlyGuard)
   @RequirePermissions("role:update")
-  @ApiOperation({ summary: "Remplacer toutes les permissions d un role" })
+  @ApiOperation({ summary: "Remplacer toutes les permissions d un role (SUPER_ADMIN uniquement)" })
   async setPermissions(
     @Param("id") id: string,
     @Body() body: { permissionIds: string[] },
@@ -74,8 +77,9 @@ export class RolesController {
   }
 
   @Post(":id/permissions/:permissionId")
+  @UseGuards(SuperAdminOnlyGuard)
   @RequirePermissions("role:update")
-  @ApiOperation({ summary: "Ajouter une permission" })
+  @ApiOperation({ summary: "Ajouter une permission (SUPER_ADMIN uniquement)" })
   async addPermission(
     @Param("id") id: string,
     @Param("permissionId") permissionId: string,
@@ -84,8 +88,9 @@ export class RolesController {
   }
 
   @Delete(":id/permissions/:permissionId")
+  @UseGuards(SuperAdminOnlyGuard)
   @RequirePermissions("role:update")
-  @ApiOperation({ summary: "Retirer une permission" })
+  @ApiOperation({ summary: "Retirer une permission (SUPER_ADMIN uniquement)" })
   async removePermission(
     @Param("id") id: string,
     @Param("permissionId") permissionId: string,
@@ -94,9 +99,10 @@ export class RolesController {
   }
 
   @Delete(":id")
+  @UseGuards(SuperAdminOnlyGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("role:delete")
-  @ApiOperation({ summary: "Supprimer un role" })
+  @ApiOperation({ summary: "Supprimer un role (SUPER_ADMIN uniquement)" })
   async remove(@Param("id") id: string) {
     await this.rolesService.remove(id);
   }

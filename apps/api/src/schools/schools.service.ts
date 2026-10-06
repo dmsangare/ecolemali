@@ -2,6 +2,8 @@
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { SchoolCreateDto, SchoolUpdateDto } from "./dto";
+import { CurrentUserPayload } from "../common/decorators";
+import { assertSchoolAccess, isSuperAdmin } from "../common/utils";
 import { promises as fs } from "fs";
 import { join, extname } from "path";
 
@@ -12,8 +14,14 @@ export class SchoolsService {
     private readonly config: ConfigService,
   ) {}
 
-  async findAll(page = 1, limit = 20, q?: string) {
+  async findAll(user: CurrentUserPayload, page = 1, limit = 20, q?: string) {
+    // Un utilisateur non-SUPER_ADMIN ne voit que son ecole
+    if (!isSuperAdmin(user) && !user.schoolId) {
+      return { data: [], meta: { page, limit, total: 0, pages: 0 } };
+    }
+
     const where: any = {};
+    if (!isSuperAdmin(user)) where.id = user.schoolId;
     if (q) {
       where.OR = [
         { name: { contains: q, mode: "insensitive" } },
@@ -35,7 +43,7 @@ export class SchoolsService {
     return { data, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: CurrentUserPayload) {
     const school = await this.prisma.school.findUnique({
       where: { id },
       include: {
@@ -51,6 +59,7 @@ export class SchoolsService {
       },
     });
     if (!school) throw new NotFoundException("Etablissement introuvable");
+    assertSchoolAccess(user, school.id, "Etablissement introuvable");
     return school;
   }
 
@@ -58,12 +67,12 @@ export class SchoolsService {
     return this.prisma.school.create({ data: dto as any });
   }
 
-  async update(id: string, dto: SchoolUpdateDto) {
-    await this.findOne(id);
+  async update(id: string, dto: SchoolUpdateDto, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.school.update({ where: { id }, data: dto as any });
   }
 
-  async uploadLogo(id: string, file: Express.Multer.File) {
+  async uploadLogo(id: string, file: Express.Multer.File, user: CurrentUserPayload) {
     if (!file) {
       throw new BadRequestException("Aucun fichier fourni");
     }
@@ -82,7 +91,7 @@ export class SchoolsService {
       throw new BadRequestException("Fichier trop volumineux (max 2 Mo)");
     }
 
-    await this.findOne(id);
+    await this.findOne(id, user);
 
     // Preparer le dossier de destination
     const storageRoot = this.config.get<string>("storage.root", "./storage");
@@ -107,8 +116,8 @@ export class SchoolsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: CurrentUserPayload) {
+    await this.findOne(id, user);
     return this.prisma.school.delete({ where: { id } });
   }
 }

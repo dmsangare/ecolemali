@@ -27,15 +27,15 @@ export class ClassesController {
 
   @Get(":id")
   @RequirePermissions("class:view")
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.findOne(id, user);
   }
 
   @Get(":id/dashboard")
   @RequirePermissions("class:view")
   @ApiOperation({ summary: "Tableau de bord de la classe" })
-  async getDashboard(@Param("id") id: string) {
-    return this.service.getDashboard(id);
+  async getDashboard(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.getDashboard(id, user);
   }
 
   @Post()
@@ -81,14 +81,18 @@ export class ClassesController {
 
   @Patch(":id")
   @RequirePermissions("class:update")
-  async update(@Param("id") id: string, @Body(new ZodValidationPipe(ClassUpdateSchema)) dto: any) {
-    return this.service.update(id, dto);
+  async update(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(ClassUpdateSchema)) dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.update(id, dto, user);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("class:delete")
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.service.remove(id, user);
   }
 }

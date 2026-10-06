@@ -28,8 +28,8 @@ export class AcademicYearsController {
   @Get(":id")
   @RequirePermissions("academic_year:view")
   @ApiOperation({ summary: "Detail d une annee scolaire" })
-  async findOne(@Param("id") id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.findOne(id, user);
   }
 
   @Post()
@@ -42,36 +42,40 @@ export class AcademicYearsController {
   @Patch(":id")
   @RequirePermissions("academic_year:update")
   @ApiOperation({ summary: "Modifier une annee scolaire" })
-  async update(@Param("id") id: string, @Body(new ZodValidationPipe(AcademicYearUpdateSchema)) dto: any) {
-    return this.service.update(id, dto);
+  async update(
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(AcademicYearUpdateSchema)) dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.update(id, dto, user);
   }
 
   @Post(":id/activate")
   @RequirePermissions("academic_year:update")
   @ApiOperation({ summary: "Activer une annee scolaire" })
-  async activate(@Param("id") id: string) {
-    return this.service.activate(id);
+  async activate(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.activate(id, user);
   }
 
   @Post(":id/close")
   @RequirePermissions("academic_year:close")
   @ApiOperation({ summary: "Cloturer une annee scolaire" })
-  async close(@Param("id") id: string) {
-    return this.service.close(id);
+  async close(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.close(id, user);
   }
 
   @Post(":id/archive")
   @RequirePermissions("academic_year:archive")
   @ApiOperation({ summary: "Archiver une annee scolaire" })
-  async archive(@Param("id") id: string) {
-    return this.service.archive(id);
+  async archive(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.service.archive(id, user);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("academic_year:delete")
   @ApiOperation({ summary: "Supprimer une annee scolaire" })
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
+    await this.service.remove(id, user);
   }
 }

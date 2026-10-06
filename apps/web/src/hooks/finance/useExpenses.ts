@@ -37,6 +37,8 @@ export function useCreateExpense() {
     onSuccess: () => {
       toast.success("Depense enregistree");
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["cash-sessions"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -55,6 +57,8 @@ export function useUpdateExpense() {
     onSuccess: () => {
       toast.success("Depense mise a jour");
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["cash-sessions"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -67,6 +71,8 @@ export function useDeleteExpense() {
     onSuccess: () => {
       toast.success("Depense supprimee");
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["cash-sessions"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });

@@ -36,6 +36,8 @@ export function useCreatePayment() {
       toast.success("Paiement enregistre");
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["cash-sessions"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -49,6 +51,8 @@ export function useCancelPayment() {
       toast.success("Paiement annule");
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["cash-sessions"] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });

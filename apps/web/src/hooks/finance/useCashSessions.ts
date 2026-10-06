@@ -34,6 +34,7 @@ export function useOpenCashSession() {
     onSuccess: () => {
       toast.success("Caisse ouverte");
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -47,6 +48,7 @@ export function useCloseCashSession() {
     onSuccess: () => {
       toast.success("Caisse cloturee");
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });

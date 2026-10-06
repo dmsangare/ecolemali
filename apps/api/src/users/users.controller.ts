@@ -48,6 +48,7 @@ export class UsersController {
   async create(
     @CurrentUser() currentUser: CurrentUserPayload,
     @Body() dto: {
+      schoolId?: string;
       email?: string;
       phone?: string;
       password: string;

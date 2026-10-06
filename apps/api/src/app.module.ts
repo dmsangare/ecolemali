@@ -31,6 +31,7 @@ import { FeeTypesModule } from "./fee-types/fee-types.module";
 import { FeeStructuresModule } from "./fee-structures/fee-structures.module";
 import { InvoicesModule } from "./invoices/invoices.module";
 import { ExpensesModule } from "./expenses/expenses.module";
+import { MessagesModule } from "./messages/messages.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { ExpenseCategoriesModule } from "./expense-categories/expense-categories.module";
 import { PaymentsModule } from "./payments/payments.module";
@@ -82,6 +83,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     FeeStructuresModule,
     InvoicesModule,
     ExpensesModule,
+    MessagesModule,
     DashboardModule,
     ExpenseCategoriesModule,
     PaymentsModule,

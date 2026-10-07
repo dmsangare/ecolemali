@@ -6,7 +6,6 @@ import {
   DEFAULT_CURRENCY,
   DEFAULT_LOCALE,
   DEFAULT_TIMEZONE,
-  MATRICULE_PREFIX,
   MATRICULE_SEQUENCE_LENGTH,
 } from './constants';
 
@@ -91,18 +90,18 @@ export function toISODate(date: Date | string): string {
 // MATRICULE
 // ============================================================
 
-export function buildMatricule(year: number, sequence: number): string {
-  return `${MATRICULE_PREFIX}-${year}-${String(sequence).padStart(MATRICULE_SEQUENCE_LENGTH, '0')}`;
+export function buildMatricule(sigle: string, year: number, sequence: number): string {
+  return `${sigle.toUpperCase()}-${year}-${String(sequence).padStart(MATRICULE_SEQUENCE_LENGTH, '0')}`;
 }
 
-export function parseMatricule(matricule: string): { year: number; sequence: number } | null {
-  const match = matricule.match(/^SIS-(\d{4})-(\d+)$/);
+export function parseMatricule(matricule: string): { sigle: string; year: number; sequence: number } | null {
+  const match = matricule.match(/^([A-Z]+)-(\d{4})-(\d+)$/);
   if (!match) return null;
-  return { year: parseInt(match[1], 10), sequence: parseInt(match[2], 10) };
+  return { sigle: match[1], year: parseInt(match[2], 10), sequence: parseInt(match[3], 10) };
 }
 
 export function isValidMatricule(matricule: string): boolean {
-  return /^SIS-\d{4}-\d{6}$/.test(matricule);
+  return /^[A-Z]+-\d{4}-\d{6}$/.test(matricule);
 }
 
 // ============================================================

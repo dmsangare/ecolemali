@@ -94,7 +94,7 @@ export const JWT_REFRESH_EXPIRES_IN = '7d';
 // MATRICULE
 // ============================================================
 
-export const MATRICULE_PREFIX = 'SIS';
+// MATRICULE_PREFIX supprime : le sigle vient de school.sigle (BDD)
 export const MATRICULE_SEQUENCE_LENGTH = 6;
 
 // ============================================================

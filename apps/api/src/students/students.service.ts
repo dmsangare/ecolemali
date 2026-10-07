@@ -299,18 +299,41 @@ export class StudentsService {
     };
   }
 
-  async create(dto: StudentCreateDto, createdBy: string) {
-    const currentYear = new Date().getFullYear();
-    const yearStr = String(currentYear);
+  /**
+   * Recupere le sigle de l'ecole (ex: EPS, ERN, SIS).
+   */
+  private async getSchoolSigle(schoolId: string): Promise<string> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { sigle: true },
+    });
+    return (school?.sigle || "SIS").toUpperCase();
+  }
 
-    const count = await this.prisma.student.count({
-      where: {
-        schoolId: dto.schoolId,
-        matricule: { startsWith: `SIS-${yearStr}-` },
-      },
+  /**
+   * Genere le prochain matricule de l'ecole.
+   * Format : {SIGLE}-{ANNEE}-{NNNNNN}
+   */
+  private async nextMatricule(schoolId: string): Promise<string> {
+    const sigle = await this.getSchoolSigle(schoolId);
+    const year = new Date().getFullYear();
+    const prefix = `${sigle}-${year}-`;
+
+    const last = await this.prisma.student.findFirst({
+      where: { schoolId, matricule: { startsWith: prefix } },
+      orderBy: { matricule: "desc" },
+      select: { matricule: true },
     });
 
-    const matricule = buildMatricule(currentYear, count + 1);
+    const lastNum = last?.matricule
+      ? parseInt(last.matricule.split("-").pop() || "0", 10)
+      : 0;
+
+    return buildMatricule(sigle, year, lastNum + 1);
+  }
+
+  async create(dto: StudentCreateDto, createdBy: string) {
+    const matricule = await this.nextMatricule(dto.schoolId);
 
     const existing = await this.prisma.student.findUnique({
       where: { schoolId_matricule: { schoolId: dto.schoolId, matricule } },
@@ -947,7 +970,7 @@ export class StudentsService {
         const student = await this.prisma.student.create({
           data: {
             schoolId,
-            matricule: s.matricule || `TEMP-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+            matricule: s.matricule || await this.nextMatricule(schoolId),
             firstName: s.firstName,
             lastName: s.lastName,
             gender: s.gender!,

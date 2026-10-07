@@ -52,6 +52,7 @@ export class StudentsController {
       query.onlyUnpaid,
       query.sortField,
       query.sortDirection,
+      user,
     );
   }
 

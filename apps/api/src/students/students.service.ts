@@ -33,11 +33,49 @@ export class StudentsService {
     onlyUnpaid?: boolean,
     sortField?: string,
     sortDirection?: "asc" | "desc",
+    user?: { id: string; roles: string[] },
   ) {
     const where: any = { deletedAt: null };
     if (schoolId) where.schoolId = schoolId;
     if (status) where.status = status;
     if (gender) where.gender = gender;
+
+    // FILTRE PAR ENSEIGNANT : si le user est TEACHER (et pas admin),
+    // il ne voit que les eleves de ses classes assignees.
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly) {
+      // Recuperer le teacherId lie a ce user
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (teacher) {
+        // Recuperer les classes ou il est assigne (titulaire ou matiere)
+        const assignments = await this.prisma.teacherAssignment.findMany({
+          where: { teacherId: teacher.id },
+          select: { classId: true },
+        });
+        const classIds = [...new Set(assignments.map((a) => a.classId))];
+
+        // Filtrer les eleves : inscrits dans une de ses classes
+        where.enrollments = {
+          some: {
+            classId: { in: classIds },
+            status: { in: ["VALIDATED", "PENDING"] },
+          },
+        };
+      } else {
+        // Pas de fiche teacher liee -> aucun eleve
+        where.id = "00000000-0000-0000-0000-000000000000";
+      }
+    }
 
     // Recherche insensible aux accents
     if (q) {

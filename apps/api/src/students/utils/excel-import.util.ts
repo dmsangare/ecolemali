@@ -145,7 +145,7 @@ export async function parseStudentsExcel(
   buffer: Buffer,
 ): Promise<{ rows: ParsedRow[]; classesTrouvees: Set<string> }> {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  await workbook.xlsx.load(buffer as any);
 
   const sheet = workbook.worksheets[0];
   if (!sheet) {

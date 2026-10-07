@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -14,6 +14,7 @@ import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
 import { SchoolScopeGuard } from "../common/guards";
 import { PaginationDto } from "../common/dto/pagination.dto";
+import { ExamListQueryDto } from "./dto/exam-list-query.dto";
 
 @ApiTags("Exams")
 @ApiBearerAuth("access-token")
@@ -31,15 +32,14 @@ export class ExamsController {
   @ApiOperation({ summary: "Liste des examens" })
   async findAll(
     @CurrentUser() user: CurrentUserPayload,
-    @Query() query: PaginationDto,
-    @Query("academicYearId") academicYearId?: string,
-    @Query("termId") termId?: string,
-    @Query("type") type?: string,
-    @Query("status") status?: string,
+    @Query() query: ExamListQueryDto,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
     return this.service.findAll(schoolId, query.page, query.limit, {
-      academicYearId, termId, type, status,
+      academicYearId: query.academicYearId,
+      termId: query.termId,
+      type: query.type,
+      status: query.status,
     });
   }
 

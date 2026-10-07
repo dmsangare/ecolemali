@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts";
+import { useSchool } from "@/hooks/school/useSchool";
 import { toast } from "sonner";
 import { usersApi } from "@/api/users";
 import type { CreateUserDto, UpdateUserDto } from "@/types/user";
@@ -35,8 +37,22 @@ export function useUser(id: string) {
 
 export function useCreateUser() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const { data: defaultSchool } = useSchool();
   return useMutation({
-    mutationFn: (dto: CreateUserDto) => usersApi.create(dto),
+    mutationFn: (dto: CreateUserDto) => {
+      // Priorite du schoolId :
+      // 1. Celui envoye explicitement par le formulaire (multi-ecoles)
+      // 2. Celui de l'utilisateur connecte (DIRECTOR, SECRETARY)
+      // 3. L'ecole par defaut (SUPER_ADMIN avec une seule ecole)
+      const schoolId =
+        (dto as any).schoolId ||
+        user?.schoolId ||
+        (defaultSchool as any)?.id ||
+        undefined;
+      const payload = { ...dto, schoolId };
+      return usersApi.create(payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "list"] });
       toast.success("Utilisateur cree avec succes");

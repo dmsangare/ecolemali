@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { SetupChecklist } from "./SetupChecklist";
+import { ClosingYearCard } from "./ClosingYearCard";
 
 interface StatCardProps {
   title: string;
@@ -134,6 +135,9 @@ export function AdminDashboard() {
     <div className="p-6 space-y-6">
       {/* Assistant de demarrage */}
       <SetupChecklist />
+
+      {/* Cloture de l'annee */}
+      <ClosingYearCard />
 
       {/* En-tête */}
       <div className="flex flex-wrap items-center justify-between gap-4">

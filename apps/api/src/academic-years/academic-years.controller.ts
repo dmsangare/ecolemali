@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -55,6 +55,16 @@ export class AcademicYearsController {
   @ApiOperation({ summary: "Activer une annee scolaire" })
   async activate(@Param("id") id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.service.activate(id, user);
+  }
+
+  @Get(":id/closing-summary")
+  @RequirePermissions("academic_year:view")
+  @ApiOperation({ summary: "Resume de l'etat avant cloture" })
+  async getClosingSummary(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.getClosingSummary(id, user);
   }
 
   @Post(":id/close")

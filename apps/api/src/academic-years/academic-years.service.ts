@@ -89,6 +89,126 @@ export class AcademicYearsService {
     });
   }
 
+  /**
+   * Resume de l'etat de l'annee scolaire avant cloture.
+   * Retourne les blocages eventuels (inscriptions, bulletins, caisses, factures).
+   */
+  async getClosingSummary(id: string, user: CurrentUserPayload) {
+    const year = await this.findOne(id, user);
+
+    const [
+      pendingEnrollments,
+      unpaidInvoices,
+      openCashSessions,
+      draftReportCards,
+      totalStudents,
+      totalClasses,
+    ] = await Promise.all([
+      // Inscriptions en attente (PENDING)
+      this.prisma.enrollment.count({
+        where: {
+          academicYearId: id,
+          status: "PENDING",
+        },
+      }),
+
+      // Factures impayees
+      this.prisma.invoice.count({
+        where: {
+          academicYearId: id,
+          status: { in: ["UNPAID", "PARTIAL", "OVERDUE"] },
+        },
+      }),
+
+      // Caisses ouvertes pour cette annee
+      this.prisma.cashSession.count({
+        where: {
+          schoolId: year.schoolId,
+          status: "OPEN",
+        },
+      }),
+
+      // Bulletins non publies (DRAFT)
+      this.prisma.reportCard.count({
+        where: {
+          academicYearId: id,
+          status: "DRAFT",
+        },
+      }),
+
+      // Total eleves inscrits (VALIDATED)
+      this.prisma.enrollment.count({
+        where: {
+          academicYearId: id,
+          status: "VALIDATED",
+        },
+      }),
+
+      // Total classes
+      this.prisma.class.count({
+        where: { academicYearId: id },
+      }),
+    ]);
+
+    // Blocages : empechent la cloture
+    const blockers: Array<{ type: string; count: number; label: string; severity: "error" | "warning" }> = [];
+
+    if (pendingEnrollments > 0) {
+      blockers.push({
+        type: "pending-enrollments",
+        count: pendingEnrollments,
+        label: "Inscriptions en attente",
+        severity: "error",
+      });
+    }
+    if (openCashSessions > 0) {
+      blockers.push({
+        type: "open-cash-sessions",
+        count: openCashSessions,
+        label: "Caisses ouvertes",
+        severity: "error",
+      });
+    }
+
+    // Avertissements : n'empechent pas la cloture mais a verifier
+    const warnings: Array<{ type: string; count: number; label: string }> = [];
+
+    if (unpaidInvoices > 0) {
+      warnings.push({
+        type: "unpaid-invoices",
+        count: unpaidInvoices,
+        label: "Factures impayees",
+      });
+    }
+    if (draftReportCards > 0) {
+      warnings.push({
+        type: "draft-report-cards",
+        count: draftReportCards,
+        label: "Bulletins non publies",
+      });
+    }
+
+    return {
+      year: {
+        id: year.id,
+        label: year.label,
+        status: year.status,
+        startDate: year.startDate,
+        endDate: year.endDate,
+        isCurrent: year.isCurrent,
+      },
+      totalStudents,
+      totalClasses,
+      pendingEnrollments,
+      unpaidInvoices,
+      openCashSessions,
+      draftReportCards,
+      blockers,
+      warnings,
+      canClose: blockers.length === 0,
+    };
+  }
+
   async close(id: string, user: CurrentUserPayload) {
     await this.findOne(id, user);
     return this.prisma.academicYear.update({

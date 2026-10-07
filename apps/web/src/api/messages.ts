@@ -1,4 +1,4 @@
-﻿import { api } from "@/lib/axios";
+import { api } from "@/lib/axios";
 
 export interface MessageLog {
   id: string;
@@ -73,9 +73,12 @@ export const messagesApi = {
     return data.data || data;
   },
 
-  async getReminders(minDaysLate = 0): Promise<{ items: Reminder[]; total: number }> {
+  async getReminders(
+    minDaysLate = 0,
+    includeUpcoming = false,
+  ): Promise<{ items: Reminder[]; total: number }> {
     const { data } = await api.get("/messages/reminders", {
-      params: { minDaysLate },
+      params: { minDaysLate, includeUpcoming },
     });
     return data.data || data;
   },

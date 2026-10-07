@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import {
   MessageCircle,
   RefreshCw,
@@ -30,10 +30,11 @@ interface SchoolInfo {
 
 export function RemindersListPage() {
   const [minDaysLate, setMinDaysLate] = useState(0);
+  const [includeUpcoming, setIncludeUpcoming] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
 
-  const { data, isLoading, refetch } = useReminders(minDaysLate);
+  const { data, isLoading, refetch } = useReminders(minDaysLate, includeUpcoming);
 
   // Charger les infos de l'ecole
   const { data: school } = useQuery({
@@ -56,9 +57,16 @@ export function RemindersListPage() {
 
   // Couleur du badge selon les jours de retard
   const lateBadge = (days: number) => {
+    if (days < 0) return "bg-blue-100 text-blue-800";
     if (days <= 7) return "bg-yellow-100 text-yellow-800";
     if (days <= 30) return "bg-orange-100 text-orange-800";
     return "bg-red-100 text-red-800";
+  };
+
+  const lateLabel = (days: number) => {
+    if (days < 0) return `dans ${Math.abs(days)}j`;
+    if (days === 0) return "aujourd'hui";
+    return `${days}j`;
   };
 
   return (
@@ -96,6 +104,18 @@ export function RemindersListPage() {
               className="w-24"
             />
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeUpcoming}
+              onChange={(e) => setIncludeUpcoming(e.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            <span className="text-sm font-medium">
+              Inclure les factures a echoir
+            </span>
+          </label>
           <div className="flex items-center gap-4 text-xs text-muted-foreground ml-auto">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-yellow-400"></span> 0-7j
@@ -172,7 +192,7 @@ export function RemindersListPage() {
                           lateBadge(r.daysLate),
                         )}
                       >
-                        {r.daysLate}j
+                        {lateLabel(r.daysLate)}
                       </span>
                     </td>
                     <td className="p-3 text-right font-mono font-semibold text-red-600">

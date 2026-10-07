@@ -1,4 +1,4 @@
-﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { messagesApi, MessageListFilters, CreateMessageInput } from "@/api/messages";
 import { getErrorMessage } from "@/lib/axios";
@@ -12,10 +12,10 @@ export function useMessages(filters: MessageListFilters = {}) {
   });
 }
 
-export function useReminders(minDaysLate = 0) {
+export function useReminders(minDaysLate = 0, includeUpcoming = false) {
   return useQuery({
-    queryKey: [KEY, "reminders", minDaysLate],
-    queryFn: () => messagesApi.getReminders(minDaysLate),
+    queryKey: [KEY, "reminders", minDaysLate, includeUpcoming],
+    queryFn: () => messagesApi.getReminders(minDaysLate, includeUpcoming),
     staleTime: 60_000,
   });
 }

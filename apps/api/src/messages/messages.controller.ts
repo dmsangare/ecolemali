@@ -32,10 +32,12 @@ export class MessagesController {
   async findReminders(
     @CurrentUser() user: CurrentUserPayload,
     @Query("minDaysLate") minDaysLate?: string,
+    @Query("includeUpcoming") includeUpcoming?: string,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
     const days = minDaysLate ? parseInt(minDaysLate, 10) : 0;
-    return this.service.findReminders(schoolId, days);
+    const upcoming = includeUpcoming === "true" || includeUpcoming === "1";
+    return this.service.findReminders(schoolId, days, upcoming);
   }
 
   @Post()

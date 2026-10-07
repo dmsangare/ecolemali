@@ -64,16 +64,25 @@ export class MessagesService {
   // ============================================================
   // RELANCES : factures echues + derniere relance
   // ============================================================
-  async findReminders(schoolId: string | null, minDaysLate = 0) {
+  async findReminders(
+    schoolId: string | null,
+    minDaysLate = 0,
+    includeUpcoming = false,
+  ) {
     const now = new Date();
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - minDaysLate);
 
-    // Factures avec echeance depassee et solde > 0
+    // Factures avec echeance connue et solde > 0
+    // - includeUpcoming = false : seulement les echues (dueDate < now)
+    // - includeUpcoming = true  : les echues + les a venir (dueDate quelconque)
     const where: any = {
-      dueDate: { not: null, lt: cutoff },
+      dueDate: { not: null },
       status: { in: ["UNPAID", "PARTIAL", "OVERDUE"] },
     };
+    if (!includeUpcoming) {
+      where.dueDate.lt = cutoff;
+    }
     if (schoolId) where.schoolId = schoolId;
 
     const invoices = await this.prisma.invoice.findMany({
@@ -110,6 +119,7 @@ export class MessagesService {
       .filter((inv) => Number(inv.balance) > 0)
       .map((inv) => {
         const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+        // daysLate > 0 : en retard ; daysLate < 0 : a echoir dans X jours
         const daysLate = dueDate
           ? Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
           : 0;
@@ -139,6 +149,15 @@ export class MessagesService {
           lastReminder,
         };
       });
+
+    // Trier : en retard d'abord (par gravite), puis a echoir (par urgence)
+    reminders.sort((a, b) => {
+      const aLate = a.daysLate > 0;
+      const bLate = b.daysLate > 0;
+      if (aLate !== bLate) return aLate ? -1 : 1;
+      if (aLate) return b.daysLate - a.daysLate;
+      return a.daysLate - b.daysLate;
+    });
 
     return { items: reminders, total: reminders.length };
   }

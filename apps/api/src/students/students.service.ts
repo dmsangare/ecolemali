@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseStudentsExcel, ParsedStudent } from "./utils/excel-import.util";
 import { StudentCreateDto, StudentUpdateDto } from "./dto";
 import { buildMatricule } from "@sis-mali/shared";
 import { generateCSV } from "./utils/csv.util";
@@ -751,4 +752,264 @@ export class StudentsService {
     return Array.from(uniqueMap.values());
   }
 
+
+  // ============================================================
+  // IMPORT EXCEL - APERCU
+  // ============================================================
+  async importPreview(buffer: Buffer, schoolId: string) {
+    const { rows, classesTrouvees } = await parseStudentsExcel(buffer);
+
+    // Compter les stats
+    const totalRows = rows.length;
+    const validRows = rows.filter((r) => r.data !== null);
+    const errorRows = rows.filter((r) => r.errors.length > 0);
+
+    // Detecter les doublons dans la DB (matricule ou nom+prenom+dateNaissance)
+    const doublons: Array<{ lineNumber: number; raison: string; nom: string }> = [];
+
+    for (const row of validRows) {
+      if (!row.data) continue;
+      const d = row.data;
+
+      // Verifier si l'eleve existe deja (par matricule OU par nom+prenom+date naissance)
+      let existing = null;
+
+      if (d.matricule) {
+        existing = await this.prisma.student.findFirst({
+          where: { schoolId, matricule: d.matricule },
+        });
+      }
+
+      if (!existing) {
+        existing = await this.prisma.student.findFirst({
+          where: {
+            schoolId,
+            lastName: { equals: d.lastName, mode: "insensitive" },
+            firstName: { equals: d.firstName, mode: "insensitive" },
+            birthDate: d.birthDate!,
+          },
+        });
+      }
+
+      if (existing) {
+        doublons.push({
+          lineNumber: row.lineNumber,
+          raison: "Eleve deja existant dans la base",
+          nom: `${d.lastName} ${d.firstName}`,
+        });
+        // Marquer comme erreur
+        row.errors.push("Doublon : eleve deja existant");
+        row.data = null;
+      }
+    }
+
+    // Regrouper par classe
+    const parClasse: Record<string, number> = {};
+    for (const row of validRows) {
+      if (row.data) {
+        parClasse[row.data.className] = (parClasse[row.data.className] || 0) + 1;
+      }
+    }
+
+    return {
+      totalRows,
+      validCount: rows.filter((r) => r.data !== null).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+      doublonCount: doublons.length,
+      classesTrouvees: Array.from(classesTrouvees),
+      elevesParClasse: parClasse,
+      rows: rows.slice(0, 200), // Limiter l'affichage
+      doublons,
+    };
+  }
+
+  // ============================================================
+  // IMPORT EXCEL - CONFIRMATION
+  // ============================================================
+  async importConfirm(
+    students: ParsedStudent[],
+    schoolId: string,
+    userId: string,
+  ) {
+    const results = {
+      created: 0,
+      classesCreated: 0,
+      guardiansCreated: 0,
+      errors: [] as Array<{ nom: string; error: string }>,
+    };
+
+    // 1) Recuperer l'annee scolaire active
+    const academicYear = await this.prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+    });
+    if (!academicYear) {
+      throw new Error("Aucune annee scolaire active");
+    }
+
+    // 2) Recuperer les niveaux (pour matcher les classes)
+    const levels = await this.prisma.level.findMany({
+      where: { schoolId },
+    });
+
+    // 3) Recuperer les classes existantes
+    const existingClasses = await this.prisma.class.findMany({
+      where: { schoolId, academicYearId: academicYear.id },
+      include: { level: true },
+    });
+
+    // Map : nom de classe (ex "6eme A") -> classId
+    const classMap = new Map<string, string>();
+    existingClasses.forEach((c) => {
+      classMap.set(c.name.toLowerCase().trim(), c.id);
+    });
+
+    // 4) Traiter chaque eleve
+    for (const s of students) {
+      try {
+        // Trouver ou creer la classe
+        const classKey = s.className.toLowerCase().trim();
+        let classId = classMap.get(classKey);
+
+        if (!classId) {
+          // Extraire le niveau : "6eme A" -> "6eme"
+          const levelPart = s.className.replace(/\s+[A-Z]$/i, "").trim();
+
+          // Chercher un niveau correspondant
+          let level = levels.find(
+            (l) => l.name.toLowerCase().trim() === levelPart.toLowerCase().trim(),
+          );
+
+          // Si pas trouve, prendre le premier niveau par defaut
+          if (!level && levels.length > 0) {
+            level = levels[0];
+          }
+
+          if (!level) {
+            throw new Error(`Aucun niveau disponible pour creer la classe ${s.className}`);
+          }
+
+          // Creer la classe
+          const newClass = await this.prisma.class.create({
+            data: {
+              schoolId,
+              academicYearId: academicYear.id,
+              levelId: level.id,
+              name: s.className,
+              code: s.className.toUpperCase().replace(/\s+/g, ""),
+              capacity: 50,
+            },
+          });
+
+          classId = newClass.id;
+          classMap.set(classKey, classId);
+          results.classesCreated++;
+        }
+
+        // Creer l'eleve
+        const student = await this.prisma.student.create({
+          data: {
+            schoolId,
+            matricule: s.matricule || `TEMP-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            gender: s.gender!,
+            birthDate: s.birthDate!,
+            birthPlace: s.birthPlace || null,
+            nationality: "Malienne",
+            address: s.address || null,
+            status: "ACTIVE",
+          },
+        });
+
+        // Creer le tuteur (pere, mere, ou tuteur)
+        // Priorite : pere > mere > tuteur
+        const guardiansToCreate: Array<{
+          lastName: string;
+          firstName: string;
+          phone: string;
+          relation: "FATHER" | "MOTHER" | "TUTOR";
+        }> = [];
+
+        if (s.fatherLastName && s.fatherPhone) {
+          guardiansToCreate.push({
+            lastName: s.fatherLastName,
+            firstName: s.fatherFirstName || "",
+            phone: s.fatherPhone,
+            relation: "FATHER",
+          });
+        }
+        if (s.motherLastName && s.motherPhone) {
+          guardiansToCreate.push({
+            lastName: s.motherLastName,
+            firstName: s.motherFirstName || "",
+            phone: s.motherPhone,
+            relation: "MOTHER",
+          });
+        }
+        if (
+          s.guardianLastName &&
+          s.guardianPhone &&
+          guardiansToCreate.length === 0
+        ) {
+          guardiansToCreate.push({
+            lastName: s.guardianLastName,
+            firstName: s.guardianFirstName || "",
+            phone: s.guardianPhone,
+            relation: "TUTOR",
+          });
+        }
+
+        for (let i = 0; i < guardiansToCreate.length; i++) {
+          const g = guardiansToCreate[i];
+          // Verifier si un tuteur avec ce telephone existe deja
+          let guardian = await this.prisma.guardian.findFirst({
+            where: { schoolId, phone: g.phone },
+          });
+
+          if (!guardian) {
+            guardian = await this.prisma.guardian.create({
+              data: {
+                schoolId,
+                firstName: g.firstName || g.lastName,
+                lastName: g.lastName,
+                phone: g.phone,
+                relationType: g.relation as any,
+              },
+            });
+            results.guardiansCreated++;
+          }
+
+          // Lier eleve <-> tuteur
+          await this.prisma.studentGuardian.create({
+            data: {
+              studentId: student.id,
+              guardianId: guardian.id,
+              isPrimary: i === 0,
+            },
+          });
+        }
+
+        // Creer l'inscription (enrollment)
+        await this.prisma.enrollment.create({
+          data: {
+            studentId: student.id,
+            academicYearId: academicYear.id,
+            classId: classId,
+            levelId: (await this.prisma.class.findUnique({ where: { id: classId } }))!.levelId,
+            enrollmentDate: new Date(),
+            status: s.enrollmentStatus === "EN_ATTENTE" ? "PENDING" : "VALIDATED",
+          },
+        });
+
+        results.created++;
+      } catch (err: any) {
+        results.errors.push({
+          nom: `${s.lastName} ${s.firstName}`,
+          error: err.message || "Erreur inconnue",
+        });
+      }
+    }
+
+    return results;
+  }
 }

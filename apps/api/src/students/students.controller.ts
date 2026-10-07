@@ -1,7 +1,10 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
-  HttpCode, HttpStatus, UseGuards,
+  HttpCode, HttpStatus, UseGuards, UseInterceptors, UploadedFile,
+  BadRequestException,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
 import { StudentsService } from "./students.service";
@@ -97,6 +100,38 @@ export class StudentsController {
     @Body(new ZodValidationPipe(StudentCreateSchema)) dto: any,
   ) {
     return this.service.create(dto, userId);
+  }
+
+  @Post("import/preview")
+  @RequirePermissions("student:create")
+  @ApiOperation({ summary: "Apercu de l'import Excel" })
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10 Mo
+    }),
+  )
+  async importPreview(
+    @CurrentUser() user: CurrentUserPayload,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException("Aucun fichier fourni");
+    if (!user.schoolId) throw new BadRequestException("Utilisateur sans ecole");
+    return this.service.importPreview(file.buffer, user.schoolId);
+  }
+
+  @Post("import/confirm")
+  @RequirePermissions("student:create")
+  @ApiOperation({ summary: "Confirmer l'import Excel" })
+  async importConfirm(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: { students: any[] },
+  ) {
+    if (!body.students || !Array.isArray(body.students)) {
+      throw new BadRequestException("Liste d'eleves invalide");
+    }
+    if (!user.schoolId) throw new BadRequestException("Utilisateur sans ecole");
+    return this.service.importConfirm(body.students, user.schoolId, user.id);
   }
 
   @Patch(":id")

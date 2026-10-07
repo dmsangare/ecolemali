@@ -10,6 +10,7 @@ import { api } from "@/lib/axios";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { SetupChecklist } from "./SetupChecklist";
 
 interface StatCardProps {
   title: string;
@@ -131,6 +132,9 @@ export function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Assistant de demarrage */}
+      <SetupChecklist />
+
       {/* En-tête */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

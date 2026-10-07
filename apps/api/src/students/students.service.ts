@@ -72,7 +72,7 @@ export class StudentsService {
           ...(classId ? { classId } : {}),
           ...(levelId ? { levelId } : {}),
           ...(cycle ? { level: { cycle } } : {}),
-          status: "VALIDATED",
+          status: { in: ["VALIDATED", "PENDING"] },
         },
       };
     }
@@ -105,7 +105,7 @@ export class StudentsService {
             },
           },
           enrollments: {
-            where: { status: "VALIDATED" },
+            where: { status: { in: ["VALIDATED", "PENDING"] } },
             orderBy: { enrollmentDate: "desc" },
             include: {
               class: { select: { id: true, code: true, name: true } },
@@ -334,7 +334,7 @@ export class StudentsService {
       by: ["levelId"],
       where: {
         student: where,
-        status: "VALIDATED",
+        status: { in: ["VALIDATED", "PENDING"] },
       },
       _count: true,
     });
@@ -433,7 +433,7 @@ export class StudentsService {
         some: {
           ...(classId ? { classId } : {}),
           ...(levelId ? { levelId } : {}),
-          status: "VALIDATED",
+          status: { in: ["VALIDATED", "PENDING"] },
         },
       };
     }
@@ -452,7 +452,7 @@ export class StudentsService {
           },
         },
         enrollments: {
-          where: { status: "VALIDATED" },
+          where: { status: { in: ["VALIDATED", "PENDING"] } },
           orderBy: { enrollmentDate: "desc" },
           take: 1,
           include: {
@@ -651,7 +651,7 @@ export class StudentsService {
         some: {
           ...(classId ? { classId } : {}),
           ...(levelId ? { levelId } : {}),
-          status: "VALIDATED",
+          status: { in: ["VALIDATED", "PENDING"] },
         },
       };
     }
@@ -670,7 +670,7 @@ export class StudentsService {
           },
         },
         enrollments: {
-          where: { status: "VALIDATED" },
+          where: { status: { in: ["VALIDATED", "PENDING"] } },
           orderBy: { enrollmentDate: "desc" },
           take: 1,
           include: {
@@ -719,7 +719,7 @@ export class StudentsService {
         student: {
           include: {
             enrollments: {
-              where: { status: "VALIDATED" },
+              where: { status: { in: ["VALIDATED", "PENDING"] } },
               orderBy: { enrollmentDate: "desc" },
               take: 1,
               include: {

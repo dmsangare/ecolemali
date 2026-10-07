@@ -83,9 +83,11 @@ function normalizeHeader(h: string): string {
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // enlever accents
-    .replace(/[^a-z0-9/\s]/g, "")
-    .replace(/\s+/g, " ");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9/\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizePhone(p: string | null | undefined): string | null {

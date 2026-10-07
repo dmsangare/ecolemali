@@ -159,21 +159,25 @@ export class StudentsService {
       this.prisma.student.count({ where }),
     ]);
 
-    // Enrichir chaque eleve avec son statut d'inscription
-    const enriched = await Promise.all(
-      data.map(async (student) => {
-        const enrollmentStatus = await this.computeEnrollmentStatus(student.id);
-        const unpaidAmount = await this.computeUnpaidAmount(student.id);
-        return {
-          ...student,
-          enrollmentStatus: enrollmentStatus.status,
-          yearsEnrolled: enrollmentStatus.yearsEnrolled,
-          isRedoublant: enrollmentStatus.isRedoublant,
-          previousClass: enrollmentStatus.previousClass,
-          unpaidAmount,
-        };
-      }),
-    );
+    // Enrichir chaque eleve avec son statut d'inscription (BATCH)
+    const studentIds = data.map((s) => s.id);
+    const [statuses, unpaidAmounts] = await Promise.all([
+      this.computeEnrollmentStatusesInBatch(studentIds),
+      this.computeUnpaidAmountsInBatch(studentIds),
+    ]);
+
+    const enriched = data.map((student) => {
+      const status = statuses.get(student.id);
+      const unpaidAmount = unpaidAmounts.get(student.id) || 0;
+      return {
+        ...student,
+        enrollmentStatus: status?.status ?? "NOUVEAU",
+        yearsEnrolled: status?.yearsEnrolled ?? 0,
+        isRedoublant: status?.isRedoublant ?? false,
+        previousClass: status?.previousClass ?? null,
+        unpaidAmount,
+      };
+    });
 
     // Filtrer par nouveaute si demande
     let filtered = enriched;
@@ -238,6 +242,137 @@ export class StudentsService {
       isRedoublant,
       previousClass: lastPrevious.class?.name || null,
     };
+  }
+
+  /**
+   * Version BATCH de computeEnrollmentStatus.
+   * Optimise le N+1 : 1 requete pour TOUS les eleves au lieu de N.
+   * Retourne une Map<studentId, { status, yearsEnrolled, isRedoublant, previousClass }>.
+   */
+  private async computeEnrollmentStatusesInBatch(
+    studentIds: string[],
+  ): Promise<
+    Map<
+      string,
+      {
+        status: EnrollmentStatusFilter;
+        yearsEnrolled: number;
+        isRedoublant: boolean;
+        previousClass: string | null;
+      }
+    >
+  > {
+    const result = new Map();
+
+    if (studentIds.length === 0) return result;
+
+    // 1 SEULE requete pour tous les enrollments
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        studentId: { in: studentIds },
+        status: "VALIDATED",
+      },
+      orderBy: [{ studentId: "asc" }, { enrollmentDate: "desc" }],
+      select: {
+        studentId: true,
+        levelId: true,
+        academicYearId: true,
+        enrollmentDate: true,
+        class: { select: { name: true } },
+        academicYear: { select: { isCurrent: true } },
+      },
+    });
+
+    // Grouper par studentId
+    const byStudent = new Map<string, typeof enrollments>();
+    for (const e of enrollments) {
+      if (!byStudent.has(e.studentId)) byStudent.set(e.studentId, []);
+      byStudent.get(e.studentId)!.push(e);
+    }
+
+    // Calculer pour chaque eleve
+    for (const studentId of studentIds) {
+      const studentEnrollments = byStudent.get(studentId) || [];
+
+      if (studentEnrollments.length === 0) {
+        result.set(studentId, {
+          status: "NOUVEAU" as EnrollmentStatusFilter,
+          yearsEnrolled: 0,
+          isRedoublant: false,
+          previousClass: null,
+        });
+        continue;
+      }
+
+      const currentEnrollment = studentEnrollments.find(
+        (e) => e.academicYear.isCurrent,
+      );
+      const previousEnrollments = studentEnrollments.filter(
+        (e) => !e.academicYear.isCurrent,
+      );
+
+      if (!currentEnrollment) {
+        result.set(studentId, {
+          status: "ANCIEN" as EnrollmentStatusFilter,
+          yearsEnrolled: studentEnrollments.length,
+          isRedoublant: false,
+          previousClass: null,
+        });
+        continue;
+      }
+
+      if (previousEnrollments.length === 0) {
+        result.set(studentId, {
+          status: "NOUVEAU" as EnrollmentStatusFilter,
+          yearsEnrolled: 1,
+          isRedoublant: false,
+          previousClass: null,
+        });
+        continue;
+      }
+
+      const lastPrevious = previousEnrollments[0];
+      const isRedoublant = lastPrevious.levelId === currentEnrollment.levelId;
+
+      result.set(studentId, {
+        status: isRedoublant
+          ? ("REDOUBLANT" as EnrollmentStatusFilter)
+          : ("ANCIEN" as EnrollmentStatusFilter),
+        yearsEnrolled: studentEnrollments.length,
+        isRedoublant,
+        previousClass: lastPrevious.class?.name || null,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Version BATCH de computeUnpaidAmount.
+   * 1 requete pour TOUS les eleves.
+   */
+  private async computeUnpaidAmountsInBatch(
+    studentIds: string[],
+  ): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    for (const id of studentIds) result.set(id, 0);
+
+    if (studentIds.length === 0) return result;
+
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        studentId: { in: studentIds },
+        status: { not: "CANCELLED" },
+      },
+      select: { studentId: true, balance: true },
+    });
+
+    for (const inv of invoices) {
+      const current = result.get(inv.studentId) || 0;
+      result.set(inv.studentId, current + Number(inv.balance));
+    }
+
+    return result;
   }
 
   /**
@@ -417,12 +552,15 @@ export class StudentsService {
     const boys = allStudents.filter((s) => s.gender === "M").length;
     const girls = total - boys;
 
-    // Calcul Nouveau / Ancien / Redoublant
+    // Calcul Nouveau / Ancien / Redoublant (BATCH - 1 requete au lieu de N)
+    const statuses = await this.computeEnrollmentStatusesInBatch(
+      allStudents.map((s) => s.id),
+    );
     let newCount = 0, ancienCount = 0, redoublantCount = 0;
     for (const s of allStudents) {
-      const status = await this.computeEnrollmentStatus(s.id);
-      if (status.status === "NOUVEAU") newCount++;
-      else if (status.status === "REDOUBLANT") redoublantCount++;
+      const status = statuses.get(s.id);
+      if (status?.status === "NOUVEAU") newCount++;
+      else if (status?.status === "REDOUBLANT") redoublantCount++;
       else ancienCount++;
     }
 
@@ -563,15 +701,12 @@ export class StudentsService {
     // Filtrer par statut d'inscription
     let filtered = students;
     if (enrollmentStatus) {
-      const enriched = await Promise.all(
-        students.map(async (s) => {
-          const stat = await this.computeEnrollmentStatus(s.id);
-          return { student: s, enrollmentStatus: stat.status };
-        }),
+      const statuses = await this.computeEnrollmentStatusesInBatch(
+        students.map((s) => s.id),
       );
-      filtered = enriched
-        .filter((e) => e.enrollmentStatus === enrollmentStatus)
-        .map((e) => e.student);
+      filtered = students.filter(
+        (s) => statuses.get(s.id)?.status === enrollmentStatus,
+      );
     }
 
     // Construire les lignes CSV
@@ -780,15 +915,12 @@ export class StudentsService {
 
     if (!enrollmentStatus) return students;
 
-    const enriched = await Promise.all(
-      students.map(async (s) => {
-        const stat = await this.computeEnrollmentStatus(s.id);
-        return { student: s, enrollmentStatus: stat.status };
-      }),
+    const statuses = await this.computeEnrollmentStatusesInBatch(
+      students.map((s) => s.id),
     );
-    return enriched
-      .filter((e) => e.enrollmentStatus === enrollmentStatus)
-      .map((e) => e.student);
+    return students.filter(
+      (s) => statuses.get(s.id)?.status === enrollmentStatus,
+    );
   }
 
 

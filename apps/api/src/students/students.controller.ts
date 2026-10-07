@@ -61,7 +61,7 @@ export class StudentsController {
   @ApiOperation({ summary: "Statistiques des eleves" })
   async stats(@CurrentUser() user: CurrentUserPayload) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.getStats(schoolId);
+    return this.service.getStats(schoolId, user);
   }
 
   @Get(":id")

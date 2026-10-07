@@ -368,9 +368,45 @@ export class StudentsService {
     });
   }
 
-  async getStats(schoolId: string | null) {
+  async getStats(
+    schoolId: string | null,
+    user?: { id: string; roles: string[] },
+  ) {
     const where: any = { deletedAt: null };
     if (schoolId) where.schoolId = schoolId;
+
+    // FILTRE TEACHER : ne voir que ses propres eleves
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (teacher) {
+        const assignments = await this.prisma.teacherAssignment.findMany({
+          where: { teacherId: teacher.id },
+          select: { classId: true },
+        });
+        const classIds = [...new Set(assignments.map((a) => a.classId))];
+
+        where.enrollments = {
+          some: {
+            classId: { in: classIds },
+            status: { in: ["VALIDATED", "PENDING"] },
+          },
+        };
+      } else {
+        // Pas de fiche teacher liee -> 0 eleve
+        where.id = "00000000-0000-0000-0000-000000000000";
+      }
+    }
 
     const allStudents = await this.prisma.student.findMany({
       where,

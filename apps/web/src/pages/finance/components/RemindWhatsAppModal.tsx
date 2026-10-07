@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { X, MessageCircle, Send, Check, Phone, Loader2 } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,11 @@ export function RemindWhatsAppModal({
 
   const handleOpenWhatsApp = () => {
     if (!cleanPhone) return;
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(baseMessage)}`;
+    // Ajouter l'indicatif Mali (+223) si absent
+    const phoneWithCountry = cleanPhone.startsWith("223")
+      ? cleanPhone
+      : `223${cleanPhone}`;
+    const url = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(baseMessage)}`;
     window.open(url, "_blank");
     setOpenedWhatsApp(true);
   };

@@ -47,6 +47,7 @@ enum AcademicYearStatus {
 enum TermType {
   TRIMESTRE
   SEMESTRE
+  MOIS
 }
 
 enum LevelCycle {
@@ -1007,6 +1008,7 @@ model ReportCard {
   termId         String          @map("term_id") @db.Uuid
   academicYearId String          @map("academic_year_id") @db.Uuid
   average        Decimal?        @db.Decimal(5, 2)
+  scale          Int             @default(20) @db.SmallInt
   rank           Int?            @db.SmallInt
   classSize      Int?            @map("class_size") @db.SmallInt
   decision       ReportDecision?
@@ -1485,7 +1487,7 @@ model Expense {
 model TopStudent {
   id          String     @id @default(uuid()) @db.Uuid
   schoolId    String     @map("school_id") @db.Uuid
-  cycle       LevelCycle
+  cycle       String     @db.VarChar(50)
   periodType  String     @map("period_type") @db.VarChar(20)
   periodLabel String     @map("period_label") @db.VarChar(100)
   termId      String?    @map("term_id") @db.Uuid

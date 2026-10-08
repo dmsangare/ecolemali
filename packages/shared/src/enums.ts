@@ -32,6 +32,7 @@ export enum AcademicYearStatus {
 export enum TermType {
   TRIMESTRE = 'TRIMESTRE',
   SEMESTRE = 'SEMESTRE',
+  MOIS = 'MOIS', // composition mensuelle (1er cycle)
 }
 
 export enum LevelCycle {

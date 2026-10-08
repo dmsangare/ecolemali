@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   ArrowLeft, Pencil, Printer, Phone, AlertCircle, GraduationCap, Award,
 } from "lucide-react";
@@ -35,6 +36,10 @@ const CYCLE_LABELS: Record<string, string> = {
 };
 
 export function StudentHeader({ student, onPrint }: StudentHeaderProps) {
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission("student:update");
+  const canViewFinance = hasPermission("invoice:view");
+
   const currentEnrollment = student.enrollments?.find(
     (e) => e.academicYear?.isCurrent,
   ) || student.enrollments?.[0];
@@ -164,17 +169,19 @@ export function StudentHeader({ student, onPrint }: StudentHeaderProps) {
               <Printer className="h-4 w-4" />
               Imprimer
             </Button>
-            <Button asChild>
-              <Link to={`/students/${student.id}/edit`}>
-                <Pencil className="h-4 w-4" />
-                Modifier
-              </Link>
-            </Button>
+            {canUpdate && (
+              <Button asChild>
+                <Link to={`/students/${student.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                  Modifier
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Bandeau impayés */}
-        {unpaidAmount > 0 && (
+        {canViewFinance && unpaidAmount > 0 && (
           <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
             <div className="flex-1">

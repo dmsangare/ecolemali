@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/shared";
 import { Button, Card, CardContent } from "@/components/ui";
 import { useStudentDetail } from "@/hooks/students";
+import { useAuth } from "@/contexts/AuthContext";
 import { StudentHeader } from "./components/StudentHeader";
 import { IdentityTab } from "./components/tabs/IdentityTab";
 import { SchoolTab } from "./components/tabs/SchoolTab";
@@ -19,6 +20,9 @@ import { DisciplineTab } from "./components/tabs/DisciplineTab";
 import { AttendanceTab } from "./components/tabs/AttendanceTab";
 
 export function StudentDetailPage() {
+  const { hasPermission } = useAuth();
+  const canViewFinance = hasPermission("invoice:view");
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: student, isLoading, error } = useStudentDetail(id);
@@ -75,10 +79,12 @@ export function StudentDetailPage() {
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="finance" className="flex items-center gap-2 whitespace-nowrap">
-              <Wallet className="h-4 w-4" />
-              <span className="hidden sm:inline">Finances</span>
-            </TabsTrigger>
+            {canViewFinance && (
+              <TabsTrigger value="finance" className="flex items-center gap-2 whitespace-nowrap">
+                <Wallet className="h-4 w-4" />
+                <span className="hidden sm:inline">Finances</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="discipline" className="flex items-center gap-2 whitespace-nowrap">
               <Heart className="h-4 w-4" />
               <span className="hidden sm:inline">Sante</span>
@@ -106,9 +112,11 @@ export function StudentDetailPage() {
           <DocumentsTab studentId={student.id} />
         </TabsContent>
 
-        <TabsContent value="finance" className="space-y-6">
-          <FinanceTab student={student} />
-        </TabsContent>
+        {canViewFinance && (
+          <TabsContent value="finance" className="space-y-6">
+            <FinanceTab student={student} />
+          </TabsContent>
+        )}
 
         <TabsContent value="discipline" className="space-y-6">
           <DisciplineTab studentId={student.id} />

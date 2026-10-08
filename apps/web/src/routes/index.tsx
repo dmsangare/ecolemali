@@ -10,6 +10,7 @@ import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
+import { ImportStudentsPage } from "@/pages/students/ImportStudentsPage";
 import { ClassesListPage, ClassDetailPage } from "@/pages/classes";
 import { TeachersListPage, TeacherFormPage, TeacherDetailPage } from "@/pages/teachers";
 import { SubjectsListPage, SubjectFormPage } from "@/pages/subjects";
@@ -66,6 +67,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="student:create">
                 <StudentFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/students/import"
+            element={
+              <ProtectedRoute requiredPermission="student:create">
+                <ImportStudentsPage />
               </ProtectedRoute>
             }
           />

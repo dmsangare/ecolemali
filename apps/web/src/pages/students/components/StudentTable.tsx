@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Eye, Pencil, Trash2, Phone, AlertCircle, GraduationCap, Award,
 } from "lucide-react";
@@ -82,7 +83,11 @@ export function StudentTable({
   sort,
   onDelete,
 }: StudentTableProps) {
-  const columns: Column<Student>[] = [
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission("student:update");
+  const canDelete = hasPermission("student:delete");
+  const canViewFinance = hasPermission("invoice:view");
+  const allColumns: Column<Student>[] = [
     {
       key: "photo",
       header: "",
@@ -237,24 +242,33 @@ export function StudentTable({
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" asChild title="Modifier">
-            <Link to={`/students/${student.id}/edit`}>
-              <Pencil className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(student)}
-            title="Supprimer"
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          {canUpdate && (
+            <Button variant="ghost" size="icon" asChild title="Modifier">
+              <Link to={`/students/${student.id}/edit`}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(student)}
+              title="Supprimer"
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          )}
         </div>
       ),
       width: "120px",
     },
   ];
+
+  // Filtrer la colonne Solde si l'utilisateur n'a pas la permission
+  const columns = canViewFinance
+    ? allColumns
+    : allColumns.filter((c) => c.key !== "unpaid");
 
   return (
     <DataTable

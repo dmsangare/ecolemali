@@ -4,6 +4,7 @@ import {
   Users, Plus, FileSpreadsheet, Trash2, UserCheck, FileText,
 } from "lucide-react";
 import { useStudents, useDeleteStudent, useStudentStats, useExportStudents } from "@/hooks/students";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   PageHeader,
   StatsCard,
@@ -26,6 +27,12 @@ const DEFAULT_FILTERS: StudentListFilters = {
 };
 
 export function StudentsListPage() {
+  const { hasPermission, hasRole } = useAuth();
+  const canCreate = hasPermission("student:create");
+  const canExport = hasPermission("student:export");
+  const canDelete = hasPermission("student:delete");
+  const canViewStats = hasRole("SUPER_ADMIN") || hasRole("DIRECTOR") || hasRole("SECRETARY") || hasRole("ACCOUNTANT") || hasRole("PROMOTEUR");
+
   const [filters, setFilters] = useState<StudentListFilters>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
@@ -95,23 +102,35 @@ export function StudentsListPage() {
         icon={<Users className="h-5 w-5" />}
         actions={
           <>
-            <ExportButton
-              onExportExcel={() => handleExport("excel")}
-              onExportPDF={() => handleExport("pdf")}
-              onExportCSV={() => handleExport("csv")}
-              disabled={exportMutation.isPending}
-            />
-            <Button asChild>
-              <Link to="/students/new">
-                <Plus className="h-4 w-4" />
-                Nouvel eleve
-              </Link>
-            </Button>
+            {canExport && (
+              <ExportButton
+                onExportExcel={() => handleExport("excel")}
+                onExportPDF={() => handleExport("pdf")}
+                onExportCSV={() => handleExport("csv")}
+                disabled={exportMutation.isPending}
+              />
+            )}
+            {canCreate && (
+              <Button variant="outline" asChild>
+                <Link to="/students/import">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Importer Excel
+                </Link>
+              </Button>
+            )}
+            {canCreate && (
+              <Button asChild>
+                <Link to="/students/new">
+                  <Plus className="h-4 w-4" />
+                  Nouvel eleve
+                </Link>
+              </Button>
+            )}
           </>
         }
       />
 
-      {stats && (
+      {stats && canViewStats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total eleves"
@@ -180,12 +199,24 @@ export function StudentsListPage() {
                       Reinitialiser les filtres
                     </Button>
                   ) : (
-                    <Button asChild>
-                      <Link to="/students/new">
-                        <Plus className="h-4 w-4" />
-                        Ajouter un eleve
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      {canCreate && (
+                        <Button variant="outline" asChild>
+                          <Link to="/students/import">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            Importer Excel
+                          </Link>
+                        </Button>
+                      )}
+                      {canCreate && (
+                        <Button asChild>
+                          <Link to="/students/new">
+                            <Plus className="h-4 w-4" />
+                            Ajouter un eleve
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
                   )
                 }
               />
@@ -209,17 +240,25 @@ export function StudentsListPage() {
         selectedCount={selectedIds.length}
         onClear={() => setSelectedIds([])}
         actions={[
-          {
-            label: "Exporter Excel",
-            icon: <FileSpreadsheet className="h-4 w-4" />,
-            onClick: () => handleExport("excel"),
-          },
-          {
-            label: "Supprimer",
-            icon: <Trash2 className="h-4 w-4" />,
-            variant: "destructive",
-            onClick: handleBulkDelete,
-          },
+          ...(canExport
+            ? [
+                {
+                  label: "Exporter Excel",
+                  icon: <FileSpreadsheet className="h-4 w-4" />,
+                  onClick: () => handleExport("excel"),
+                },
+              ]
+            : []),
+          ...(canDelete
+            ? [
+                {
+                  label: "Supprimer",
+                  icon: <Trash2 className="h-4 w-4" />,
+                  variant: "destructive" as const,
+                  onClick: handleBulkDelete,
+                },
+              ]
+            : []),
         ]}
       />
 

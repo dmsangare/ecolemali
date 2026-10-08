@@ -1,7 +1,8 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Plus, Search, Loader2, Trash2 } from "lucide-react";
 import { useSubjects, useDeleteSubject } from "@/hooks/subjects";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Button,
   Input,
@@ -17,6 +18,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function SubjectsListPage() {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("subject:create");
   const [q, setQ] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
@@ -47,12 +50,14 @@ export function SubjectsListPage() {
             {subjects?.length || 0} matiere(s)
           </p>
         </div>
-        <Button asChild>
-          <Link to="/subjects/new">
-            <Plus className="h-4 w-4" />
-            Nouvelle matiere
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild>
+            <Link to="/subjects/new">
+              <Plus className="h-4 w-4" />
+              Nouvelle matiere
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>

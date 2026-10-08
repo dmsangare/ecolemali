@@ -11,7 +11,6 @@ interface DecisionEditorProps {
 export function DecisionEditor({ value, disabled, onChange }: DecisionEditorProps) {
   const decisions: ReportDecision[] = [
     "ADMIS",
-export type ReportDecision = "ADMIS" | "REDOUBLE" | "EXCLU" | "A_DETERMINER";
     "REDOUBLE",
     "EXCLU",
     "A_DETERMINER",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { UserPlus, User, GraduationCap, Users, FileCheck, ArrowLeft } from "lucide-react";
@@ -7,7 +7,7 @@ import { Wizard, WizardStep, PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui";
 import { api } from "@/lib/axios";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateStudent } from "@/hooks/students";
+import { useCreateStudent, useUpdateStudent, useStudentDetail } from "@/hooks/students";
 import { useCreateGuardian, useLinkGuardianToStudent } from "@/hooks/guardians";
 import { Step1Identity, IdentityData } from "./components/wizard/Step1Identity";
 import { Step2School, SchoolData } from "./components/wizard/Step2School";
@@ -63,6 +63,8 @@ const DEFAULT_FAMILY: FamilyData = {
 
 export function StudentFormPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = Boolean(id);
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,8 +79,12 @@ export function StudentFormPage() {
   });
 
   const createStudent = useCreateStudent();
+  const updateStudent = useUpdateStudent();
   const createGuardian = useCreateGuardian();
   const linkGuardian = useLinkGuardianToStudent();
+
+  // Charger l'eleve si mode edition
+  const { data: existingStudent, isLoading: isLoadingStudent } = useStudentDetail(id);
 
   // Charger niveaux + classes + années pour le récap
   const { data: levelsData } = useQuery({
@@ -103,8 +109,9 @@ export function StudentFormPage() {
     },
   });
 
-  // Restaurer brouillon
+  // Restaurer brouillon (uniquement en creation)
   useEffect(() => {
+    if (isEdit) return;  // Pas de brouillon en mode edition
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
@@ -115,7 +122,41 @@ export function StudentFormPage() {
         if (draft.options) setOptions(draft.options);
       } catch {}
     }
-  }, []);
+  }, [isEdit]);
+
+  // Hydrater le formulaire avec les donnees existantes (mode edition)
+  useEffect(() => {
+    if (!isEdit || !existingStudent) return;
+
+    setIdentity({
+      firstName: existingStudent.firstName || "",
+      lastName: existingStudent.lastName || "",
+      gender: (existingStudent.gender as "M" | "F" | "") || "",
+      birthDate: existingStudent.birthDate
+        ? String(existingStudent.birthDate).slice(0, 10)
+        : "",
+      birthPlace: existingStudent.birthPlace || "",
+      nationality: existingStudent.nationality || "Malienne",
+      specialSituation: (existingStudent as any).specialSituation || "",
+    });
+
+    // Recuperer l'enrollment courante
+    const enrollment = existingStudent.enrollments?.find(
+      (e: any) => e.academicYear?.isCurrent
+    ) || existingStudent.enrollments?.[0];
+
+    setSchool({
+      cycle: (enrollment?.level?.cycle as any) || "",
+      levelId: enrollment?.level?.id || "",
+      classId: enrollment?.class?.id || "",
+      academicYearId: enrollment?.academicYear?.id || "",
+      previousSchool: "",
+    });
+
+    // Note : les guardians sont charges dans existingStudent.guardians
+    // On ne les hydrate pas dans FamilyData (structure complexe)
+    // Ils resteront tels quels en base lors de l'update
+  }, [isEdit, existingStudent]);
 
   // Sauvegarder brouillon
   useEffect(() => {
@@ -172,6 +213,25 @@ export function StudentFormPage() {
     setIsSubmitting(true);
     try {
       // 1. Créer l'élève
+      // MODE EDITION : mettre a jour l'eleve existant
+      if (isEdit && id) {
+        await updateStudent.mutateAsync({
+          id,
+          dto: {
+            firstName: identity.firstName.trim(),
+            lastName: identity.lastName.trim(),
+            gender: identity.gender as "M" | "F",
+            birthDate: identity.birthDate,
+            birthPlace: identity.birthPlace || undefined,
+            nationality: identity.nationality || "Malienne",
+            specialSituation: identity.specialSituation || undefined,
+          },
+        });
+        toast.success("Eleve mis a jour");
+        navigate(`/students/${id}`);
+        return;
+      }
+
       const student = await createStudent.mutateAsync({
         schoolId: user.schoolId,
         firstName: identity.firstName.trim(),
@@ -367,8 +427,8 @@ export function StudentFormPage() {
           </Link>
         </Button>
         <PageHeader
-          title="Nouvel eleve"
-          description="Remplissez les informations etape par etape"
+          title={isEdit ? "Modifier l eleve" : "Nouvel eleve"}
+          description={isEdit ? "Modifiez les informations puis enregistrez" : "Remplissez les informations etape par etape"}
           icon={<UserPlus className="h-5 w-5" />}
         />
       </div>
@@ -379,7 +439,7 @@ export function StudentFormPage() {
         onStepChange={setCurrentStep}
         onComplete={handleSubmit}
         isSubmitting={isSubmitting}
-        completeLabel="Creer l eleve"
+        completeLabel={isEdit ? "Enregistrer" : "Creer l eleve"}
         allowStepClick={true}
       />
 

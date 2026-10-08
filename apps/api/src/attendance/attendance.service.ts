@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AttendanceSessionCreateDto, AttendanceBulkUpdateDto, AttendanceRecordDto } from "./dto";
 
@@ -13,12 +13,29 @@ export class AttendanceService {
     termId?: string,
     teacherId?: string,
     date?: string,
+    user?: { id: string; roles: string[] },
   ) {
     const where: any = {};
     if (classId) where.classId = classId;
     if (termId) where.termId = termId;
     if (teacherId) where.teacherId = teacherId;
     if (date) where.date = new Date(date);
+
+    // FILTRE TEACHER : forcer le teacherId si TEACHER connecte
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      where.teacherId = teacher?.id || "00000000-0000-0000-0000-000000000000";
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.attendanceSession.findMany({

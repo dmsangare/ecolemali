@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -25,13 +25,14 @@ export class AttendanceController {
   @RequirePermissions("attendance:view")
   @ApiOperation({ summary: "Liste des sessions de presence" })
   async findAll(
+    @CurrentUser() user: CurrentUserPayload,
     @Query() query: PaginationDto,
     @Query("classId") classId?: string,
     @Query("termId") termId?: string,
     @Query("teacherId") teacherId?: string,
     @Query("date") date?: string,
   ) {
-    return this.service.findAll(query.page, query.limit, classId, termId, teacherId, date);
+    return this.service.findAll(query.page, query.limit, classId, termId, teacherId, date, user);
   }
 
   @Get("sessions/:id")

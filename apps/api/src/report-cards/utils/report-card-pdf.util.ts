@@ -45,7 +45,6 @@ interface ReportCardPDFData {
 
 const DECISION_LABELS: Record<string, string> = {
   ADMIS: "Admis en classe supérieure",
-  PASSE: "Passe",
   REDOUBLE: "Redouble",
   EXCLU: "Exclu",
   A_DETERMINER: "Décision à déterminer",

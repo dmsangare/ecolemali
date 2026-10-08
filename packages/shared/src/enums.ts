@@ -149,7 +149,6 @@ export enum AssessmentStatus {
 
 export enum ReportDecision {
   ADMIS = 'ADMIS',
-  PASSE = 'PASSE',
   REDOUBLE = 'REDOUBLE',
   EXCLU = 'EXCLU',
   A_DETERMINER = 'A_DETERMINER',

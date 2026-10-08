@@ -152,10 +152,9 @@ export function computeRank(
 
 export function determineDecision(
   average: number,
-  thresholds: { ADMIS: number; PASSE: number } = { ADMIS: 10, PASSE: 8 },
-): 'ADMIS' | 'PASSE' | 'REDOUBLE' {
+  thresholds: { ADMIS: number } = { ADMIS: 10 },
+): 'ADMIS' | 'REDOUBLE' {
   if (average >= thresholds.ADMIS) return 'ADMIS';
-  if (average >= thresholds.PASSE) return 'PASSE';
   return 'REDOUBLE';
 }
 

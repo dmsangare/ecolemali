@@ -76,7 +76,6 @@ export const DEFAULT_PASS_MARK = 10;
 
 export const REPORT_DECISION_THRESHOLDS = {
   ADMIS: 10,
-  PASSE: 8,
   REDOUBLE: 0,
 } as const;
 

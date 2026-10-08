@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
 import { calculateWeightedAverage, calculateReportAverage, determineDecision } from "@sis-mali/shared";
@@ -62,7 +62,7 @@ export class ReportCardsService {
    *  - la moyenne par matiere (ponderee par coefficients d'evaluation)
    *  - la moyenne generale (ponderee par coefficients de matiere)
    *  - le rang dans la classe
-   *  - la decision (ADMIS/PASSE/REDOUBLE)
+   *  - la decision (ADMIS/REDOUBLE)
    */
   async generate(dto: ReportCardGenerateDto) {
     // Recuperer les eleves de la classe (ou un seul)
@@ -186,7 +186,7 @@ export class ReportCardsService {
       ).length;
       const latesCount = attendanceStats.filter((a) => a.status === "LATE").length;
 
-      const decision = r.average !== null ? determineDecision(r.average, { ADMIS: passThreshold, PASSE: repeatThreshold }) : "A_DETERMINER";
+      const decision = r.average !== null ? determineDecision(r.average, { ADMIS: scaledThreshold(passMark, r.scale) }) : "A_DETERMINER";
 
       // Upsert le bulletin
       const report = await this.prisma.reportCard.upsert({

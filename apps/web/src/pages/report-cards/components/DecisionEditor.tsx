@@ -11,7 +11,7 @@ interface DecisionEditorProps {
 export function DecisionEditor({ value, disabled, onChange }: DecisionEditorProps) {
   const decisions: ReportDecision[] = [
     "ADMIS",
-    "PASSE",
+export type ReportDecision = "ADMIS" | "REDOUBLE" | "EXCLU" | "A_DETERMINER";
     "REDOUBLE",
     "EXCLU",
     "A_DETERMINER",
@@ -25,9 +25,7 @@ export function DecisionEditor({ value, disabled, onChange }: DecisionEditorProp
           const colorClass =
             d === "ADMIS"
               ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-              : d === "PASSE"
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                : d === "REDOUBLE"
+              : d === "REDOUBLE"
                   ? "border-orange-500 bg-orange-50 dark:bg-orange-950/30"
                   : d === "EXCLU"
                     ? "border-red-500 bg-red-50 dark:bg-red-950/30"

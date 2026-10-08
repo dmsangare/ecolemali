@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AssessmentCreateDto, AssessmentUpdateDto } from "./dto";
 
@@ -11,6 +11,7 @@ export class AssessmentsService {
     page = 1,
     limit = 20,
     filters: { classId?: string; subjectId?: string; termId?: string; teacherId?: string; status?: string } = {},
+    user?: { id: string; roles: string[] },
   ) {
     const where: any = {};
     if (schoolId) where.schoolId = schoolId;
@@ -19,6 +20,22 @@ export class AssessmentsService {
     if (filters.termId) where.termId = filters.termId;
     if (filters.teacherId) where.teacherId = filters.teacherId;
     if (filters.status) where.status = filters.status;
+
+    // FILTRE TEACHER : forcer le teacherId si TEACHER connecte
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      where.teacherId = teacher?.id || "00000000-0000-0000-0000-000000000000";
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.assessment.findMany({

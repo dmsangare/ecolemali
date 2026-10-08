@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -36,7 +36,7 @@ export class AssessmentsController {
       termId: query.termId,
       teacherId: query.teacherId,
       status: query.status,
-    });
+    }, user);
   }
 
   @Get(":id")

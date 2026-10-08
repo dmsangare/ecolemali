@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus,
   UseInterceptors, UploadedFile, BadRequestException, UseGuards,
 } from "@nestjs/common";
@@ -48,6 +48,27 @@ export class SchoolsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.schoolsService.update(id, dto, user);
+  }
+
+  @Get(":id/setup-status")
+  @RequirePermissions("school:view")
+  @ApiOperation({ summary: "Etat de configuration de l ecole (wizard de demarrage)" })
+  async getSetupStatus(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.schoolsService.getSetupStatus(id, user);
+  }
+
+  @Post(":id/setup-periods")
+  @RequirePermissions("school:update")
+  @ApiOperation({ summary: "Creer les periodes (trimestres et/ou mois)" })
+  async createSetupPeriods(
+    @Param("id") id: string,
+    @Body() dto: { periods: "TRIMESTRE" | "MOIS" | "BOTH" },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.schoolsService.createSetupPeriods(id, user, dto);
   }
 
   @Post(":id/logo")

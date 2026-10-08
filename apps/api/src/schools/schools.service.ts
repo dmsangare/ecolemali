@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { SchoolCreateDto, SchoolUpdateDto } from "./dto";
@@ -114,6 +114,181 @@ export class SchoolsService {
       where: { id },
       data: { logoUrl },
     });
+  }
+
+  /**
+   * Retourne l'etat de configuration de l'ecole pour le wizard de demarrage.
+   */
+  async getSetupStatus(id: string, user: CurrentUserPayload) {
+    assertSchoolAccess(user, id, "Ecole introuvable");
+
+    const year = await this.prisma.academicYear.findFirst({
+      where: { schoolId: id, isCurrent: true },
+    });
+
+    const [
+      levelsCount,
+      classesCount,
+      subjectsCount,
+      usersCount,
+      studentsCount,
+      trimestreCount,
+      moisCount,
+    ] = await Promise.all([
+      this.prisma.level.count({ where: { schoolId: id } }),
+      this.prisma.class.count({ where: { schoolId: id } }),
+      this.prisma.subject.count({ where: { schoolId: id } }),
+      this.prisma.user.count({ where: { schoolId: id } }),
+      this.prisma.student.count({ where: { schoolId: id, deletedAt: null } }),
+      year
+        ? this.prisma.term.count({ where: { academicYearId: year.id, type: "TRIMESTRE" as any } })
+        : 0,
+      year
+        ? this.prisma.term.count({ where: { academicYearId: year.id, type: "MOIS" as any } })
+        : 0,
+    ]);
+
+    const steps = {
+      schoolInfo: true, // Le school existe deja
+      academicYear: !!year,
+      periods: (trimestreCount > 0) || (moisCount > 0),
+      levels: levelsCount > 0,
+      classes: classesCount > 0,
+      subjects: subjectsCount > 0,
+      users: usersCount > 1, // > 1 car le SUPER_ADMIN compte
+      students: studentsCount > 0,
+    };
+
+    const completed = Object.values(steps).filter(Boolean).length;
+    const total = Object.keys(steps).length;
+
+    return {
+      schoolId: id,
+      academicYear: year
+        ? {
+            id: year.id,
+            label: year.label,
+            startDate: year.startDate,
+            endDate: year.endDate,
+          }
+        : null,
+      counts: {
+        levels: levelsCount,
+        classes: classesCount,
+        subjects: subjectsCount,
+        users: usersCount,
+        students: studentsCount,
+        trimestres: trimestreCount,
+        mois: moisCount,
+      },
+      steps,
+      completed,
+      total,
+      isConfigured: completed === total,
+    };
+  }
+
+  /**
+   * Cree les periodes scolaires (trimestres et/ou mois) pour l'annee courante.
+   */
+  async createSetupPeriods(
+    id: string,
+    user: CurrentUserPayload,
+    dto: { periods: "TRIMESTRE" | "MOIS" | "BOTH" },
+  ) {
+    assertSchoolAccess(user, id, "Ecole introuvable");
+
+    const year = await this.prisma.academicYear.findFirst({
+      where: { schoolId: id, isCurrent: true },
+    });
+    if (!year) {
+      throw new BadRequestException("Aucune annee scolaire active");
+    }
+
+    const start = new Date(year.startDate);
+    const end = new Date(year.endDate);
+    const created: string[] = [];
+
+    // === TRIMESTRES ===
+    if (dto.periods === "TRIMESTRE" || dto.periods === "BOTH") {
+      const existing = await this.prisma.term.count({
+        where: { academicYearId: year.id, type: "TRIMESTRE" as any },
+      });
+      if (existing === 0) {
+        // Diviser l'annee en 3 trimestres
+        const months = Math.round(
+          (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30),
+        );
+        const trimestreMonths = Math.ceil(months / 3);
+
+        for (let i = 0; i < 3; i++) {
+          const tStart = new Date(start);
+          tStart.setMonth(tStart.getMonth() + i * trimestreMonths);
+          const tEnd = new Date(start);
+          if (i === 2) {
+            tEnd.setTime(end.getTime());
+          } else {
+            tEnd.setMonth(tEnd.getMonth() + (i + 1) * trimestreMonths - 1);
+          }
+
+          await this.prisma.term.create({
+            data: {
+              academicYearId: year.id,
+              name: `${i + 1}${i === 0 ? "er" : "eme"} Trimestre`,
+              type: "TRIMESTRE" as any,
+              startDate: tStart,
+              endDate: tEnd,
+              orderIndex: i + 1,
+            } as any,
+          });
+          created.push(`${i + 1}${i === 0 ? "er" : "eme"} Trimestre`);
+        }
+      }
+    }
+
+    // === MOIS ===
+    if (dto.periods === "MOIS" || dto.periods === "BOTH") {
+      const existingMonths = await this.prisma.term.findMany({
+        where: { academicYearId: year.id, type: "MOIS" as any },
+        select: { name: true },
+      });
+      const existingNames = new Set(existingMonths.map((m) => m.name));
+
+      const MONTH_NAMES = [
+        "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin",
+        "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
+      ];
+
+      const current = new Date(start.getFullYear(), start.getMonth(), 1);
+      let orderIndex = 100;
+
+      while (current.getTime() <= end.getTime()) {
+        const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+        const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+        const name = `${MONTH_NAMES[current.getMonth()]} ${current.getFullYear()}`;
+
+        if (!existingNames.has(name)) {
+          await this.prisma.term.create({
+            data: {
+              academicYearId: year.id,
+              name,
+              type: "MOIS" as any,
+              startDate: monthStart,
+              endDate: monthEnd,
+              orderIndex: orderIndex++,
+            } as any,
+          });
+          created.push(name);
+        }
+
+        current.setMonth(current.getMonth() + 1);
+      }
+    }
+
+    return {
+      created: created.length,
+      periods: created,
+    };
   }
 
   async remove(id: string, user: CurrentUserPayload) {

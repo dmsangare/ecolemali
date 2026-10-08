@@ -8,11 +8,41 @@ import { assertSchoolAccess, assertRefsInSchool } from "../common/utils";
 export class ClassesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(schoolId: string | null, academicYearId?: string, levelId?: string) {
+  async findAll(
+    schoolId: string | null,
+    academicYearId?: string,
+    levelId?: string,
+    user?: { id: string; roles: string[] },
+  ) {
     const where: any = {};
     if (schoolId) where.schoolId = schoolId;
     if (academicYearId) where.academicYearId = academicYearId;
     if (levelId) where.levelId = levelId;
+
+    // FILTRE TEACHER : ne voir que ses classes (titulaire OU assigne)
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (teacher) {
+        where.OR = [
+          { mainTeacherId: teacher.id },
+          { assignments: { some: { teacherId: teacher.id } } },
+        ];
+      } else {
+        // Pas de fiche teacher liee -> aucune classe
+        where.id = "00000000-0000-0000-0000-000000000000";
+      }
+    }
 
     return this.prisma.class.findMany({
       where,

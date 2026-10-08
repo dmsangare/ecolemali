@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { ClassesService } from "./classes.service";
 import { ClassCreateSchema, ClassUpdateSchema } from "./dto";
@@ -22,7 +22,7 @@ export class ClassesController {
     @Query("levelId") levelId?: string,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, academicYearId, levelId);
+    return this.service.findAll(schoolId, academicYearId, levelId, user);
   }
 
   @Get(":id")

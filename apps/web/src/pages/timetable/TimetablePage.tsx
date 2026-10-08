@@ -248,10 +248,6 @@ export default function TimetablePage() {
                               {s.teacher?.lastName ?? '—'}
                             </p>
                             {s.room && <p className="text-blue-600">{s.room.name}</p>}
-                            <button
-                              className="absolute top-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
                             {canDelete && (
                               <button
                                 className="absolute top-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 text-red-600"

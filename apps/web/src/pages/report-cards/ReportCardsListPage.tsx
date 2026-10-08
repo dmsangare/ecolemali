@@ -242,6 +242,8 @@ export function ReportCardsListPage() {
 // Ligne
 // ============================================================
 function ReportCardRow({ report }: { report: ReportCard }) {
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("report_card:update");
   const statusInfo = STATUS_LABELS[report.status] || STATUS_LABELS.DRAFT;
   const appreciation = getAppreciation(report.average);
   const appreciationColor = getAppreciationColor(report.average);
@@ -347,7 +349,7 @@ function ReportCardRow({ report }: { report: ReportCard }) {
               Voir
             </Link>
           </Button>
-          {report.status === "DRAFT" && (
+          {canManage && report.status === "DRAFT" && (
             <Button
               variant="ghost"
               size="sm"
@@ -357,7 +359,7 @@ function ReportCardRow({ report }: { report: ReportCard }) {
               <CheckCircle2 className="h-3.5 w-3.5" />
             </Button>
           )}
-          {report.status === "VALIDATED" && (
+          {canManage && report.status === "VALIDATED" && (
             <Button
               variant="ghost"
               size="sm"

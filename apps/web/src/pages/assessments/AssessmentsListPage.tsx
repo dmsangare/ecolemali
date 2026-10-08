@@ -49,6 +49,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export function AssessmentsListPage() {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("assessment:create");
+  const canManage = hasPermission("assessment:update");
   const [classId, setClassId] = useState("");
   const [termId, setTermId] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -341,7 +342,7 @@ function AssessmentRow({ assessment }: { assessment: any }) {
               </Link>
             </Button>
           )}
-          {canLock && (
+          {canManage && canLock && (
             <Button
               variant="ghost"
               size="sm"
@@ -351,7 +352,7 @@ function AssessmentRow({ assessment }: { assessment: any }) {
               <Lock className="h-3.5 w-3.5" />
             </Button>
           )}
-          {isLocked && (
+          {canManage && isLocked && (
             <Button
               variant="ghost"
               size="sm"

@@ -12,7 +12,9 @@ import { Button, Label } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useGenerateReportCards } from "@/hooks/report-cards";
 import { useClasses, useLevels } from "@/hooks/classes";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { isTermAllowedForCycle } from "@/lib/grading";
 import { api } from "@/lib/axios";
 
 interface Props {
@@ -29,6 +31,8 @@ export function GenerateReportCardsModal({ onClose }: Props) {
   const generateMutation = useGenerateReportCards();
   const { data: classes } = useClasses();
   const { data: levels } = useLevels();
+  const queryClient = useQueryClient();
+  const [creatingMonths, setCreatingMonths] = useState(false);
 
   const { data: academicYears } = useQuery({
     queryKey: ["academic-years", "list"],
@@ -79,6 +83,47 @@ export function GenerateReportCardsModal({ onClose }: Props) {
       return a.code.localeCompare(b.code);
     });
   }, [classes, levels]);
+
+  // Regles par cycle : le 1er cycle se calcule par mois, le 2eme cycle par trimestre
+  const selectedClassCycle = useMemo(() => {
+    if (scope !== "class" || !classId) return null;
+    const cls = classes?.find((c) => c.id === classId);
+    return levels?.find((l) => l.id === cls?.levelId)?.cycle ?? null;
+  }, [scope, classId, classes, levels]);
+
+  const visibleTerms = useMemo(
+    () => (terms || []).filter((t: any) => isTermAllowedForCycle(t.type, selectedClassCycle)),
+    [terms, selectedClassCycle],
+  );
+
+  useEffect(() => {
+    if (visibleTerms.length > 0 && !visibleTerms.some((t: any) => t.id === termId)) {
+      const now = new Date();
+      const current = visibleTerms.find(
+        (t: any) => now >= new Date(t.startDate) && now <= new Date(t.endDate),
+      );
+      setTermId((current || visibleTerms[0]).id);
+    }
+  }, [visibleTerms, termId]);
+
+  const monthlyExists = (terms || []).some(
+    (t: any) => t.type === "MOIS" && t.academicYearId === academicYearId,
+  );
+
+  const handleCreateMonthly = async () => {
+    if (!academicYearId) return;
+    setCreatingMonths(true);
+    try {
+      const { data } = await api.post("/terms/generate-monthly", { academicYearId });
+      const res = data.data || data;
+      toast.success(`${res.created} période(s) mensuelle(s) créée(s)`);
+      await queryClient.invalidateQueries({ queryKey: ["terms"] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Impossible de créer les périodes mensuelles");
+    } finally {
+      setCreatingMonths(false);
+    }
+  };
 
   const formValid =
     academicYearId && termId && (scope === "all" || (scope === "class" && classId));
@@ -163,7 +208,7 @@ export function GenerateReportCardsModal({ onClose }: Props) {
 
             {/* TRIMESTRE */}
             <div>
-              <Label>Trimestre</Label>
+              <Label>Période (mois ou trimestre)</Label>
               <select
                 value={termId}
                 onChange={(e) => setTermId(e.target.value)}
@@ -171,12 +216,41 @@ export function GenerateReportCardsModal({ onClose }: Props) {
                 required
               >
                 <option value="">-- Sélectionner --</option>
-                {terms?.map((t: any) => (
+                {visibleTerms.map((t: any) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
+                    {t.type === "MOIS" ? " (mensuelle)" : ""}
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* REGLES PAR CYCLE */}
+            <div className="text-xs rounded border bg-muted/40 p-2.5 space-y-1.5">
+              <div>
+                <strong>1er cycle</strong> (1ère → 6ème) : notes sur <strong>10</strong>, composition{" "}
+                <strong>mensuelle</strong>.
+              </div>
+              <div>
+                <strong>2ème cycle</strong> (7ème → 9ème, DEF) : notes sur <strong>20</strong> avec{" "}
+                <strong>coefficients</strong>, composition <strong>trimestrielle</strong>.
+              </div>
+              {!monthlyExists && academicYearId && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCreateMonthly}
+                  disabled={creatingMonths}
+                >
+                  {creatingMonths ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Créer les périodes mensuelles de l'année
+                </Button>
+              )}
             </div>
 
             {/* PORTEE */}

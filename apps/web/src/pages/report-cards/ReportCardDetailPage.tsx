@@ -81,8 +81,9 @@ export function ReportCardDetailPage() {
   const isPublished = report.status === "PUBLISHED";
 
   const avg = report.average !== null ? Number(report.average) : null;
-  const autoAppr = getAppreciation(avg);
-  const apprColor = getAppreciationColor(avg);
+  const scale = report.scale ?? 20;
+  const autoAppr = getAppreciation(avg, scale);
+  const apprColor = getAppreciationColor(avg, scale);
 
   const handleSave = async () => {
     if (!id) return;
@@ -180,7 +181,7 @@ export function ReportCardDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
           label="Moyenne générale"
-          value={avg !== null ? avg.toFixed(2) : "—"}
+          value={avg !== null ? `${avg.toFixed(2)} / ${scale}` : "—"}
           subtitle={autoAppr}
           icon={<TrendingUp className="h-4 w-4" />}
           color={apprColor}
@@ -242,8 +243,8 @@ export function ReportCardDetailPage() {
                         : itemAvg !== null
                           ? itemAvg * Number(item.coefficient)
                           : null;
-                    const itemAppr = getAppreciation(itemAvg);
-                    const itemColor = getAppreciationColor(itemAvg);
+                    const itemAppr = getAppreciation(itemAvg, scale);
+                    const itemColor = getAppreciationColor(itemAvg, scale);
 
                     return (
                       <tr
@@ -320,6 +321,7 @@ export function ReportCardDetailPage() {
           <AppreciationEditor
             value={appreciation}
             average={avg}
+            scale={scale}
             disabled={!isEditable}
             onChange={(v) => {
               setAppreciation(v);

@@ -6,6 +6,7 @@ import { useCreateAssessment } from "@/hooks/assessments";
 import { useClasses, useLevels } from "@/hooks/classes";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { isTermAllowedForCycle } from "@/lib/grading";
 
 const ASSESSMENT_TYPES = [
   { value: "INTERROGATION", label: "Interrogation", emoji: "⚪" },
@@ -95,6 +96,19 @@ export function CreateAssessmentModal({ onClose }: Props) {
       setMaxScore(isFirstCycle ? 10 : 20);
     }
   }, [selectedLevel, isFirstCycle]);
+
+  // Periodes proposees selon le cycle : mois (1er cycle) ou trimestre (2eme cycle, lycee)
+  useEffect(() => {
+    if (!terms || !selectedLevel) return;
+    const allowed = terms.filter((t: any) => isTermAllowedForCycle(t.type, selectedLevel.cycle));
+    if (allowed.length > 0 && !allowed.some((t: any) => t.id === termId)) {
+      const now = new Date();
+      const current = allowed.find(
+        (t: any) => now >= new Date(t.startDate) && now <= new Date(t.endDate),
+      );
+      setTermId((current || allowed[0]).id);
+    }
+  }, [terms, selectedLevel, termId]);
 
   const sortedClasses = useMemo(() => {
     if (!classes || !levels) return [];
@@ -205,7 +219,7 @@ export function CreateAssessmentModal({ onClose }: Props) {
               </div>
 
               <div>
-                <Label>Trimestre</Label>
+                <Label>Période</Label>
                 <select
                   value={termId}
                   onChange={(e) => setTermId(e.target.value)}
@@ -213,7 +227,9 @@ export function CreateAssessmentModal({ onClose }: Props) {
                   required
                 >
                   <option value="">-- Selectionner --</option>
-                  {terms?.map((t: any) => (
+                  {(terms || [])
+                    .filter((t: any) => isTermAllowedForCycle(t.type, selectedLevel?.cycle))
+                    .map((t: any) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
                     </option>

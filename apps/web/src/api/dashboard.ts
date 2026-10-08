@@ -29,6 +29,8 @@ export interface TopStudentsResponse {
     DEUXIEME_CYCLE: TopStudentEntry[];
     LYCEE: TopStudentEntry[];
   };
+  /** Periode affichee pour chaque cycle (mois pour le 1er cycle, trimestre ensuite) */
+  periods?: Record<string, { termId: string; name: string; type: string } | null>;
 }
 
 export const dashboardApi = {

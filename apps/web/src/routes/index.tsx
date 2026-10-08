@@ -18,6 +18,7 @@ import { SubjectsListPage, SubjectFormPage } from "@/pages/subjects";
 import { AttendanceListPage, AttendanceDetailPage } from "@/pages/attendance";
 import { AssessmentsListPage, AssessmentGradesPage } from "@/pages/assessments";
 import { ReportCardsListPage, ReportCardDetailPage } from "@/pages/report-cards";
+import { AnnualResultsPage } from "@/pages/report-cards/AnnualResultsPage";
 import {
   InvoicesListPage,
   InvoiceDetailPage,
@@ -226,6 +227,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="report_card:view">
                 <ReportCardDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/annual-results"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <AnnualResultsPage />
               </ProtectedRoute>
             }
           />

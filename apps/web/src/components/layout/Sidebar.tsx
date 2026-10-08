@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   FileText,
   Award,
+  TrendingUp,
   Receipt,
   Wallet,
   BarChart3,
@@ -60,6 +61,7 @@ const SECTIONS: NavSection[] = [
       { label: "Presences", to: "/attendance", icon: ClipboardCheck, permission: "attendance:view" },
       { label: "Notes", to: "/assessments", icon: FileText, permission: "grade:view" },
       { label: "Bulletins", to: "/report-cards", icon: Award, permission: "report_card:view" },
+      { label: "Resultats annuels", to: "/annual-results", icon: TrendingUp, permission: "report_card:view" },
     ],
   },
   {

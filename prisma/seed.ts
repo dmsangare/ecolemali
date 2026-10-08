@@ -70,7 +70,7 @@ const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[] } | 'al
     actions: ['view', 'create', 'update', 'export', 'print'],
   },
   TEACHER: {
-    modules: ['student', 'assessment', 'grade', 'attendance', 'report_card', 'school', 'level', 'class', 'subject'],
+    modules: ['student', 'assessment', 'grade', 'attendance', 'report_card', 'school', 'level', 'class', 'subject', 'timetable'],
     actions: ['view', 'create', 'update'],
   },
   ACCOUNTANT: {

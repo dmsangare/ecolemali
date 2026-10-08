@@ -7,6 +7,7 @@ import { ChangePasswordRequiredPage } from "@/pages/auth/ChangePasswordRequiredP
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import { HonorRollPage } from "@/pages/honor-roll/HonorRollPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
@@ -52,6 +53,7 @@ export function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/honor-roll" element={<HonorRollPage />} />
 
           {/* Eleves */}
           <Route

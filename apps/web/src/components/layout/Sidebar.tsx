@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
+  Trophy,
   Users,
   GraduationCap,
   BookOpen,
@@ -40,6 +41,7 @@ const SECTIONS: NavSection[] = [
     title: "General",
     items: [
       { label: "Tableau de bord", to: "/dashboard", icon: LayoutDashboard },
+      { label: "Tableau d'honneur", to: "/honor-roll", icon: Trophy },
     ],
   },
   {

@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { formatDate } from "@/lib/formatters";
 import { CreateAssessmentModal } from "./components/CreateAssessmentModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TYPE_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
   INTERROGATION: { label: "Interrogation", emoji: "⚪", color: "bg-gray-500/10 text-gray-700 border-gray-300" },
@@ -46,6 +47,8 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export function AssessmentsListPage() {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("assessment:create");
   const [classId, setClassId] = useState("");
   const [termId, setTermId] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -125,10 +128,12 @@ export function AssessmentsListPage() {
             {totalAssessments} evaluation(s) · {totalGrades} note(s) saisie(s)
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle evaluation
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle evaluation
+          </Button>
+        )}
       </div>
 
       {/* FILTRES */}
@@ -204,10 +209,12 @@ export function AssessmentsListPage() {
                 ? "Essayez de modifier les filtres"
                 : "Creez votre premiere evaluation"}
             </p>
-            <Button onClick={() => setCreateOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle evaluation
-            </Button>
+            {canCreate && (
+              <Button onClick={() => setCreateOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle evaluation
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

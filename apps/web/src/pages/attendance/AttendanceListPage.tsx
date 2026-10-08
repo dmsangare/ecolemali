@@ -7,8 +7,11 @@ import { api } from "@/lib/axios";
 import { formatDate } from "@/lib/formatters";
 import { Button, Input, Card, CardContent } from "@/components/ui";
 import { CreateAttendanceModal } from "./components/CreateAttendanceModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AttendanceListPage() {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("attendance:create");
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ classId: "", subjectId: "", date: "" });
   const [showCreate, setShowCreate] = useState(false);
@@ -59,10 +62,12 @@ export function AttendanceListPage() {
             <Filter className="h-4 w-4 mr-2" />
             Filtres
           </Button>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle session
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle session
+            </Button>
+          )}
         </div>
       </div>
 

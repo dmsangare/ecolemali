@@ -35,8 +35,11 @@ import {
 import type { ReportCard } from "@/types/report-cards";
 import { GenerateReportCardsModal } from "./components/GenerateReportCardsModal";
 import { PublishClassModal } from "./components/PublishClassModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function ReportCardsListPage() {
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("report_card:create");
   const [classId, setClassId] = useState("");
   const [termId, setTermId] = useState("");
   const [search, setSearch] = useState("");
@@ -113,14 +116,18 @@ export function ReportCardsListPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setPublishOpen(true)}>
-            <Send className="h-4 w-4 mr-2" />
-            Publier une classe
-          </Button>
-          <Button onClick={() => setGenerateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Générer les bulletins
-          </Button>
+          {canManage && (
+            <Button variant="outline" onClick={() => setPublishOpen(true)}>
+              <Send className="h-4 w-4 mr-2" />
+              Publier une classe
+            </Button>
+          )}
+          {canManage && (
+            <Button onClick={() => setGenerateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Générer les bulletins
+            </Button>
+          )}
         </div>
       </div>
 
@@ -184,10 +191,12 @@ export function ReportCardsListPage() {
                 ? "Essayez de modifier les filtres"
                 : "Generez vos premiers bulletins"}
             </p>
-            <Button onClick={() => setGenerateOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Générer les bulletins
-            </Button>
+            {canManage && (
+              <Button onClick={() => setGenerateOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Générer les bulletins
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

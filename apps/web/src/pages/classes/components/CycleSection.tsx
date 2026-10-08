@@ -9,12 +9,14 @@ interface CycleSectionProps {
   cycle: LevelCycle;
   classes: ClassItem[];
   onCreateClick: () => void;
+  canCreate?: boolean;
 }
 
 export function CycleSection({
   cycle,
   classes,
   onCreateClick,
+  canCreate = true,
 }: CycleSectionProps) {
   const isFirstCycle = cycle === "PREMIER_CYCLE";
   const count = classes.length;
@@ -66,14 +68,16 @@ export function CycleSection({
           </span>
         </div>
 
-        <Button
-          size="sm"
-          onClick={onCreateClick}
-          className={cn(colors.button)}
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Nouvelle classe
-        </Button>
+        {canCreate && (
+          <Button
+            size="sm"
+            onClick={onCreateClick}
+            className={cn(colors.button)}
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Nouvelle classe
+          </Button>
+        )}
       </div>
 
       {/* CONTENU */}

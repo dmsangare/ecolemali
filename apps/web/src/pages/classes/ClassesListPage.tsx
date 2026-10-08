@@ -2,11 +2,14 @@ import { useState, useMemo } from "react";
 import { School, Search, Loader2, Plus } from "lucide-react";
 import { Input, Button } from "@/components/ui";
 import { useClasses } from "@/hooks/classes";
+import { useAuth } from "@/contexts/AuthContext";
 import { CycleSection } from "./components/CycleSection";
 import { CreateClassModal } from "./components/CreateClassModal";
 import type { ClassItem, LevelCycle } from "@/types/class";
 
 export function ClassesListPage() {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("class:create");
   const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDefaultCycle, setModalDefaultCycle] =
@@ -66,10 +69,12 @@ export function ClassesListPage() {
             {totalStudents} eleve{totalStudents > 1 ? "s" : ""}
           </p>
         </div>
-        <Button onClick={() => openModal("PREMIER_CYCLE")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle classe
-        </Button>
+        {canCreate && (
+          <Button onClick={() => openModal("PREMIER_CYCLE")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle classe
+          </Button>
+        )}
       </div>
 
       {/* BARRE DE RECHERCHE */}
@@ -99,10 +104,12 @@ export function ClassesListPage() {
               Commencez par creer votre premiere classe
             </p>
           </div>
-          <Button onClick={() => openModal("PREMIER_CYCLE")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle classe
-          </Button>
+          {canCreate && (
+            <Button onClick={() => openModal("PREMIER_CYCLE")}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle classe
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-10">
@@ -110,11 +117,13 @@ export function ClassesListPage() {
             cycle="PREMIER_CYCLE"
             classes={firstCycle}
             onCreateClick={() => openModal("PREMIER_CYCLE")}
+            canCreate={canCreate}
           />
           <CycleSection
             cycle="DEUXIEME_CYCLE"
             classes={secondCycle}
             onCreateClick={() => openModal("DEUXIEME_CYCLE")}
+            canCreate={canCreate}
           />
         </div>
       )}

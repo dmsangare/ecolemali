@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, School, Settings, Copy } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useClass } from "@/hooks/classes";
+import { useAuth } from "@/contexts/AuthContext";
 import { InfoTab } from "./components/InfoTab";
 import { StudentsTab } from "./components/StudentsTab";
 import { SubjectsTab } from "./components/SubjectsTab";
@@ -15,6 +16,8 @@ import { DuplicateClassModal } from "./components/DuplicateClassModal";
 type TabKey = "info" | "students" | "subjects" | "teachers" | "timetable";
 
 export function ClassDetailPage() {
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission("class:update");
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("info");
   const [editOpen, setEditOpen] = useState(false);
@@ -92,20 +95,22 @@ export function ClassDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDuplicateOpen(true)}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Dupliquer
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-              <Settings className="h-4 w-4 mr-2" />
-              Modifier
-            </Button>
-          </div>
+          {canUpdate && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDuplicateOpen(true)}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Dupliquer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

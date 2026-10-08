@@ -5,9 +5,12 @@ import { Input, Card, CardContent, Button } from "@/components/ui";
 import { useClassDashboard, useClass } from "@/hooks/classes";
 import { AssignStudentsModal } from "./AssignStudentsModal";
 import { RemoveStudentModal } from "./RemoveStudentModal";
+import { useAuth } from "@/contexts/AuthContext";
 import { ExportMenuButton } from "./ExportMenuButton";
 
 export function StudentsTab({ classId }: { classId: string }) {
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission("class:update");
   const [search, setSearch] = useState("");
   const { data: dashboard, isLoading } = useClassDashboard(classId);
   const { data: cls } = useClass(classId);
@@ -43,10 +46,12 @@ export function StudentsTab({ classId }: { classId: string }) {
           </span>
           <div className="flex items-center gap-2">
             <ExportMenuButton classId={classId} />
-            <Button onClick={() => setAssignOpen(true)} size="sm">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Affecter des eleves
-            </Button>
+            {canUpdate && (
+              <Button onClick={() => setAssignOpen(true)} size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Affecter des eleves
+              </Button>
+            )}
           </div>
         </div>
 
@@ -59,10 +64,12 @@ export function StudentsTab({ classId }: { classId: string }) {
             <p className="text-sm text-muted-foreground mt-1 mb-4">
               Commencez par affecter des eleves a cette classe
             </p>
-            <Button onClick={() => setAssignOpen(true)} size="sm">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Affecter des eleves
-            </Button>
+            {canUpdate && (
+              <Button onClick={() => setAssignOpen(true)} size="sm">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Affecter des eleves
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -96,10 +103,12 @@ export function StudentsTab({ classId }: { classId: string }) {
             {filtered.length} / {students.length} eleve(s)
           </span>
           <ExportMenuButton classId={classId} />
-          <Button onClick={() => setAssignOpen(true)} size="sm">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Affecter des eleves
-          </Button>
+          {canUpdate && (
+            <Button onClick={() => setAssignOpen(true)} size="sm">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Affecter des eleves
+            </Button>
+          )}
         </div>
       </div>
 

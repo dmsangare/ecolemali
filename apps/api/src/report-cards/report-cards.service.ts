@@ -2,12 +2,33 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from "@nes
 import { PrismaService } from "../prisma/prisma.service";
 import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
 import { calculateWeightedAverage, calculateReportAverage, determineDecision } from "@sis-mali/shared";
+import { DashboardService } from "../dashboard/dashboard.service";
+import {
+  isTermAllowedForCycle,
+  describeTermMismatch,
+  normalizeScore,
+  rulesForCycle,
+  scaledThreshold,
+} from "./grading-rules";
 
 @Injectable()
 export class ReportCardsService {
   private readonly logger = new Logger(ReportCardsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dashboard: DashboardService,
+  ) {}
+
+  /** Met a jour le tableau d'honneur sans jamais faire echouer la publication. */
+  private async refreshHonorRoll(schoolId: string | null | undefined, termId: string) {
+    if (!schoolId) return;
+    try {
+      await this.dashboard.recomputeTopStudents(schoolId, termId);
+    } catch (err) {
+      this.logger.warn(`Recalcul du tableau d'honneur impossible : ${(err as Error).message}`);
+    }
+  }
 
   async findAll(schoolId: string | null, page = 1, limit = 20, termId?: string, classId?: string, studentId?: string) {
     const where: any = {};
@@ -73,21 +94,48 @@ export class ReportCardsService {
     if (dto.classId) whereEnrollments.classId = dto.classId;
     if (dto.studentId) whereEnrollments.studentId = dto.studentId;
 
-    const enrollments = await this.prisma.enrollment.findMany({
+    const allEnrollments = await this.prisma.enrollment.findMany({
       where: whereEnrollments,
       include: { student: true },
     });
 
-    if (enrollments.length === 0) {
+    if (allEnrollments.length === 0) {
       throw new BadRequestException("Aucun eleve inscrit trouve");
     }
 
-    // Recuperer toutes les matieres du niveau avec leurs coefficients
-    const levelId = enrollments[0].levelId;
-    const subjects = await this.prisma.subjectCoefficient.findMany({
-      where: { levelId },
+    // Regles par cycle : bareme (/10 ou /20) et type de periode (mois ou trimestre)
+    const term = await this.prisma.term.findUnique({ where: { id: dto.termId } });
+    if (!term) throw new NotFoundException("Periode introuvable");
+
+    const levels = await this.prisma.level.findMany({
+      where: { id: { in: Array.from(new Set(allEnrollments.map((e) => e.levelId))) } },
+      select: { id: true, cycle: true },
+    });
+    const cycleByLevel = new Map<string, string>(levels.map((l) => [l.id, l.cycle as string]));
+
+    // On ne garde que les classes dont le cycle correspond au type de periode choisi
+    const enrollments = allEnrollments.filter((e) =>
+      isTermAllowedForCycle(term.type, cycleByLevel.get(e.levelId)),
+    );
+    if (enrollments.length === 0) {
+      throw new BadRequestException(describeTermMismatch(term.type, term.name));
+    }
+
+    // Bareme par classe, matieres et coefficients par niveau
+    const scaleByClass = new Map<string, number>();
+    for (const e of enrollments) {
+      scaleByClass.set(e.classId, rulesForCycle(cycleByLevel.get(e.levelId)).scale);
+    }
+    const levelIds = Array.from(new Set(enrollments.map((e) => e.levelId)));
+    const coefficientRows = await this.prisma.subjectCoefficient.findMany({
+      where: { levelId: { in: levelIds } },
       include: { subject: true },
     });
+    const subjectsByLevel = new Map<string, typeof coefficientRows>();
+    for (const row of coefficientRows) {
+      if (!subjectsByLevel.has(row.levelId)) subjectsByLevel.set(row.levelId, []);
+      subjectsByLevel.get(row.levelId)!.push(row);
+    }
 
     // Recuperer les evaluations du trimestre pour ces classes
     const classIds = Array.from(new Set(enrollments.map((e) => e.classId)));
@@ -108,8 +156,10 @@ export class ReportCardsService {
         if (!gradesMap.has(g.studentId)) gradesMap.set(g.studentId, new Map());
         const subMap = gradesMap.get(g.studentId)!;
         if (!subMap.has(a.subjectId)) subMap.set(a.subjectId, []);
+        // Note ramenee au bareme du cycle (ex. 14/20 -> 7/10 au 1er cycle)
+        const scale = scaleByClass.get(a.classId) ?? 20;
         subMap.get(a.subjectId)!.push({
-          value: Number(g.value),
+          value: normalizeScore(Number(g.value), Number(a.maxScore), scale),
           coefficient: Number(a.coefficient),
         });
       }
@@ -128,7 +178,7 @@ export class ReportCardsService {
       const studentGrades = gradesMap.get(e.studentId) || new Map();
       const subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }> = [];
 
-      for (const sc of subjects) {
+      for (const sc of subjectsByLevel.get(e.levelId) ?? []) {
         const grades = studentGrades.get(sc.subjectId) || [];
         const average = calculateWeightedAverage(grades);
         subjectAverages.push({
@@ -162,8 +212,6 @@ export class ReportCardsService {
       where: { school: { students: { some: { id: enrollments[0].studentId } } } },
     });
     const passMark = settings ? Number(settings.passMark) : 10;
-    const passThreshold = passMark;
-    const repeatThreshold = passMark - 2;
 
     // Creer/mettre a jour les bulletins
     const created: any[] = [];
@@ -196,6 +244,7 @@ export class ReportCardsService {
           studentId_termId: { studentId: r.studentId, termId: dto.termId },
         },
         update: {
+          scale: r.scale,
           average: r.average,
           rank,
           classSize: classAverages.length,
@@ -214,6 +263,7 @@ export class ReportCardsService {
           absencesCount,
           latesCount,
           decision: decision as any,
+          scale: r.scale,
           status: "DRAFT",
         },
       });
@@ -262,10 +312,12 @@ export class ReportCardsService {
     if (report.status === "PUBLISHED") {
       throw new BadRequestException("Ce bulletin est deja publie");
     }
-    return this.prisma.reportCard.update({
+    const published = await this.prisma.reportCard.update({
       where: { id },
       data: { status: "PUBLISHED", publishedAt: new Date() },
     });
+    await this.refreshHonorRoll(report.student?.schoolId, report.termId);
+    return published;
   }
 
   async publishByClass(classId: string, termId: string) {
@@ -273,6 +325,10 @@ export class ReportCardsService {
       where: { classId, termId, status: "VALIDATED" },
       data: { status: "PUBLISHED", publishedAt: new Date() },
     });
+    if (result.count > 0) {
+      const cls = await this.prisma.class.findUnique({ where: { id: classId }, select: { schoolId: true } });
+      await this.refreshHonorRoll(cls?.schoolId, termId);
+    }
     return { published: result.count };
   }
 

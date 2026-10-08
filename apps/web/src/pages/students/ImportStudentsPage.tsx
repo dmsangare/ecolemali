@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2,
   X, Loader2, ArrowLeft, Users, AlertTriangle, Trash2,
+  ChevronDown, ChevronRight, Filter, Eye,
 } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function ImportStudentsPage() {
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [rowFilter, setRowFilter] = useState<"all" | "valid" | "error">("all");
   const [result, setResult] = useState<ConfirmResult | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -290,6 +292,144 @@ export function ImportStudentsPage() {
                 </div>
               </div>
             )}
+
+            {/* APERCU DETAILLE */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="border-b bg-muted/30 px-4 py-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="font-medium text-sm flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Apercu des eleves detectes
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant={rowFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setRowFilter("all")}
+                    >
+                      Tous ({preview.totalRows})
+                    </Button>
+                    <Button
+                      variant={rowFilter === "valid" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setRowFilter("valid")}
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Valides ({preview.validCount})
+                    </Button>
+                    <Button
+                      variant={rowFilter === "error" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setRowFilter("error")}
+                    >
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Erreurs ({preview.errorCount})
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 sticky top-0">
+                    <tr className="text-left">
+                      <th className="px-3 py-2 font-medium text-xs w-16">Ligne</th>
+                      <th className="px-3 py-2 font-medium text-xs">Nom Prenom</th>
+                      <th className="px-3 py-2 font-medium text-xs w-16">Sexe</th>
+                      <th className="px-3 py-2 font-medium text-xs w-28">Naissance</th>
+                      <th className="px-3 py-2 font-medium text-xs">Classe</th>
+                      <th className="px-3 py-2 font-medium text-xs w-24">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows
+                      .filter((r) => {
+                        if (rowFilter === "valid") return r.errors.length === 0;
+                        if (rowFilter === "error") return r.errors.length > 0;
+                        return true;
+                      })
+                      .map((r) => {
+                        const hasError = r.errors.length > 0;
+                        const d = r.data || {};
+                        return (
+                          <tr
+                            key={r.lineNumber}
+                            className={cn(
+                              "border-t",
+                              hasError ? "bg-red-50/50" : "hover:bg-muted/20",
+                            )}
+                          >
+                            <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
+                              {r.lineNumber}
+                            </td>
+                            <td className="px-3 py-2">
+                              {d.lastName || d.firstName ? (
+                                <span className="font-medium">
+                                  {d.lastName || "?"} {d.firstName || "?"}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground italic">
+                                  (vide)
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {d.gender ? (
+                                <span
+                                  className={cn(
+                                    "inline-block px-1.5 py-0.5 rounded text-xs font-medium",
+                                    d.gender === "M"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-pink-100 text-pink-700",
+                                  )}
+                                >
+                                  {d.gender}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {d.birthDate || (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {d.className || d.classe || (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {hasError ? (
+                                <span
+                                  className="inline-flex items-center gap-1 text-xs text-red-700 font-medium"
+                                  title={r.errors.join("\n")}
+                                >
+                                  <AlertCircle className="h-3 w-3" />
+                                  {r.errors.length} err.
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  OK
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+                {preview.rows.filter((r) => {
+                  if (rowFilter === "valid") return r.errors.length === 0;
+                  if (rowFilter === "error") return r.errors.length > 0;
+                  return true;
+                }).length === 0 && (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    Aucune ligne a afficher pour ce filtre
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* ERREURS */}
             {preview.errorCount > 0 && (

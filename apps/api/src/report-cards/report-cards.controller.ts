@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -30,7 +30,7 @@ export class ReportCardsController {
     @Query("studentId") studentId?: string,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, query.page, query.limit, termId, classId, studentId);
+    return this.service.findAll(schoolId, query.page, query.limit, termId, classId, studentId, user);
   }
 
   @Get(":id")

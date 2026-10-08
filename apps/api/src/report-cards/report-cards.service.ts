@@ -30,12 +30,52 @@ export class ReportCardsService {
     }
   }
 
-  async findAll(schoolId: string | null, page = 1, limit = 20, termId?: string, classId?: string, studentId?: string) {
+  async findAll(
+    schoolId: string | null,
+    page = 1,
+    limit = 20,
+    termId?: string,
+    classId?: string,
+    studentId?: string,
+    user?: { id: string; roles: string[] },
+  ) {
     const where: any = {};
     if (schoolId) where.student = { schoolId };
     if (termId) where.termId = termId;
     if (classId) where.classId = classId;
     if (studentId) where.studentId = studentId;
+
+    // FILTRE TEACHER : ne voir que les bulletins de ses classes
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (teacher) {
+        const assignments = await this.prisma.teacherAssignment.findMany({
+          where: { teacherId: teacher.id },
+          select: { classId: true },
+        });
+        const teacherClassIds = [...new Set(assignments.map((a) => a.classId))];
+
+        // Si un classId est deja demande, on l'intersecte
+        if (classId) {
+          where.classId = teacherClassIds.includes(classId) ? classId : "00000000-0000-0000-0000-000000000000";
+        } else {
+          where.classId = { in: teacherClassIds };
+        }
+      } else {
+        where.classId = "00000000-0000-0000-0000-000000000000";
+      }
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.reportCard.findMany({

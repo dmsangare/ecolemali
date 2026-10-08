@@ -5,6 +5,7 @@ import { getAppreciation } from "@/types/report-cards";
 interface AppreciationEditorProps {
   value: string;
   average: number | null | undefined;
+  scale?: number;
   disabled?: boolean;
   onChange: (value: string) => void;
 }
@@ -12,10 +13,11 @@ interface AppreciationEditorProps {
 export function AppreciationEditor({
   value,
   average,
+  scale = 20,
   disabled,
   onChange,
 }: AppreciationEditorProps) {
-  const suggested = getAppreciation(average);
+  const suggested = getAppreciation(average, scale);
 
   const suggestions = [
     "Élève sérieux et travailleur.",

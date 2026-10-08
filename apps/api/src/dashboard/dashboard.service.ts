@@ -21,6 +21,26 @@ export class DashboardService {
     schoolId: string,
     termId?: string,
   ): Promise<{ updated: number }> {
+    // Sans periode precisee : on recalcule toutes les periodes actives (composition du mois + trimestre)
+    if (!termId) {
+      const today = new Date();
+      const activeTerms = await this.prisma.term.findMany({
+        where: {
+          academicYear: { schoolId, isCurrent: true },
+          startDate: { lte: today },
+          endDate: { gte: today },
+        },
+        select: { id: true },
+      });
+      if (activeTerms.length > 1) {
+        let updated = 0;
+        for (const t of activeTerms) {
+          updated += (await this.recomputeTopStudents(schoolId, t.id)).updated;
+        }
+        return { updated };
+      }
+    }
+
     // 1. Déterminer le trimestre
     let term;
     if (termId) {
@@ -93,48 +113,54 @@ export class DashboardService {
     }
 
     // 4. Pour chaque cycle, trier et prendre le top 3
-    const periodLabel = `${term.name} - ${(await this.getYearLabel(schoolId)) ?? ""}`.trim();
+    // (l'annee affichee est celle du trimestre, pas forcement l'annee en cours)
+    const termYear = await this.prisma.academicYear.findUnique({
+      where: { id: term.academicYearId },
+      select: { label: true },
+    });
+    const periodLabel = `${term.name} - ${termYear?.label ?? ""}`.trim();
     const periodType =
-      term.type === "TRIMESTRE" ? "TRIMESTRE" : "SEMESTRE";
+      term.type === "MOIS" ? "MOIS" : term.type === "TRIMESTRE" ? "TRIMESTRE" : "SEMESTRE";
 
     let totalUpdated = 0;
 
     for (const [cycle, cards] of Object.entries(byCycle)) {
       if (cards.length === 0) continue;
 
-      // Trier par moyenne desc
+      // Trier par moyenne desc ; en cas d'egalite : ordre alphabetique (resultat stable)
       const sorted = [...cards].sort((a, b) => {
-        const avgA = Number(a.average ?? 0);
-        const avgB = Number(b.average ?? 0);
-        return avgB - avgA;
+        const diff = Number(b.average ?? 0) - Number(a.average ?? 0);
+        if (diff !== 0) return diff;
+        const nameA = `${a.student.lastName} ${a.student.firstName}`;
+        const nameB = `${b.student.lastName} ${b.student.firstName}`;
+        return nameA.localeCompare(nameB, "fr");
       });
 
       const top3 = sorted.slice(0, 3);
 
-      // Supprimer l'ancien classement pour ce cycle/periodLabel
-      await this.prisma.topStudent.deleteMany({
-        where: { schoolId, cycle: cycle as any, periodLabel },
-      });
-
-      // Inserer le nouveau
-      for (let i = 0; i < top3.length; i++) {
-        const rc = top3[i];
-        await this.prisma.topStudent.create({
-          data: {
-            schoolId,
-            cycle: cycle as any,
-            periodType,
-            periodLabel,
-            termId: term.id,
-            rank: i + 1,
-            studentId: rc.studentId,
-            classId: rc.classId,
-            average: rc.average as any,
-            scale: 20,
-          },
-        });
-        totalUpdated++;
-      }
+      // Suppression + insertion dans UNE transaction : le classement n'est jamais a moitie vide
+      await this.prisma.$transaction([
+        this.prisma.topStudent.deleteMany({
+          where: { schoolId, cycle, periodLabel },
+        }),
+        ...top3.map((rc, i) =>
+          this.prisma.topStudent.create({
+            data: {
+              schoolId,
+              cycle,
+              periodType,
+              periodLabel,
+              termId: term.id,
+              rank: i + 1,
+              studentId: rc.studentId,
+              classId: rc.classId,
+              average: rc.average as any,
+              scale: rc.scale ?? 20,
+            },
+          }),
+        ),
+      ]);
+      totalUpdated += top3.length;
     }
 
     this.logger.log(
@@ -148,70 +174,65 @@ export class DashboardService {
    * Retourne le top 3 pour chaque cycle (visible par tous).
    */
   async getTopStudents(schoolId: string, termId?: string) {
-    let term;
-    if (termId) {
-      term = await this.prisma.term.findUnique({ where: { id: termId } });
-    } else {
-      const today = new Date();
-      term = await this.prisma.term.findFirst({
-        where: {
-          academicYear: { schoolId, isCurrent: true },
-          startDate: { lte: today },
-          endDate: { gte: today },
-        },
-        orderBy: { orderIndex: "asc" },
-      });
-    }
+    type Period = { termId: string; name: string; type: string };
+    const emptyPodiums = (): Record<string, any[]> => ({ PREMIER_CYCLE: [], DEUXIEME_CYCLE: [], LYCEE: [] });
 
-    if (!term) {
-      return {
-        term: null,
-        podiums: { PREMIER_CYCLE: [], DEUXIEME_CYCLE: [], LYCEE: [] },
-      };
+    const terms = termId
+      ? await this.prisma.term.findMany({ where: { id: termId } })
+      : await this.prisma.term.findMany({ where: { academicYear: { schoolId, isCurrent: true } } });
+
+    if (terms.length === 0) {
+      return { term: null, periods: {} as Record<string, Period | null>, podiums: emptyPodiums() };
     }
+    const termById = new Map(terms.map((t) => [t.id, t]));
 
     const rows = await this.prisma.topStudent.findMany({
-      where: { schoolId, termId: term.id },
+      where: { schoolId, termId: { in: terms.map((t) => t.id) } },
       orderBy: [{ cycle: "asc" }, { rank: "asc" }],
       include: {
-        student: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            matricule: true,
-          },
-        },
-        class: {
-          select: { id: true, name: true },
-        },
+        student: { select: { id: true, firstName: true, lastName: true, matricule: true } },
+        class: { select: { id: true, name: true } },
       },
     });
 
-    const podiums: Record<string, any[]> = {
-      PREMIER_CYCLE: [],
-      DEUXIEME_CYCLE: [],
-      LYCEE: [],
-    };
+    // Chaque cycle affiche sa periode la plus recente : composition du mois (1er cycle) ou trimestre (2eme cycle, lycee)
+    const podiums = emptyPodiums();
+    const periods: Record<string, Period | null> = { PREMIER_CYCLE: null, DEUXIEME_CYCLE: null, LYCEE: null };
+    let latest: (typeof terms)[number] | null = null;
 
-    for (const row of rows) {
-      podiums[row.cycle].push({
-        rank: row.rank,
-        average: Number(row.average),
-        scale: row.scale,
-        student: row.student,
-        class: row.class,
-      });
+    for (const cycle of Object.keys(podiums)) {
+      const cycleRows = rows.filter((r) => r.cycle === cycle && r.termId && termById.has(r.termId));
+      if (cycleRows.length === 0) continue;
+
+      let best = termById.get(cycleRows[0].termId as string)!;
+      for (const r of cycleRows) {
+        const t = termById.get(r.termId as string)!;
+        if (t.endDate.getTime() > best.endDate.getTime()) best = t;
+      }
+      podiums[cycle] = cycleRows
+        .filter((r) => r.termId === best.id)
+        .map((row) => ({
+          rank: row.rank,
+          average: Number(row.average),
+          scale: row.scale,
+          student: row.student,
+          class: row.class,
+        }));
+      periods[cycle] = { termId: best.id, name: best.name, type: best.type };
+      if (!latest || best.endDate.getTime() > latest.endDate.getTime()) latest = best;
     }
 
     return {
-      term: {
-        id: term.id,
-        name: term.name,
-        type: term.type,
-        startDate: term.startDate,
-        endDate: term.endDate,
-      },
+      term: latest
+        ? {
+            id: latest.id,
+            name: latest.name,
+            type: latest.type,
+            startDate: latest.startDate,
+            endDate: latest.endDate,
+          }
+        : null,
+      periods,
       podiums,
     };
   }
@@ -371,6 +392,13 @@ export class DashboardService {
             firstName: true,
             lastName: true,
             matricule: true,
+            guardians: {
+              select: {
+                guardian: {
+                  select: { id: true, firstName: true, lastName: true, phone: true, relationType: true },
+                },
+              },
+            },
           },
         },
         session: {

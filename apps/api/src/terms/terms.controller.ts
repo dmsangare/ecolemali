@@ -3,7 +3,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { TermsService } from "./terms.service";
-import { TermCreateSchema, TermUpdateSchema } from "./dto";
+import { TermCreateSchema, TermUpdateSchema, TermGenerateMonthlySchema, TermGenerateMonthlyDto } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
 
@@ -45,6 +45,16 @@ export class TermsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.service.create(dto, user);
+  }
+
+  @Post("generate-monthly")
+  @RequirePermissions("academic_year:create")
+  @ApiOperation({ summary: "Creer les periodes mensuelles (compositions du 1er cycle) d'une annee scolaire" })
+  async generateMonthly(
+    @Body(new ZodValidationPipe(TermGenerateMonthlySchema)) dto: TermGenerateMonthlyDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.service.generateMonthly(dto.academicYearId, user);
   }
 
   @Patch(":id")

@@ -1,6 +1,11 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { TermCreateSchema, TermUpdateSchema } from "@sis-mali/shared";
 
 export type TermCreateDto = z.infer<typeof TermCreateSchema>;
 export type TermUpdateDto = z.infer<typeof TermUpdateSchema>;
 export { TermCreateSchema, TermUpdateSchema };
+
+export const TermGenerateMonthlySchema = z.object({
+  academicYearId: z.string().uuid("Annee scolaire invalide"),
+});
+export type TermGenerateMonthlyDto = z.infer<typeof TermGenerateMonthlySchema>;

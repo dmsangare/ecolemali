@@ -1,10 +1,14 @@
-﻿import { Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ReportCardsController } from "./report-cards.controller";
 import { ReportCardsService } from "./report-cards.service";
+import { AnnualResultsController } from "./annual-results.controller";
+import { AnnualResultsService } from "./annual-results.service";
+import { DashboardModule } from "../dashboard/dashboard.module";
 
 @Module({
-  controllers: [ReportCardsController],
-  providers: [ReportCardsService],
+  imports: [DashboardModule],
+  controllers: [ReportCardsController, AnnualResultsController],
+  providers: [ReportCardsService, AnnualResultsService],
   exports: [ReportCardsService],
 })
 export class ReportCardsModule {}

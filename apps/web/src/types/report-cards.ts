@@ -88,14 +88,14 @@ export interface ClassRankingItem {
 // Helpers
 export const DECISION_LABELS: Record<ReportDecision, string> = {
   ADMIS: "Admis en classe supérieure",
-export type ReportDecision = "ADMIS" | "REDOUBLE" | "EXCLU" | "A_DETERMINER";  REDOUBLE: "Redouble",
+  REDOUBLE: "Redouble",
   EXCLU: "Exclu",
   A_DETERMINER: "À déterminer",
 };
 
 export const DECISION_COLORS: Record<ReportDecision, string> = {
   ADMIS: "bg-green-500/10 text-green-700 border-green-300",
-export type ReportDecision = "ADMIS" | "REDOUBLE" | "EXCLU" | "A_DETERMINER";  REDOUBLE: "bg-orange-500/10 text-orange-700 border-orange-300",
+  REDOUBLE: "bg-orange-500/10 text-orange-700 border-orange-300",
   EXCLU: "bg-red-500/10 text-red-700 border-red-300",
   A_DETERMINER: "bg-gray-500/10 text-gray-700 border-gray-300",
 };

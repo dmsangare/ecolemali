@@ -7,6 +7,7 @@ import { api } from '@/lib/axios';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DAYS = [
   { value: 1, label: 'Lundi' },
@@ -34,6 +35,9 @@ function dateToHour(dateStr: string): number {
 }
 
 export default function TimetablePage() {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("timetable:create");
+  const canDelete = hasPermission("timetable:delete");
   const qc = useQueryClient();
   const [classId, setClassId] = useState('');
   const [academicYearId, setAcademicYearId] = useState('');
@@ -161,9 +165,11 @@ export default function TimetablePage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Calendar className="w-6 h-6" /> Emploi du temps
         </h1>
-        <Button onClick={() => setShowModal(true)} disabled={!classId || !academicYearId}>
-          <Plus className="w-4 h-4 mr-2" /> Nouveau créneau
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setShowModal(true)} disabled={!classId || !academicYearId}>
+            <Plus className="w-4 h-4 mr-2" /> Nouveau créneau
+          </Button>
+        )}
       </div>
 
       {/* Sélecteurs */}
@@ -246,11 +252,17 @@ export default function TimetablePage() {
                               className="absolute top-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 text-red-600"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Supprimer ce créneau ?')) deleteMut.mutate(s.id);
-                              }}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                className="absolute top-0 right-0 p-0.5 opacity-0 group-hover:opacity-100 text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Supprimer ce créneau ?')) deleteMut.mutate(s.id);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         ))}
                       </td>

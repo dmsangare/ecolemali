@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Regles de notation par cycle (systeme scolaire malien).
  *
  *  - 1er cycle (1ere - 6eme annee)        : notes sur 10, composition chaque MOIS.
@@ -21,7 +21,7 @@ export const CYCLE_RULES: Record<string, CycleRules> = {
   },
   DEUXIEME_CYCLE: {
     scale: 20,
-    allowedTermTypes: ["TRIMESTRE", "SEMESTRE"],
+    allowedTermTypes: ["TRIMESTRE"],
     label: "2eme cycle (7eme - 9eme annee) : notes sur 20 avec coefficients, composition trimestrielle",
   },
 };

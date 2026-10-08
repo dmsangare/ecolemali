@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query,
   HttpCode, HttpStatus, UseGuards,
 } from "@nestjs/common";
@@ -26,7 +26,7 @@ export class TimetableController {
     @Query("teacherId") teacherId?: string,
   ) {
     const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
-    return this.service.findAll(schoolId, academicYearId, classId, teacherId);
+    return this.service.findAll(schoolId, academicYearId, classId, teacherId, user);
   }
 
   @Get("class/:classId")

@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { TimetableSlotCreateDto, TimetableSlotUpdateDto } from "./dto";
 
@@ -6,12 +6,34 @@ import { TimetableSlotCreateDto, TimetableSlotUpdateDto } from "./dto";
 export class TimetableService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(schoolId: string | null, academicYearId?: string, classId?: string, teacherId?: string) {
+  async findAll(
+    schoolId: string | null,
+    academicYearId?: string,
+    classId?: string,
+    teacherId?: string,
+    user?: { id: string; roles: string[] },
+  ) {
     const where: any = {};
     if (schoolId) where.schoolId = schoolId;
     if (academicYearId) where.academicYearId = academicYearId;
     if (classId) where.classId = classId;
     if (teacherId) where.teacherId = teacherId;
+
+    // FILTRE TEACHER : forcer le teacherId si TEACHER connecte
+    const isTeacherOnly =
+      user &&
+      user.roles.includes("TEACHER") &&
+      !user.roles.includes("SUPER_ADMIN") &&
+      !user.roles.includes("DIRECTOR") &&
+      !user.roles.includes("SECRETARY");
+
+    if (isTeacherOnly && user) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      where.teacherId = teacher?.id || "00000000-0000-0000-0000-000000000000";
+    }
 
     return this.prisma.timetableSlot.findMany({
       where,

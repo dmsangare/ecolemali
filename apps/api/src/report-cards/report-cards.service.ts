@@ -119,6 +119,7 @@ export class ReportCardsService {
     const results: Array<{
       studentId: string;
       classId: string;
+      scale: number;
       average: number | null;
       subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }>;
     }> = [];
@@ -144,6 +145,7 @@ export class ReportCardsService {
       results.push({
         studentId: e.studentId,
         classId: e.classId,
+        scale: scaleByClass.get(e.classId) ?? 20,
         average: generalAverage,
         subjectAverages,
       });

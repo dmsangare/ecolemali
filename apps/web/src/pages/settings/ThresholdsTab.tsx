@@ -82,7 +82,8 @@ export function ThresholdsTab() {
                 Configurez les moyennes minimales (sur /20) pour chaque niveau
                 d'appreciation. Ces seuils s'appliquent automatiquement aux
                 bulletins. Les moyennes sont normalisees sur /20 pour la
-                comparaison (ex. 8/10 = 16/20).
+                comparaison (ex. 8/10 = 16/20). L'equivalent sur /10 pour le
+                1er cycle est affiche sous chaque seuil.
               </p>
             </div>
           </div>
@@ -141,7 +142,12 @@ export function ThresholdsTab() {
                   }
                   className="w-20 text-center bg-white"
                 />
-                <span className="text-sm font-medium opacity-70">/20</span>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-sm font-medium opacity-70">/20</span>
+                  <span className="text-xs text-muted-foreground">
+                    = {(thresholds[key] / 2).toFixed(2)} /10
+                  </span>
+                </div>
               </div>
             </div>
           ))}
@@ -181,6 +187,9 @@ export function ThresholdsTab() {
               >
                 <p className="font-mono text-xs text-muted-foreground">
                   {ex.avg.toFixed(1)}/20
+                  <span className="block opacity-70">
+                    {(ex.avg / 2).toFixed(2)}/10
+                  </span>
                 </p>
                 <p className="font-medium">{ex.label}</p>
               </div>

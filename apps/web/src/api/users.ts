@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 import type {
   User,
   Role,
@@ -27,7 +27,7 @@ export const usersApi = {
     return data.data || data;
   },
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto): Promise<{ user: User; provisionalPassword: string }> {
     const { data } = await api.post("/users", dto);
     return data.data || data;
   },
@@ -37,8 +37,9 @@ export const usersApi = {
     return data.data || data;
   },
 
-  async resetPassword(id: string, newPassword: string): Promise<void> {
-    await api.post(`/users/${id}/reset-password`, { newPassword });
+  async resetPassword(id: string): Promise<{ user: User; provisionalPassword: string }> {
+    const { data } = await api.post(`/users/${id}/reset-password`);
+    return data.data || data;
   },
 
   async remove(id: string): Promise<void> {

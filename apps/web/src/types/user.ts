@@ -1,4 +1,4 @@
-export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+﻿export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 
 export interface Role {
   id: string;
@@ -23,7 +23,7 @@ export interface User {
 export interface CreateUserDto {
   email?: string;
   phone?: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   roleIds: string[];

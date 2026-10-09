@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts";
 import { useSchool } from "@/hooks/school/useSchool";
 import { toast } from "sonner";
@@ -55,7 +55,8 @@ export function useCreateUser() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users", "list"] });
-      toast.success("Utilisateur cree avec succes");
+      // Le message de succes et l'affichage du mdp provisoire
+      // sont geres par l'appelant (modal), pas ici.
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Erreur lors de la creation");
@@ -81,11 +82,10 @@ export function useUpdateUser() {
 export function useResetPassword() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, newPassword }: { id: string; newPassword: string }) =>
-      usersApi.resetPassword(id, newPassword),
+    mutationFn: ({ id }: { id: string }) => usersApi.resetPassword(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Mot de passe reinitialise");
+      // Le mdp provisoire est affiche par l'appelant (modal), pas ici.
     },
     onError: () => toast.error("Erreur lors de la reinitialisation"),
   });

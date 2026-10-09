@@ -26,6 +26,7 @@ export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;
   thresholds?: ThresholdsSettings;
+  honorRoll?: HonorRollSettings;
 }
 
 export interface Settings {

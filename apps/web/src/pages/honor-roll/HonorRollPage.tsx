@@ -1,11 +1,11 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Printer, RefreshCw, Trophy } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/hooks/school/useSchool";
-import { useTopStudents } from "@/hooks/dashboard";
-import { dashboardApi, type TopStudentEntry } from "@/api/dashboard";
+import { useTopStudents, useHonorRoll } from "@/hooks/dashboard";
+import { dashboardApi, type TopStudentEntry, type HonorRollClassEntry } from "@/api/dashboard";
 
 const CYCLES: { key: "PREMIER_CYCLE" | "DEUXIEME_CYCLE" | "LYCEE"; label: string }[] = [
   { key: "PREMIER_CYCLE", label: "1er cycle (1ere - 6eme annee)" },
@@ -81,11 +81,67 @@ function CycleSection({ label, entries, period }: { label: string; entries: TopS
   );
 }
 
+function ClassRankingSection({
+  label,
+  entries,
+  period,
+}: {
+  label: string;
+  entries: HonorRollClassEntry[];
+  period?: string;
+}) {
+  if (entries.length === 0) return null;
+
+  const scale = entries[0]?.scale ?? 20;
+
+  return (
+    <section className="mt-6" style={{ breakInside: "avoid" }}>
+      <h3 className="mb-3 text-center text-sm font-semibold uppercase tracking-wide text-gray-700">
+        {label} — Classement des classes
+        {period && <span className="block text-xs font-normal normal-case text-gray-500">{period}</span>}
+      </h3>
+      <table className="mx-auto w-full max-w-2xl border-collapse text-sm">
+        <thead>
+          <tr className="border-b-2 border-gray-300">
+            <th className="px-3 py-2 text-left font-semibold w-16">Rang</th>
+            <th className="px-3 py-2 text-left font-semibold">Classe</th>
+            <th className="px-3 py-2 text-left font-semibold">Niveau</th>
+            <th className="px-3 py-2 text-right font-semibold">Moyenne</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e, i) => {
+            const previous = entries[i - 1];
+            const isTie = previous && previous.rank === e.rank;
+            return (
+              <tr
+                key={e.classId}
+                className={isTie ? "border-b border-dashed border-gray-200" : "border-b border-gray-200"}
+              >
+                <td className="px-3 py-2 font-bold" style={{ color: e.rank === 1 ? "#b8860b" : undefined }}>
+                  {e.rank === 1 ? "1er" : `${e.rank}e`}
+                </td>
+                <td className="px-3 py-2 font-medium">{e.className}</td>
+                <td className="px-3 py-2 text-gray-600">{e.levelName ?? "—"}</td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {e.average.toFixed(2)}
+                  <span className="text-xs text-gray-500"> / {scale}</span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 export function HonorRollPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const { data: school } = useSchool();
   const { data, isLoading } = useTopStudents();
+  const { data: honorRoll } = useHonorRoll();
 
   const recompute = useMutation({
     mutationFn: () => dashboardApi.recomputeTopStudents(),
@@ -153,6 +209,15 @@ export function HonorRollPage() {
             <>
               {CYCLES.map((c) => (
                 <CycleSection key={c.key} label={c.label} entries={podiums[c.key]} period={data?.periods?.[c.key]?.name} />
+              ))}
+
+              {honorRoll?.podiums && CYCLES.map((c) => (
+                <ClassRankingSection
+                  key={`classes-${c.key}`}
+                  label={c.label}
+                  entries={honorRoll.podiums[c.key]}
+                  period={honorRoll.term?.name}
+                />
               ))}
               <footer className="mt-10 flex items-end justify-between text-sm text-gray-700">
                 <p className="max-w-md italic">

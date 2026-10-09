@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -111,8 +111,8 @@ export function ReportCardsListPage() {
             Bulletins
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalCount} bulletin(s) Â· {draftCount} brouillon(s) Â·{" "}
-            {publishedCount} publiÃ©(s)
+            {totalCount} bulletin(s) · {draftCount} brouillon(s) ·{" "}
+            {publishedCount} publié(s)
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function ReportCardsListPage() {
           {canManage && (
             <Button onClick={() => setGenerateOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              GÃ©nÃ©rer les bulletins
+              Générer les bulletins
             </Button>
           )}
         </div>
@@ -138,10 +138,10 @@ export function ReportCardsListPage() {
           onChange={(e) => setClassId(e.target.value)}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="">ðŸ« Toutes les classes</option>
+          <option value="">🏫 Toutes les classes</option>
           {sortedClasses.map((c) => {
             const level = levels?.find((l) => l.id === c.levelId);
-            const emoji = level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
+            const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
             return (
               <option key={c.id} value={c.id}>
                 {emoji} {c.name}
@@ -155,7 +155,7 @@ export function ReportCardsListPage() {
           onChange={(e) => setTermId(e.target.value)}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="">ðŸ“… Tous les trimestres</option>
+          <option value="">📅 Tous les trimestres</option>
           {terms?.map((t: any) => (
             <option key={t.id} value={t.id}>
               {t.name}
@@ -194,7 +194,7 @@ export function ReportCardsListPage() {
             {canManage && (
               <Button onClick={() => setGenerateOpen(true)} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                GÃ©nÃ©rer les bulletins
+                Générer les bulletins
               </Button>
             )}
           </CardContent>
@@ -262,7 +262,7 @@ function ReportCardRow({ report }: { report: ReportCard }) {
 
   const fullName = report.student
     ? `${report.student.lastName} ${report.student.firstName}`
-    : "â€”";
+    : "—";
 
   return (
     <tr className="border-b last:border-0 hover:bg-muted/30">
@@ -292,9 +292,9 @@ function ReportCardRow({ report }: { report: ReportCard }) {
         </div>
       </td>
       <td className="p-3 text-muted-foreground">
-        {report.class?.name || "â€”"}
+        {report.class?.name || "—"}
       </td>
-      <td className="p-3 text-muted-foreground">{report.term?.name || "â€”"}</td>
+      <td className="p-3 text-muted-foreground">{report.term?.name || "—"}</td>
       <td className="p-3 text-center">
         {report.average !== null && report.average !== undefined ? (
           <span className={cn("font-bold text-base", appreciationColor)}>
@@ -302,7 +302,7 @@ function ReportCardRow({ report }: { report: ReportCard }) {
             <span className="text-xs font-normal text-muted-foreground"> / {scale}</span>
           </span>
         ) : (
-          <span className="text-muted-foreground">â€”</span>
+          <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="p-3 text-center">
@@ -319,13 +319,13 @@ function ReportCardRow({ report }: { report: ReportCard }) {
                     : "bg-muted text-muted-foreground",
             )}
           >
-            {report.rank === 1 && "ðŸ¥‡"}
-            {report.rank === 2 && "ðŸ¥ˆ"}
-            {report.rank === 3 && "ðŸ¥‰"}
+            {report.rank === 1 && "🥇"}
+            {report.rank === 2 && "🥈"}
+            {report.rank === 3 && "🥉"}
             {report.rank}/{report.classSize || "?"}
           </span>
         ) : (
-          <span className="text-muted-foreground">â€”</span>
+          <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="p-3">

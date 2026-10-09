@@ -4,6 +4,8 @@ import { PrismaService } from "../prisma/prisma.service";
 export const DEFAULT_HONOR_ROLL_TOP_N = 3;
 export const DEFAULT_INVOICE_PREFIX = "FAC";
 export const DEFAULT_RECEIPT_PREFIX = "REC";
+export const DEFAULT_UNPAID_WARNING = 25000;   // FCFA - seuil d'attention
+export const DEFAULT_UNPAID_CRITICAL = 100000; // FCFA - seuil critique
 
 type SettingData = Record<string, any>;
 
@@ -34,6 +36,11 @@ export class SettingsService {
         invoicePrefix: DEFAULT_INVOICE_PREFIX,
         receiptPrefix: DEFAULT_RECEIPT_PREFIX,
         ...(data.numbering ?? {}),
+      },
+      finance: {
+        warningThreshold: DEFAULT_UNPAID_WARNING,
+        criticalThreshold: DEFAULT_UNPAID_CRITICAL,
+        ...(data.finance ?? {}),
       },
     };
   }

@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 export const DEFAULT_HONOR_ROLL_TOP_N = 3;
+export const DEFAULT_INVOICE_PREFIX = "FAC";
+export const DEFAULT_RECEIPT_PREFIX = "REC";
 
 type SettingData = Record<string, any>;
 
@@ -27,6 +29,11 @@ export class SettingsService {
       honorRoll: {
         topN: DEFAULT_HONOR_ROLL_TOP_N,
         ...(data.honorRoll ?? {}),
+      },
+      numbering: {
+        invoicePrefix: DEFAULT_INVOICE_PREFIX,
+        receiptPrefix: DEFAULT_RECEIPT_PREFIX,
+        ...(data.numbering ?? {}),
       },
     };
   }

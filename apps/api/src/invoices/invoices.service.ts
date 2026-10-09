@@ -1,12 +1,16 @@
-﻿import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import { InvoiceCreateDto, InvoiceCancelDto } from "./dto";
 
 @Injectable()
 export class InvoicesService {
   private readonly logger = new Logger(InvoicesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) {}
 
   async findAll(schoolId: string | null, page = 1, limit = 20, filters: {
     studentId?: string; status?: string; academicYearId?: string; q?: string;
@@ -247,7 +251,11 @@ export class InvoicesService {
 
   private async generateInvoiceNumber(schoolId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const prefix = `FAC-${year}-`;
+    const settingsData = await this.settings.getDataWithDefaults(schoolId);
+    const invoicePrefix = (settingsData.numbering?.invoicePrefix ?? "FAC")
+      .toString()
+      .toUpperCase();
+    const prefix = `${invoicePrefix}-${year}-`;
 
     const last = await this.prisma.invoice.findFirst({
       where: { schoolId, number: { startsWith: prefix } },

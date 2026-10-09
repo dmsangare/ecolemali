@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import { PaymentCancelDto } from "./dto";
 
 type PaymentCreateInput = {
@@ -16,7 +17,8 @@ type PaymentCreateInput = {
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly settings: SettingsService) {}
 
   async findAll(schoolId: string | null, page = 1, limit = 20, filters: {
     studentId?: string; invoiceId?: string; method?: string; fromDate?: string; toDate?: string;
@@ -226,7 +228,11 @@ export class PaymentsService {
 
   private async generateReceiptNumber(tx: any, schoolId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const prefix = `REC-${year}-`;
+    const settingsData = await this.settings.getDataWithDefaults(schoolId);
+    const receiptPrefix = (settingsData.numbering?.receiptPrefix ?? "REC")
+      .toString()
+      .toUpperCase();
+    const prefix = `${receiptPrefix}-${year}-`;
     const last = await tx.receipt.findFirst({
       where: { number: { startsWith: prefix } },
       orderBy: { number: "desc" },

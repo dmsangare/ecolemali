@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import {
   Users as UsersIcon, Plus, Loader2, Mail, Phone,
   Shield, Trash2, Key, Pencil,
@@ -114,7 +114,7 @@ export function UsersTab() {
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Mail className="h-3 w-3" />
-                          {user.email || "—"}
+                          {user.email || "â€”"}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -207,10 +207,11 @@ function CreateUserModal({
   const [lastName, setLastName] = useState("");
   const [emailLocal, setEmailLocal] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("SisMali2026!");
+  const [password, setPassword] = useState("SisMali@Temp!");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [selectedGuardianId, setSelectedGuardianId] = useState("");
+  const [createdResult, setCreatedResult] = useState<{ email: string; password: string } | null>(null);
   const createMutation = useCreateUser();
 
   const { data: availableTeachers = [] } = useAvailableTeachers();
@@ -231,22 +232,81 @@ function CreateUserModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullEmail || !password || selectedRoles.length === 0) {
-      alert("Email, mot de passe et au moins un role sont requis");
+    if (!fullEmail || selectedRoles.length === 0) {
+      alert("Email et au moins un role sont requis");
       return;
     }
-    await createMutation.mutateAsync({
+    // Le password est optionnel : si laisse vide, le backend utilise SisMali@Temp!
+    const result = await createMutation.mutateAsync({
       email: fullEmail,
       phone: phone || undefined,
-      password,
+      password: password || undefined,
       firstName,
       lastName,
       roleIds: selectedRoles,
       teacherId: hasTeacherRole && selectedTeacherId ? selectedTeacherId : undefined,
       guardianId: hasParentRole && selectedGuardianId ? selectedGuardianId : undefined,
     } as any);
-    onClose();
+    setCreatedResult({
+      email: fullEmail,
+      password: (result as any)?.provisionalPassword ?? "SisMali@Temp!",
+    });
   };
+
+  // Apres creation : afficher la modal de confirmation
+  if (createdResult) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-green-600">✓</span>
+              Utilisateur cree
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Communiquez ce mot de passe a l'utilisateur. Il devra le changer
+              a sa premiere connexion.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Email</Label>
+                <div className="mt-1 rounded border bg-muted/30 p-2 font-mono text-sm">
+                  {createdResult.email}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Mot de passe provisoire</Label>
+                <div className="mt-1 flex items-center gap-2 rounded border bg-primary/5 p-2">
+                  <span className="flex-1 font-mono text-lg font-bold tracking-wide">
+                    {createdResult.password}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdResult.password);
+                      alert("Mot de passe copie");
+                    }}
+                  >
+                    Copier
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="rounded border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
+              ⚠️ Ce mot de passe ne sera plus affiche. Notez-le maintenant.
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={onClose}>Fermer</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -313,16 +373,15 @@ function CreateUserModal({
             </div>
 
             <div className="space-y-2">
-              <Label>Mot de passe * (min 8 caracteres)</Label>
+              <Label>Mot de passe provisoire (optionnel)</Label>
               <Input
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
+                placeholder="SisMali@Temp!"
               />
               <p className="text-xs text-muted-foreground">
-                L utilisateur devra le changer a la premiere connexion.
+                Laissez <strong>SisMali@Temp!</strong> ou modifiez. L'utilisateur devra le changer a sa premiere connexion.
               </p>
             </div>
 
@@ -364,7 +423,7 @@ function CreateUserModal({
                   <option value="">-- Aucune fiche liee --</option>
                   {availableTeachers.map((t: any) => (
                     <option key={t.id} value={t.id}>
-                      {t.matricule} · {t.lastName} {t.firstName}
+                      {t.matricule} Â· {t.lastName} {t.firstName}
                       {t.specialty ? ` (${t.specialty})` : ""}
                     </option>
                   ))}
@@ -387,7 +446,7 @@ function CreateUserModal({
                   <option value="">-- Aucune fiche liee --</option>
                   {availableGuardians.map((g: any) => (
                     <option key={g.id} value={g.id}>
-                      {g.lastName} {g.firstName} · {g.phone || "—"} ({g.relationType})
+                      {g.lastName} {g.firstName} Â· {g.phone || "â€”"} ({g.relationType})
                     </option>
                   ))}
                 </select>
@@ -649,7 +708,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
                 {!changeFiche && (
                   <p className="text-sm text-muted-foreground">
                     {user.teacher ? (
-                      <>Fiche actuelle : <strong>{user.teacher.matricule} · {user.teacher.lastName} {user.teacher.firstName}</strong></>
+                      <>Fiche actuelle : <strong>{user.teacher.matricule} Â· {user.teacher.lastName} {user.teacher.firstName}</strong></>
                     ) : (
                       "Aucune fiche liee"
                     )}
@@ -667,7 +726,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
                       <option value="">-- Aucune fiche liee --</option>
                       {availableTeachers.map((t: any) => (
                         <option key={t.id} value={t.id}>
-                          {t.matricule} · {t.lastName} {t.firstName}
+                          {t.matricule} Â· {t.lastName} {t.firstName}
                         </option>
                       ))}
                     </select>
@@ -688,7 +747,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
                       <option value="">-- Aucune fiche liee --</option>
                       {availableGuardians.map((g: any) => (
                         <option key={g.id} value={g.id}>
-                          {g.lastName} {g.firstName} · {g.phone || "—"}
+                          {g.lastName} {g.firstName} Â· {g.phone || "â€”"}
                         </option>
                       ))}
                     </select>

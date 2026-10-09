@@ -1,5 +1,10 @@
-﻿import { AppRoutes } from "./routes";
+import { AppRoutes } from "./routes";
+import { AppearanceProvider } from "@/components/providers/AppearanceProvider";
 
 export function App() {
-  return <AppRoutes />;
+  return (
+    <AppearanceProvider>
+      <AppRoutes />
+    </AppearanceProvider>
+  );
 }

@@ -1,42 +1,58 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "@/lib/axios";
+import { settingsApi, Settings, AppearanceSettings } from "@/api/settings";
+import { useAuth } from "@/contexts/AuthContext";
 
-export interface SystemSettings {
-  id?: string;
-  currency: string;
-  locale: string;
-  timezone: string;
-  gradingScale: number | string;
-  passMark: number | string;
-  academicYear?: string;
-  matriculeFormat?: string;
-}
+const KEY = ["settings"];
 
 export function useSettings() {
+  const { user, isAuthenticated } = useAuth();
   return useQuery({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const { data } = await api.get("/settings");
-      return (data.data || data) as SystemSettings;
-    },
+    queryKey: KEY,
+    queryFn: () => settingsApi.get(),
+    // Ne lancer la requete que quand l'utilisateur est authentifie
+    // et a une ecole associee
+    enabled: isAuthenticated && !!user?.schoolId,
     staleTime: 5 * 60_000,
+    // Toujours refetch au montage pour ne pas garder un cache negatif
+    refetchOnMount: "always",
+    retry: 1,
   });
 }
 
 export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: Partial<SystemSettings>) => {
-      const { data } = await api.patch("/settings", dto);
-      return data.data || data;
-    },
+    mutationFn: (payload: Partial<Settings>) => settingsApi.update(payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["settings"] });
-      toast.success("Parametres systeme mis a jour");
+      qc.invalidateQueries({ queryKey: KEY });
+      toast.success("Parametres mis a jour");
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Erreur lors de la mise a jour");
+      toast.error(
+        err?.response?.data?.message || "Erreur lors de la mise a jour",
+      );
     },
   });
 }
+
+export function useUpdateAppearance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (appearance: AppearanceSettings) =>
+      settingsApi.updateAppearance(appearance),
+    onSuccess: () => {
+      // Forcer un refetch complet (enlever le cache puis invalider)
+      qc.setQueryData(KEY, undefined as any);
+      qc.invalidateQueries({ queryKey: KEY, refetchType: "all" });
+      toast.success("Apparence mise a jour");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.message || "Erreur lors de la mise a jour",
+      );
+    },
+  });
+}
+
+export type { Settings, AppearanceSettings };

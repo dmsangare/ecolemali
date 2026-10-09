@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 import type {
   Student,
   StudentListFilters,
@@ -129,4 +129,31 @@ export const studentsApi = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+  // ============================================================
+  // CARTES SCOLAIRES (BLOC B)
+  // ============================================================
+
+  /**
+   * Genere un PDF de cartes scolaires.
+   * Fournir SOIT classId, SOIT studentIds[].
+   */
+  async generateIdCards(options: {
+    classId?: string;
+    studentIds?: string[];
+    format?: "A4" | "PVC";
+    includeVerso?: boolean;
+  }): Promise<Blob> {
+    const { data } = await api.post(
+      "/students/id-cards/batch",
+      {
+        classId: options.classId,
+        studentIds: options.studentIds,
+        format: options.format || "A4",
+        includeVerso: !!options.includeVerso,
+      },
+      { responseType: "blob" },
+    );
+    return data;
+  },
+
 };

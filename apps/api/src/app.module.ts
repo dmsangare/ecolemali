@@ -1,4 +1,4 @@
-﻿import { Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
@@ -44,7 +44,7 @@ import { AuditModule } from "./audit/audit.module";
 import { BackupsModule } from "./backups/backups.module";
 import { TransfersModule } from "./transfers/transfers.module";
 
-import { JwtAuthGuard, PermissionsGuard } from "./common/guards";
+import { JwtAuthGuard, PermissionsGuard, MustChangePasswordGuard } from "./common/guards";
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
 
 @Module({
@@ -99,6 +99,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: MustChangePasswordGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

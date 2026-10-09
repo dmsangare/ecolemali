@@ -51,7 +51,7 @@ export class UsersController {
       schoolId?: string;
       email?: string;
       phone?: string;
-      password: string;
+      password?: string;
       firstName: string;
       lastName: string;
       roleIds: string[];
@@ -59,7 +59,7 @@ export class UsersController {
       guardianId?: string;
     },
   ) {
-    if (!dto.password || dto.password.length < 8) {
+    if (dto.password !== undefined && dto.password.length > 0 && dto.password.length < 8) {
       throw new BadRequestException("Le mot de passe doit contenir au moins 8 caracteres");
     }
     if (!dto.roleIds || dto.roleIds.length === 0) {
@@ -94,13 +94,9 @@ export class UsersController {
   @ApiOperation({ summary: "Reinitialiser le mot de passe" })
   async resetPassword(
     @Param("id") id: string,
-    @Body() body: { newPassword: string },
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    if (!body.newPassword || body.newPassword.length < 8) {
-      throw new BadRequestException("Mot de passe trop court (min 8)");
-    }
-    return this.usersService.resetPassword(id, body.newPassword, user);
+    return this.usersService.resetPassword(id, user);
   }
 
   @Delete(":id")

@@ -4,6 +4,14 @@ import * as bcrypt from "bcryptjs";
 import { CurrentUserPayload } from "../common/decorators";
 import { assertSchoolAccess, isSuperAdmin } from "../common/utils";
 
+/**
+ * Mot de passe provisoire attribue par defaut aux nouveaux utilisateurs
+ * et lors d'une reinitialisation. L'utilisateur DOIT le changer a sa
+ * premiere connexion (mustChangePassword = true).
+ */
+export const DEFAULT_PROVISIONAL_PASSWORD = "SisMali@Temp!";
+
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -80,7 +88,7 @@ export class UsersService {
     schoolId?: string;
     email?: string;
     phone?: string;
-    password: string;
+    password?: string;
     firstName: string;
     lastName: string;
     roleIds: string[];
@@ -92,7 +100,10 @@ export class UsersService {
       if (existing) throw new ConflictException("Cet email est deja utilise");
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const provisionalPassword = dto.password && dto.password.trim().length > 0
+      ? dto.password
+      : DEFAULT_PROVISIONAL_PASSWORD;
+    const passwordHash = await bcrypt.hash(provisionalPassword, 12);
 
     // Verifier que les roles existent et que l'appelant a le droit de les attribuer
     const roles = await this.prisma.role.findMany({
@@ -147,7 +158,7 @@ export class UsersService {
       });
     }
 
-    return createdUser;
+    return { user: createdUser, provisionalPassword };
   }
 
   async update(id: string, dto: any, caller: CurrentUserPayload) {
@@ -217,9 +228,10 @@ export class UsersService {
     return this.prisma.user.delete({ where: { id } });
   }
 
-  async resetPassword(id: string, newPassword: string, caller: CurrentUserPayload) {
+  async resetPassword(id: string, caller: CurrentUserPayload) {
     await this.getTargetOrFail(id, caller);
-    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const provisionalPassword = DEFAULT_PROVISIONAL_PASSWORD;
+    const passwordHash = await bcrypt.hash(provisionalPassword, 12);
     const updated = await this.prisma.user.update({
       where: { id },
       data: { passwordHash, mustChangePassword: true },
@@ -230,7 +242,7 @@ export class UsersService {
       where: { userId: id, revokedAt: null },
       data: { revokedAt: new Date() },
     });
-    return updated;
+    return { user: updated, provisionalPassword };
   }
 
   async listRoles(caller: CurrentUserPayload) {

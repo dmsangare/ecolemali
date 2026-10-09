@@ -54,8 +54,15 @@ export interface Settings {
 
 export const settingsApi = {
   async get(): Promise<Settings> {
-    const { data } = await api.get("/settings");
-    return data.data || data;
+    const response = await api.get("/settings");
+    // L'API renvoie { id, schoolId, ..., data: { appearance, ... } }
+    // On retourne l'objet Settings COMPLET (avec son champ .data)
+    const payload = response.data;
+    if (payload && typeof payload === "object" && "data" in payload && "schoolId" in payload) {
+      return payload as Settings;
+    }
+    // Fallback : si le backend n'a pas enveloppe, on suppose que c'est deja Settings
+    return payload as Settings;
   },
 
   async update(payload: Partial<Settings>): Promise<Settings> {

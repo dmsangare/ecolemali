@@ -6,12 +6,17 @@ import { buildMatricule } from "@sis-mali/shared";
 import { generateCSV } from "./utils/csv.util";
 import { generateExcel } from "./utils/excel.util";
 import { generatePDF } from "./utils/pdf.util";
+import { generateIdCardsPDF, IdCardData } from "./utils/id-card-pdf.util";
+import { VerificationService } from "../verification/verification.service";
 
 type EnrollmentStatusFilter = "NOUVEAU" | "ANCIEN" | "REDOUBLANT";
 
 @Injectable()
 export class StudentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly verification: VerificationService,
+  ) {}
 
   /**
    * Liste des eleves avec filtres avances.
@@ -1240,5 +1245,126 @@ export class StudentsService {
     }
 
     return results;
+  }
+
+  /**
+   * BLOC B — Genere un PDF de cartes scolaires pour une classe.
+   *
+   * - Cree un VerifiableDocument de type ID_CARD pour chaque eleve
+   * - Genere un QR code pointant vers /v/{shortCode}/{token}
+   * - Compose un PDF A4 (8 cartes/page) ou PVC
+   * - Met a jour Student.idCardGeneratedAt
+   */
+  async generateIdCardsBatch(
+    schoolId: string,
+    classId: string,
+    options: { format: "A4" | "PVC"; includeVerso: boolean },
+  ): Promise<Buffer> {
+    const klass = await this.prisma.class.findFirst({
+      where: { id: classId, schoolId },
+      include: {
+        level: { select: { name: true } },
+        enrollments: {
+          where: { status: "VALIDATED" },
+          include: {
+            student: {
+              select: {
+                id: true,
+                matricule: true,
+                firstName: true,
+                lastName: true,
+                gender: true,
+                birthDate: true,
+                photoUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!klass) throw new NotFoundException("Classe introuvable");
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        name: true,
+        sigle: true,
+        logoUrl: true,
+        address: true,
+        phone: true,
+        motto: true,
+      },
+    });
+    if (!school) throw new NotFoundException("Ecole introuvable");
+
+    const currentYear = await this.prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+      select: { label: true },
+    });
+    const academicYearLabel = currentYear?.label || "";
+
+    const students = klass.enrollments.map((e) => e.student);
+    if (students.length === 0) {
+      throw new BadRequestException("Aucun eleve inscrit dans cette classe");
+    }
+
+    const QRCode = await import("qrcode");
+
+    const cards: IdCardData[] = [];
+    for (const st of students) {
+      const signed = await this.verification.sign({
+        schoolId,
+        type: "ID_CARD",
+        referenceId: st.id,
+        meta: {
+          matricule: st.matricule,
+          nom: `${st.lastName} ${st.firstName}`,
+          classe: klass.name,
+        },
+      });
+
+      const verifyUrl = this.verification.buildQrPayload(
+        signed.shortCode,
+        signed.hmacToken,
+      );
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+        width: 240,
+        margin: 1,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      });
+
+      cards.push({
+        schoolName: school.name,
+        schoolSigle: school.sigle,
+        schoolLogoBase64: school.logoUrl,
+        schoolAddress: school.address,
+        schoolPhone: school.phone,
+        schoolMotto: school.motto,
+        academicYearLabel,
+        student: {
+          id: st.id,
+          matricule: st.matricule,
+          firstName: st.firstName,
+          lastName: st.lastName,
+          gender: st.gender,
+          birthDate: st.birthDate,
+          className: klass.name,
+          photoUrl: st.photoUrl,
+        },
+        qrDataUrl,
+        verifyUrl,
+      });
+    }
+
+    const pdf = await generateIdCardsPDF(cards, options);
+
+    // Tracer la generation
+    await this.prisma.student.updateMany({
+      where: { id: { in: students.map((s) => s.id) } },
+      data: { idCardGeneratedAt: new Date() },
+    });
+
+    return pdf;
   }
 }

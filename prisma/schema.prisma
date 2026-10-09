@@ -644,6 +644,7 @@ model Student {
   birthPlace       String?       @map("birth_place") @db.VarChar(150)
   nationality      String?       @db.VarChar(80)
   photoUrl         String?       @map("photo_url")
+  idCardGeneratedAt DateTime?    @map("id_card_generated_at") @db.Timestamptz
   phone            String?       @db.VarChar(30)
   address          String?
   specialSituation String?       @map("special_situation")

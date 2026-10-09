@@ -226,6 +226,37 @@ export class StudentsController {
     res.send(buffer);
   }
 
+  /**
+   * BLOC B — Genere un PDF de cartes scolaires pour une classe.
+   */
+  @Post("id-cards/batch")
+  @RequirePermissions("student:view")
+  @ApiOperation({ summary: "Generer les cartes scolaires (PDF)" })
+  async generateIdCards(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: { classId: string; format?: "A4" | "PVC"; includeVerso?: boolean },
+    @Res() res: Response,
+  ) {
+    if (!user.schoolId) throw new BadRequestException("Ecole introuvable");
+    if (!body?.classId) throw new BadRequestException("classId requis");
+
+    const format = body.format === "PVC" ? "PVC" : "A4";
+    const includeVerso = !!body.includeVerso;
+
+    const pdf = await this.service.generateIdCardsBatch(user.schoolId, body.classId, {
+      format,
+      includeVerso,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="cartes-${body.classId.slice(0, 8)}.pdf"`,
+    );
+    res.setHeader("Content-Length", pdf.length);
+    res.end(pdf);
+  }
+
   @Get("export/pdf")
   @RequirePermissions("student:export")
   @ApiOperation({ summary: "Exporter les eleves en PDF" })

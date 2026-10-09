@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, Save, Building2, Mail, Phone, Globe, MapPin, Quote, Image as ImageIcon, Upload, Trash2, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Building2, Mail, Phone, Globe, MapPin, Quote, Image as ImageIcon, Upload, Trash2, CheckCircle2, FileSignature, Stamp } from "lucide-react";
 import { useSchool, useUpdateSchool } from "@/hooks/users";
-import { useUploadLogo } from "@/hooks/school/useSchool";
+import { useUploadLogo, useUploadStamp, useUploadSignature } from "@/hooks/school/useSchool";
 import {
   Button, Input, Label, Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui";
@@ -11,8 +11,14 @@ export function SchoolTab() {
   const { data: school, isLoading } = useSchool();
   const updateMutation = useUpdateSchool();
   const uploadLogoMutation = useUploadLogo();
+  const uploadStampMutation = useUploadStamp();
+  const uploadSignatureMutation = useUploadSignature();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const stampInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [stampPreview, setStampPreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -67,6 +73,66 @@ export function SchoolTab() {
   const handleRemovePreview = () => {
     setLogoPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleStampChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !school) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Format non supporte. Utilisez PNG, JPG ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Fichier trop volumineux (max 2 Mo).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => setStampPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      await uploadStampMutation.mutateAsync({ id: school.id, file });
+    } catch {
+      setStampPreview(null);
+    }
+  };
+
+  const handleRemoveStampPreview = () => {
+    setStampPreview(null);
+    if (stampInputRef.current) stampInputRef.current.value = "";
+  };
+
+  const handleSignatureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !school) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Format non supporte. Utilisez PNG, JPG ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Fichier trop volumineux (max 2 Mo).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => setSignaturePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    try {
+      await uploadSignatureMutation.mutateAsync({ id: school.id, file });
+    } catch {
+      setSignaturePreview(null);
+    }
+  };
+
+  const handleRemoveSignaturePreview = () => {
+    setSignaturePreview(null);
+    if (signatureInputRef.current) signatureInputRef.current.value = "";
   };
 
   const onSubmit = async (data: any) => {
@@ -255,6 +321,152 @@ export function SchoolTab() {
               <Globe className="h-3 w-3" /> Site web
             </Label>
             <Input id="website" placeholder="https://..." {...register("website")} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SIGNATURE & TAMPON */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileSignature className="h-5 w-5" />
+            Signature & Tampon (pour les bulletins)
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Ces images apparaissent sur les bulletins imprimes.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          {/* TAMPON */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Stamp className="h-4 w-4" />
+              Tampon / Cachet de l'ecole
+            </Label>
+            <div className="flex items-center gap-4">
+              <div className="h-24 w-24 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                {stampPreview || school?.stampUrl ? (
+                  <img
+                    src={stampPreview || `${school?.stampUrl}`}
+                    alt="Tampon"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <div className="text-center text-xs text-muted-foreground">
+                    <Stamp className="h-6 w-6 mx-auto text-muted-foreground/50" />
+                    <p className="mt-1">Aucun</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  ref={stampInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                  onChange={handleStampChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => stampInputRef.current?.click()}
+                  disabled={uploadStampMutation.isPending}
+                >
+                  {uploadStampMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Upload...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {school?.stampUrl ? "Changer" : "Ajouter"}
+                    </>
+                  )}
+                </Button>
+                {stampPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveStampPreview}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Annuler
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Format PNG/JPG/SVG · Max 2 Mo · Recommande : fond transparent
+            </p>
+          </div>
+
+          {/* SIGNATURE */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <FileSignature className="h-4 w-4" />
+              Signature du directeur
+            </Label>
+            <div className="flex items-center gap-4">
+              <div className="h-24 w-24 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                {signaturePreview || school?.signatureUrl ? (
+                  <img
+                    src={signaturePreview || `${school?.signatureUrl}`}
+                    alt="Signature"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <div className="text-center text-xs text-muted-foreground">
+                    <FileSignature className="h-6 w-6 mx-auto text-muted-foreground/50" />
+                    <p className="mt-1">Aucune</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                  onChange={handleSignatureChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signatureInputRef.current?.click()}
+                  disabled={uploadSignatureMutation.isPending}
+                >
+                  {uploadSignatureMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Upload...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {school?.signatureUrl ? "Changer" : "Ajouter"}
+                    </>
+                  )}
+                </Button>
+                {signaturePreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveSignaturePreview}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Annuler
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Format PNG/JPG/SVG · Max 2 Mo · Recommande : fond transparent
+            </p>
           </div>
         </CardContent>
       </Card>

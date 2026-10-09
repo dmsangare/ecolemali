@@ -14,6 +14,8 @@ export interface School {
   website: string | null;
   directorName: string | null;
   logoUrl: string | null;
+  stampUrl: string | null;
+  signatureUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +69,53 @@ export function useUploadLogo() {
     onError: (err: any) => {
       toast.error(
         err?.response?.data?.message || "Erreur lors de l upload du logo",
+      );
+    },
+  });
+}
+
+export function useUploadStamp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post(`/schools/${id}/stamp`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data.data || data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["school"] });
+      toast.success("Tampon mis a jour");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.message || "Erreur lors de l upload du tampon",
+      );
+    },
+  });
+}
+
+export function useUploadSignature() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post(`/schools/${id}/signature`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data.data || data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["school"] });
+      toast.success("Signature mise a jour");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.message ||
+          "Erreur lors de l upload de la signature",
       );
     },
   });

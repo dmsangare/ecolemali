@@ -9,6 +9,7 @@
   Shield,
   HardDrive,
   Trophy,
+  Hash,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SchoolTab } from "./SchoolTab";
@@ -20,6 +21,7 @@ import { AppearanceTab } from "./AppearanceTab";
 import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
 import { HonorRollTab } from "./HonorRollTab";
+import { NumberingTab } from "./NumberingTab";
 
 export function SettingsPage() {
   return (
@@ -36,7 +38,7 @@ export function SettingsPage() {
       </div>
 
       <Tabs defaultValue="school" className="space-y-6">
-        <TabsList className="grid w-full max-w-6xl grid-cols-9">
+        <TabsList className="flex flex-wrap justify-center gap-1 w-full max-w-6xl">
           <TabsTrigger value="school" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Etablissement
@@ -56,6 +58,10 @@ export function SettingsPage() {
           <TabsTrigger value="honorRoll" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             Honneur
+          </TabsTrigger>
+          <TabsTrigger value="numbering" className="flex items-center gap-2">
+            <Hash className="h-4 w-4" />
+            Numerotation
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -93,6 +99,10 @@ export function SettingsPage() {
 
         <TabsContent value="honorRoll">
           <HonorRollTab />
+        </TabsContent>
+
+        <TabsContent value="numbering">
+          <NumberingTab />
         </TabsContent>
 
         <TabsContent value="users">

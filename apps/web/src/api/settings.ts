@@ -22,11 +22,16 @@ export interface ThresholdsSettings {
 export interface HonorRollSettings {
   topN?: number;
 }
+export interface NumberingSettings {
+  invoicePrefix?: string;
+  receiptPrefix?: string;
+}
 export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;
   thresholds?: ThresholdsSettings;
   honorRoll?: HonorRollSettings;
+  numbering?: NumberingSettings;
 }
 
 export interface Settings {

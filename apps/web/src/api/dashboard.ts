@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 
 export interface TopStudentEntry {
   rank: number;
@@ -33,6 +33,32 @@ export interface TopStudentsResponse {
   periods?: Record<string, { termId: string; name: string; type: string } | null>;
 }
 
+
+export interface HonorRollClassEntry {
+  rank: number;
+  classId: string;
+  className: string;
+  levelName: string | null;
+  average: number;
+  scale: number;
+  studentsCount: number;
+}
+
+export interface HonorRollResponse {
+  topN: number;
+  term: {
+    id: string;
+    name: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+  } | null;
+  podiums: {
+    PREMIER_CYCLE: HonorRollClassEntry[];
+    DEUXIEME_CYCLE: HonorRollClassEntry[];
+    LYCEE: HonorRollClassEntry[];
+  };
+}
 export const dashboardApi = {
   async getTopStudents(): Promise<TopStudentsResponse> {
     const { data } = await api.get("/dashboard/top-students");
@@ -54,6 +80,13 @@ export const dashboardApi = {
     return data.data || data;
   },
 
+  async getHonorRoll(termId?: string, cycle?: string): Promise<HonorRollResponse> {
+    const params: any = {};
+    if (termId) params.termId = termId;
+    if (cycle) params.cycle = cycle;
+    const { data } = await api.get("/dashboard/honor-roll", { params });
+    return data.data || data;
+  },
   async recomputeTopStudents(termId?: string): Promise<any> {
     const { data } = await api.post("/dashboard/top-students/recompute", null, {
       params: termId ? { termId } : undefined,

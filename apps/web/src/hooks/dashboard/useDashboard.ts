@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { dashboardApi } from "@/api/dashboard";
 
 const KEY = "dashboard";
@@ -32,5 +32,13 @@ export function useSecretaryDashboard() {
     queryKey: [KEY, "secretary"],
     queryFn: () => dashboardApi.getSecretaryDashboard(),
     staleTime: 2 * 60_000,
+  });
+}
+
+export function useHonorRoll(termId?: string, cycle?: string) {
+  return useQuery({
+    queryKey: [KEY, "honor-roll", termId ?? null, cycle ?? null],
+    queryFn: () => dashboardApi.getHonorRoll(termId, cycle),
+    staleTime: 5 * 60_000, // 5 min
   });
 }

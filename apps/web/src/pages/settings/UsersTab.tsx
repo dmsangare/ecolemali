@@ -504,8 +504,8 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
 
   // Reset password
   const [showResetPwd, setShowResetPwd] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
   const [resetResult, setResetResult] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const { data: roles = [] } = useRoles();
   const { data: availableTeachers = [] } = useAvailableTeachers();
@@ -555,28 +555,16 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
   };
 
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 8) {
-      alert("Mot de passe trop court (min 8)");
-      return;
-    }
+    setResetLoading(true);
     try {
-      const { api } = await import("@/lib/axios");
-      await api.post(`/users/${user.id}/reset-password`, { newPassword });
-      setResetResult(newPassword);
-      setNewPassword("");
+      const { usersApi } = await import("@/api/users");
+      const result = await usersApi.resetPassword(user.id);
+      setResetResult((result as any)?.provisionalPassword ?? "SisMali@Temp!");
     } catch (err: any) {
       alert(err?.response?.data?.message || "Erreur reset password");
+    } finally {
+      setResetLoading(false);
     }
-  };
-
-  const handleGeneratePassword = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    let pwd = "Sis";
-    for (let i = 0; i < 7; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    pwd += "!";
-    setNewPassword(pwd);
   };
 
   const handleDelete = async () => {
@@ -779,30 +767,16 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
               {showResetPwd && (
                 <div className="border rounded-md p-3 bg-amber-50/30 space-y-2">
                   <p className="text-xs text-amber-800">
-                    Le mot de passe actuel sera remplace. L utilisateur devra le changer a sa prochaine connexion.
+                    Le mot de passe actuel sera remplace par <strong>SisMali@Temp!</strong>. L utilisateur devra le changer a sa prochaine connexion.
                   </p>
                   <div className="flex gap-2">
-                    <Input
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Nouveau mot de passe (min 8)"
-                      className="flex-1 font-mono"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGeneratePassword}
-                    >
-                      Generer
-                    </Button>
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleResetPassword}
-                      disabled={!newPassword || newPassword.length < 8}
+                      disabled={resetLoading}
                     >
-                      Appliquer
+                      {resetLoading ? "Reinitialisation..." : "Reinitialiser le mot de passe"}
                     </Button>
                   </div>
 

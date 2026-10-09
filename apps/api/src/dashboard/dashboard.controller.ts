@@ -51,6 +51,23 @@ export class DashboardController {
     return this.service.recomputeTopStudents(schoolId, termId);
   }
 
+  @Get("honor-roll")
+  @ApiOperation({ summary: "Tableau d'honneur : Top N classes par cycle" })
+  async honorRoll(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query("termId") termId?: string,
+    @Query("cycle") cycle?: string,
+  ) {
+    const schoolId = user.roles.includes("SUPER_ADMIN")
+      ? await this.getSuperAdminSchoolId(user)
+      : user.schoolId;
+    if (!schoolId) throw new BadRequestException("Ecole introuvable");
+    if (cycle && !["PREMIER_CYCLE", "DEUXIEME_CYCLE", "LYCEE"].includes(cycle)) {
+      throw new BadRequestException("Cycle invalide");
+    }
+    return this.service.getHonorRoll(schoolId, termId, cycle);
+  }
+
   @Get("teacher")
   @ApiOperation({ summary: "Dashboard enseignant" })
   async teacherDashboard(@CurrentUser() user: CurrentUserPayload) {

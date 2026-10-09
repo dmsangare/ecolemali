@@ -1,11 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) {}
 
   /**
    * Recalcule le Top 3 (tableau d'honneur) pour une école et un trimestre donnés.
@@ -168,6 +172,90 @@ export class DashboardService {
     );
 
     return { updated: totalUpdated };
+  }
+
+  /**
+   * Tableau d'honneur : Top N CLASSES par cycle.
+   * - Moyenne classe = moyenne des ReportCard.average PUBLISHED des eleves
+   * - Classes sans bulletin publie exclues
+   * - Eleves sans average exclus
+   * - Exaequo : comparaison au centieme, rang partage puis saut (1,2,2,4)
+   */
+  async getHonorRoll(schoolId: string, termId?: string, cycleFilter?: string) {
+    const data = await this.settings.getDataWithDefaults(schoolId);
+    const topN = Math.max(1, Number(data?.honorRoll?.topN ?? 3));
+
+    // 1. Periode ciblee
+    const terms = termId
+      ? await this.prisma.term.findMany({ where: { id: termId } })
+      : await this.prisma.term.findMany({
+          where: { academicYear: { schoolId, isCurrent: true } },
+        });
+
+    const emptyPodiums = (): Record<string, any[]> => ({
+      PREMIER_CYCLE: [], DEUXIEME_CYCLE: [], LYCEE: [],
+    });
+    if (terms.length === 0) {
+      return { topN, term: null, podiums: emptyPodiums() };
+    }
+
+    // 2. Classes de l'ecole (filtre cycle optionnel)
+    const cycles = cycleFilter
+      ? [cycleFilter]
+      : ["PREMIER_CYCLE", "DEUXIEME_CYCLE", "LYCEE"];
+
+    const podiums = emptyPodiums();
+
+    for (const cycle of cycles) {
+      const classes = await this.prisma.class.findMany({
+        where: { schoolId, level: { cycle: cycle as any } },
+        include: { level: { select: { cycle: true, name: true } } },
+      });
+      if (classes.length === 0) continue;
+
+      // 3. Moyennes des bulletins PUBLISHED par classe
+      const byClass: any[] = [];
+      for (const cls of classes) {
+        const agg = await this.prisma.reportCard.aggregate({
+          where: {
+            classId: cls.id,
+            termId: { in: terms.map((t) => t.id) },
+            status: "PUBLISHED",
+            average: { not: null },
+          },
+          _avg: { average: true },
+          _count: { _all: true },
+        });
+        if (!agg._count._all || agg._avg.average === null) continue;
+        byClass.push({
+          classId: cls.id,
+          className: cls.name,
+          levelName: cls.level?.name ?? null,
+          average: Number(agg._avg.average),
+          studentsCount: agg._count._all,
+          scale: 20, // sera ajuste selon cycle plus bas
+        });
+      }
+      if (byClass.length === 0) continue;
+
+      // 4. Tri desc + exaequo au centieme
+      byClass.sort((a, b) => b.average - a.average || a.className.localeCompare(b.className, "fr"));
+      let lastAvg: number | null = null;
+      let lastRank = 0;
+      byClass.forEach((c, i) => {
+        const isTie = lastAvg !== null && Math.abs(c.average - lastAvg) < 0.01;
+        c.rank = isTie ? lastRank : i + 1;
+        lastAvg = c.average;
+        lastRank = c.rank;
+      });
+
+      const scaleForCycle = cycle === "PREMIER_CYCLE" ? 10 : 20;
+      podiums[cycle] = byClass
+        .filter((c) => c.rank <= topN)
+        .map((c) => ({ ...c, scale: scaleForCycle }));
+    }
+
+    return { topN, term: terms[0] ?? null, podiums };
   }
 
   /**

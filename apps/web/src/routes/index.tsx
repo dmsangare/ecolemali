@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { PublicRoute } from "./PublicRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -33,6 +33,7 @@ import {
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
 import { SettingsPage } from "@/pages/settings";
+import { IdCardsPage } from "@/pages/id-cards/IdCardsPage";
 import TimetablePage from '@/pages/timetable/TimetablePage';
 
 export function AppRoutes() {
@@ -362,6 +363,15 @@ export function AppRoutes() {
             }
           />
         </Route>
+
+          <Route
+            path="/id-cards"
+            element={
+              <ProtectedRoute requiredPermission="student:view">
+                <IdCardsPage />
+              </ProtectedRoute>
+            }
+          />
       </Route>
 
       <Route path="/forbidden" element={<ForbiddenPage />} />

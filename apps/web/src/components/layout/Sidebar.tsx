@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Trophy,
@@ -20,7 +20,7 @@ import {
   UserCog,
   Tag,
   Coins,
-  TrendingDown, AlertTriangle } from "lucide-react";
+  TrendingDown, AlertTriangle, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/hooks/school/useSchool";
@@ -82,7 +82,13 @@ const SECTIONS: NavSection[] = [
       { label: "Caisse", to: "/cash-sessions", icon: Wallet, permission: "cash:view" },
     ],
   },
-  {
+    {
+      title: "Services",
+      items: [
+        { label: "Cartes scolaires", to: "/id-cards", icon: CreditCard, permission: "student:view" },
+      ],
+    },
+    {
     title: "Systeme",
     items: [
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },

@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 
 export interface AppearanceSettings {
   primaryColor?: string; // ex. "#2563eb"
@@ -19,6 +19,9 @@ export interface ThresholdsSettings {
   insuffisant?: number;
 }
 
+export interface HonorRollSettings {
+  topN?: number;
+}
 export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;

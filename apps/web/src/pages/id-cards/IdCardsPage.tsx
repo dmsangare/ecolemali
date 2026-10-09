@@ -14,7 +14,7 @@ export function IdCardsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"selection" | "class">("selection");
 
-  const { data: studentsData, isLoading } = useStudents({ limit: 500 });
+  const { data: studentsData, isLoading } = useStudents({ limit: 200 });
   const { data: classes } = useClasses();
   const { data: levels } = useLevels();
 
@@ -41,16 +41,27 @@ export function IdCardsPage() {
     return list;
   }, [students, classId, search]);
 
+  // Normalisation : l'API peut renvoyer un array ou { data: [...] }
+  const rawClasses: any = classes;
+  const classesList: any[] = Array.isArray(rawClasses)
+    ? rawClasses
+    : rawClasses?.data || [];
+
+  const rawLevels: any = levels;
+  const levelsList: any[] = Array.isArray(rawLevels)
+    ? rawLevels
+    : rawLevels?.data || [];
+
   // Classes triees
   const sortedClasses = useMemo(() => {
-    if (!classes || !levels) return [];
-    return [...classes].sort((a: any, b: any) => {
-      const la = levels.find((l: any) => l.id === a.levelId)?.orderIndex ?? 999;
-      const lb = levels.find((l: any) => l.id === b.levelId)?.orderIndex ?? 999;
+    if (classesList.length === 0) return [];
+    return [...classesList].sort((a: any, b: any) => {
+      const la = levelsList.find((l: any) => l.id === a.levelId)?.orderIndex ?? 999;
+      const lb = levelsList.find((l: any) => l.id === b.levelId)?.orderIndex ?? 999;
       if (la !== lb) return la - lb;
-      return a.code.localeCompare(b.code);
+      return (a.code || "").localeCompare(b.code || "");
     });
-  }, [classes, levels]);
+  }, [classesList, levelsList]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>

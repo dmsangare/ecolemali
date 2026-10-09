@@ -10,10 +10,19 @@ export interface TemplatesSettings {
   reportCardComment?: string;
 }
 
+export interface ThresholdsSettings {
+  excellent?: number;
+  tresBien?: number;
+  bien?: number;
+  assezBien?: number;
+  passable?: number;
+  insuffisant?: number;
+}
+
 export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;
-  thresholds?: Record<string, number>;
+  thresholds?: ThresholdsSettings;
 }
 
 export interface Settings {
@@ -38,6 +47,18 @@ export const settingsApi = {
   async update(payload: Partial<Settings>): Promise<Settings> {
     const { data } = await api.patch("/settings", payload);
     return data.data || data;
+  },
+
+  async updateThresholds(thresholds: Partial<ThresholdsSettings>): Promise<Settings> {
+    const current = await this.get();
+    const merged = {
+      ...(current.data || {}),
+      thresholds: {
+        ...(current.data?.thresholds || {}),
+        ...thresholds,
+      },
+    };
+    return this.update({ data: merged } as any);
   },
 
   async updateTemplates(templates: Partial<TemplatesSettings>): Promise<Settings> {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { settingsApi, Settings, AppearanceSettings, TemplatesSettings } from "@/api/settings";
+import { settingsApi, Settings, AppearanceSettings, TemplatesSettings, ThresholdsSettings } from "@/api/settings";
 import { useAuth } from "@/contexts/AuthContext";
 
 const KEY = ["settings"];
@@ -76,3 +76,23 @@ export function useUpdateTemplates() {
 }
 
 export type { TemplatesSettings };
+
+export function useUpdateThresholds() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (thresholds: Partial<ThresholdsSettings>) =>
+      settingsApi.updateThresholds(thresholds),
+    onSuccess: () => {
+      qc.setQueryData(KEY, undefined as any);
+      qc.invalidateQueries({ queryKey: KEY, refetchType: "all" });
+      toast.success("Seuils mis a jour");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.message || "Erreur lors de la mise a jour",
+      );
+    },
+  });
+}
+
+export type { ThresholdsSettings };

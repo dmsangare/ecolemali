@@ -109,30 +109,50 @@ export const STATUS_LABELS: Record<ReportStatus, { label: string; color: string 
 /**
  * Calcule l'appréciation automatique depuis une moyenne.
  */
+export interface AppreciationThresholds {
+  excellent: number;
+  tresBien: number;
+  bien: number;
+  assezBien: number;
+  passable: number;
+  insuffisant: number;
+}
+
+export const DEFAULT_THRESHOLDS: AppreciationThresholds = {
+  excellent: 18,
+  tresBien: 16,
+  bien: 14,
+  assezBien: 12,
+  passable: 10,
+  insuffisant: 8,
+};
+
 export function getAppreciation(
   average: number | null | undefined,
   scale: number = 20,
+  thresholds: AppreciationThresholds = DEFAULT_THRESHOLDS,
 ): string {
   if (average === null || average === undefined) return "—";
   // Normaliser sur /20 pour comparer aux seuils
   const n = scale === 10 ? average * 2 : average;
-  if (n >= 18) return "Excellent";
-  if (n >= 16) return "Très bien";
-  if (n >= 14) return "Bien";
-  if (n >= 12) return "Assez bien";
-  if (n >= 10) return "Passable";
-  if (n >= 8) return "Insuffisant";
+  if (n >= thresholds.excellent) return "Excellent";
+  if (n >= thresholds.tresBien) return "Très bien";
+  if (n >= thresholds.bien) return "Bien";
+  if (n >= thresholds.assezBien) return "Assez bien";
+  if (n >= thresholds.passable) return "Passable";
+  if (n >= thresholds.insuffisant) return "Insuffisant";
   return "Très insuffisant";
 }
 
 export function getAppreciationColor(
   average: number | null | undefined,
   scale: number = 20,
+  thresholds: AppreciationThresholds = DEFAULT_THRESHOLDS,
 ): string {
   if (average === null || average === undefined) return "text-muted-foreground";
   const n = scale === 10 ? average * 2 : average;
-  if (n >= 14) return "text-green-600";
-  if (n >= 10) return "text-blue-600";
-  if (n >= 8) return "text-orange-600";
+  if (n >= thresholds.bien) return "text-green-600";
+  if (n >= thresholds.passable) return "text-blue-600";
+  if (n >= thresholds.insuffisant) return "text-orange-600";
   return "text-red-600";
 }

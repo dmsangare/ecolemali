@@ -89,6 +89,42 @@ export class SchoolsController {
     return this.schoolsService.uploadLogo(id, file, user);
   }
 
+  @Post(":id/stamp")
+  @RequirePermissions("school:update")
+  @ApiOperation({ summary: "Uploader le tampon de l etablissement" })
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 2 * 1024 * 1024 },
+    }),
+  )
+  async uploadStamp(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    if (!file) throw new BadRequestException("Aucun fichier fourni");
+    return this.schoolsService.uploadStamp(id, file, user);
+  }
+
+  @Post(":id/signature")
+  @RequirePermissions("school:update")
+  @ApiOperation({ summary: "Uploader la signature du directeur" })
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 2 * 1024 * 1024 },
+    }),
+  )
+  async uploadSignature(
+    @Param("id") id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    if (!file) throw new BadRequestException("Aucun fichier fourni");
+    return this.schoolsService.uploadSignature(id, file, user);
+  }
+
   @Delete(":id")
   @UseGuards(SuperAdminOnlyGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

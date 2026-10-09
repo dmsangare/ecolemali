@@ -316,6 +316,8 @@ model School {
   website      String?      @db.VarChar(200)
   directorName String?      @map("director_name") @db.VarChar(150)
   logoUrl      String?      @map("logo_url")
+  stampUrl     String?      @map("stamp_url")
+  signatureUrl String?      @map("signature_url")
   motto        String?      @db.VarChar(200)
   createdYear  Int?         @map("created_year") @db.SmallInt
   tutelleInfo  String?      @map("tutelle_info")

@@ -117,6 +117,66 @@ export class SchoolsService {
   }
 
   /**
+   * Upload generique d'une image (logo, stamp ou signature).
+   */
+  private async uploadImage(
+    id: string,
+    file: Express.Multer.File,
+    user: CurrentUserPayload,
+    subdir: string,
+    fieldName: "logoUrl" | "stampUrl" | "signatureUrl",
+  ) {
+    if (!file) {
+      throw new BadRequestException("Aucun fichier fourni");
+    }
+
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException(
+        "Format non supporte (PNG, JPG ou SVG uniquement)",
+      );
+    }
+
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new BadRequestException("Fichier trop volumineux (max 2 Mo)");
+    }
+
+    await this.findOne(id, user);
+
+    const storageRoot = this.config.get<string>("storage.root", "./storage");
+    const dir = join(process.cwd(), storageRoot, "uploads", subdir);
+    await fs.mkdir(dir, { recursive: true });
+
+    const ext = extname(file.originalname) || ".png";
+    const filename = `${id}-${Date.now()}${ext}`;
+    const filepath = join(dir, filename);
+
+    await fs.writeFile(filepath, file.buffer);
+
+    const url = `/uploads/${subdir}/${filename}`;
+
+    return this.prisma.school.update({
+      where: { id },
+      data: { [fieldName]: url } as any,
+    });
+  }
+
+  /**
+   * Upload du tampon/cachet de l'ecole.
+   */
+  async uploadStamp(id: string, file: Express.Multer.File, user: CurrentUserPayload) {
+    return this.uploadImage(id, file, user, "stamps", "stampUrl");
+  }
+
+  /**
+   * Upload de la signature du directeur.
+   */
+  async uploadSignature(id: string, file: Express.Multer.File, user: CurrentUserPayload) {
+    return this.uploadImage(id, file, user, "signatures", "signatureUrl");
+  }
+
+  /**
    * Retourne l'etat de configuration de l'ecole pour le wizard de demarrage.
    */
   async getSetupStatus(id: string, user: CurrentUserPayload) {

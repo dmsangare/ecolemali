@@ -234,24 +234,32 @@ export class StudentsController {
   @ApiOperation({ summary: "Generer les cartes scolaires (PDF)" })
   async generateIdCards(
     @CurrentUser() user: CurrentUserPayload,
-    @Body() body: { classId: string; format?: "A4" | "PVC"; includeVerso?: boolean },
+    @Body() body: { classId?: string; studentIds?: string[]; format?: "A4" | "PVC"; includeVerso?: boolean },
     @Res() res: Response,
   ) {
     if (!user.schoolId) throw new BadRequestException("Ecole introuvable");
-    if (!body?.classId) throw new BadRequestException("classId requis");
+    if (!body?.classId && (!body?.studentIds || body.studentIds.length === 0)) {
+      throw new BadRequestException("Fournir classId ou studentIds[]");
+    }
 
     const format = body.format === "PVC" ? "PVC" : "A4";
     const includeVerso = !!body.includeVerso;
 
-    const pdf = await this.service.generateIdCardsBatch(user.schoolId, body.classId, {
+    const pdf = await this.service.generateIdCardsBatch(user.schoolId, {
+      classId: body.classId,
+      studentIds: body.studentIds,
       format,
       includeVerso,
     });
 
+    // Nom du fichier : "cartes-classe-XXXX.pdf" ou "cartes-eleves-XXXX.pdf"
+    const filenameSuffix = body.classId
+      ? `classe-${body.classId.slice(0, 8)}`
+      : `eleves-${body.studentIds!.length}`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="cartes-${body.classId.slice(0, 8)}.pdf"`,
+      `attachment; filename="cartes-${filenameSuffix}.pdf"`,
     );
     res.setHeader("Content-Length", pdf.length);
     res.end(pdf);

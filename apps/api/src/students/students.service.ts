@@ -1257,33 +1257,87 @@ export class StudentsService {
    */
   async generateIdCardsBatch(
     schoolId: string,
-    classId: string,
-    options: { format: "A4" | "PVC"; includeVerso: boolean },
+    options: {
+      classId?: string;
+      studentIds?: string[];
+      format: "A4" | "PVC";
+      includeVerso: boolean;
+    },
   ): Promise<Buffer> {
-    const klass = await this.prisma.class.findFirst({
-      where: { id: classId, schoolId },
-      include: {
-        level: { select: { name: true } },
-        enrollments: {
-          where: { status: "VALIDATED" },
-          include: {
-            student: {
-              select: {
-                id: true,
-                matricule: true,
-                firstName: true,
-                lastName: true,
-                gender: true,
-                birthDate: true,
-                photoUrl: true,
+    if (!options.classId && (!options.studentIds || options.studentIds.length === 0)) {
+      throw new BadRequestException("Fournir soit classId, soit studentIds[]");
+    }
+
+    let klassName = "";
+    let students: Array<{
+      id: string;
+      matricule: string;
+      firstName: string;
+      lastName: string;
+      gender: string;
+      birthDate: Date;
+      photoUrl: string | null;
+    }> = [];
+
+    if (options.classId) {
+      const klass = await this.prisma.class.findFirst({
+        where: { id: options.classId, schoolId },
+        include: {
+          enrollments: {
+            where: { status: "VALIDATED" },
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  matricule: true,
+                  firstName: true,
+                  lastName: true,
+                  gender: true,
+                  birthDate: true,
+                  photoUrl: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+      if (!klass) throw new NotFoundException("Classe introuvable");
+      klassName = klass.name;
+      students = klass.enrollments.map((e) => e.student);
+    } else {
+      // studentIds fournis
+      const found = await this.prisma.student.findMany({
+        where: { id: { in: options.studentIds! }, schoolId, deletedAt: null },
+        select: {
+          id: true,
+          matricule: true,
+          firstName: true,
+          lastName: true,
+          gender: true,
+          birthDate: true,
+          photoUrl: true,
+          enrollments: {
+            where: { status: "VALIDATED" },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: { class: { select: { name: true } } },
+          },
+        },
+      });
+      students = found.map((s) => ({
+        id: s.id,
+        matricule: s.matricule,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        gender: s.gender,
+        birthDate: s.birthDate,
+        photoUrl: s.photoUrl,
+      }));
+    }
 
-    if (!klass) throw new NotFoundException("Classe introuvable");
+    if (students.length === 0) {
+      throw new BadRequestException("Aucun eleve trouve");
+    }
 
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
@@ -1304,10 +1358,6 @@ export class StudentsService {
     });
     const academicYearLabel = currentYear?.label || "";
 
-    const students = klass.enrollments.map((e) => e.student);
-    if (students.length === 0) {
-      throw new BadRequestException("Aucun eleve inscrit dans cette classe");
-    }
 
     const QRCode = await import("qrcode");
 
@@ -1320,7 +1370,7 @@ export class StudentsService {
         meta: {
           matricule: st.matricule,
           nom: `${st.lastName} ${st.firstName}`,
-          classe: klass.name,
+          classe: klassName,
         },
       });
 
@@ -1349,7 +1399,7 @@ export class StudentsService {
           lastName: st.lastName,
           gender: st.gender,
           birthDate: st.birthDate,
-          className: klass.name,
+          className: klassName,
           photoUrl: st.photoUrl,
         },
         qrDataUrl,

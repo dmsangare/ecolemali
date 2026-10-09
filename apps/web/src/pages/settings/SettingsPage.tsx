@@ -1,6 +1,7 @@
 import {
   Settings as SettingsIcon,
   Palette,
+  MessageSquare,
   Building2,
   Users,
   Cog,
@@ -14,6 +15,7 @@ import { SystemTab } from "./SystemTab";
 import { RolesTab } from "./RolesTab";
 import { BackupsTab } from "./BackupsTab";
 import { AppearanceTab } from "./AppearanceTab";
+import { TemplatesTab } from "./TemplatesTab";
 
 export function SettingsPage() {
   return (
@@ -30,7 +32,7 @@ export function SettingsPage() {
       </div>
 
       <Tabs defaultValue="school" className="space-y-6">
-        <TabsList className="grid w-full max-w-3xl grid-cols-6">
+        <TabsList className="grid w-full max-w-5xl grid-cols-7">
           <TabsTrigger value="school" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Etablissement
@@ -38,6 +40,10 @@ export function SettingsPage() {
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
             Apparence
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Templates
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -63,6 +69,10 @@ export function SettingsPage() {
 
         <TabsContent value="appearance">
           <AppearanceTab />
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <TemplatesTab />
         </TabsContent>
 
         <TabsContent value="users">

@@ -4,9 +4,15 @@ export interface AppearanceSettings {
   primaryColor?: string; // ex. "#2563eb"
 }
 
+export interface TemplatesSettings {
+  whatsappReminder?: string;
+  receiptFooter?: string;
+  reportCardComment?: string;
+}
+
 export interface SettingsData {
   appearance?: AppearanceSettings;
-  templates?: Record<string, string>;
+  templates?: TemplatesSettings;
   thresholds?: Record<string, number>;
 }
 
@@ -32,6 +38,18 @@ export const settingsApi = {
   async update(payload: Partial<Settings>): Promise<Settings> {
     const { data } = await api.patch("/settings", payload);
     return data.data || data;
+  },
+
+  async updateTemplates(templates: Partial<TemplatesSettings>): Promise<Settings> {
+    const current = await this.get();
+    const merged = {
+      ...(current.data || {}),
+      templates: {
+        ...(current.data?.templates || {}),
+        ...templates,
+      },
+    };
+    return this.update({ data: merged } as any);
   },
 
   async updateAppearance(appearance: AppearanceSettings): Promise<Settings> {

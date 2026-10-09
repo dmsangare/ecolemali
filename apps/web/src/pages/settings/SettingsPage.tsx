@@ -1,4 +1,4 @@
-import {
+﻿import {
   Settings as SettingsIcon,
   Palette,
   MessageSquare,
@@ -8,6 +8,7 @@ import {
   Cog,
   Shield,
   HardDrive,
+  Trophy,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SchoolTab } from "./SchoolTab";
@@ -18,6 +19,7 @@ import { BackupsTab } from "./BackupsTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
+import { HonorRollTab } from "./HonorRollTab";
 
 export function SettingsPage() {
   return (
@@ -34,7 +36,7 @@ export function SettingsPage() {
       </div>
 
       <Tabs defaultValue="school" className="space-y-6">
-        <TabsList className="grid w-full max-w-6xl grid-cols-8">
+        <TabsList className="grid w-full max-w-6xl grid-cols-9">
           <TabsTrigger value="school" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Etablissement
@@ -50,6 +52,10 @@ export function SettingsPage() {
           <TabsTrigger value="thresholds" className="flex items-center gap-2">
             <Award className="h-4 w-4" />
             Seuils
+          </TabsTrigger>
+          <TabsTrigger value="honorRoll" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Honneur
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -83,6 +89,10 @@ export function SettingsPage() {
 
         <TabsContent value="thresholds">
           <ThresholdsTab />
+        </TabsContent>
+
+        <TabsContent value="honorRoll">
+          <HonorRollTab />
         </TabsContent>
 
         <TabsContent value="users">

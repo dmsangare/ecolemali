@@ -39,6 +39,7 @@ import { ReceiptsModule } from "./receipts/receipts.module";
 import { CashSessionsModule } from "./cash-sessions/cash-sessions.module";
 import { DocumentsModule } from "./documents/documents.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { VerificationModule } from "./verification/verification.module";
 import { ReportsModule } from "./reports/reports.module";
 import { AuditModule } from "./audit/audit.module";
 import { BackupsModule } from "./backups/backups.module";
@@ -91,6 +92,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     CashSessionsModule,
     DocumentsModule,
     NotificationsModule,
+    VerificationModule,
     ReportsModule,
     AuditModule,
     BackupsModule,

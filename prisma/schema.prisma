@@ -350,6 +350,7 @@ model School {
   expenses            Expense[]
   messageLogs         MessageLog[]
   topStudents         TopStudent[]
+  verifiableDocuments VerifiableDocument[]
 
   @@map("schools")
 }
@@ -1538,4 +1539,34 @@ model MessageLog {
   @@index([schoolId, sentAt])
   @@index([invoiceId])
   @@map("message_logs")
+}
+
+// ============================================================
+// BLOC A — Verification QR (fondations)
+// Chaque document signé (carte, bulletin, recu, attestation...)
+// possede un short code unique + une signature HMAC pour
+// verification publique via QR code.
+// ============================================================
+model VerifiableDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  schoolId     String    @map("school_id") @db.Uuid
+  type         String    @db.VarChar(30)          // BULLETIN | RECEIPT | ID_CARD | ATTESTATION | CERTIFICATE
+  referenceId  String    @map("reference_id") @db.Uuid
+  shortCode    String    @unique @map("short_code") @db.VarChar(12)
+  hmacToken    String    @map("hmac_token") @db.VarChar(64)
+  meta         Json?                              // infos utiles (matricule, nom, classe...) pour verif offline
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+  revokedBy    String?   @map("revoked_by") @db.Uuid
+  viewCount    Int       @default(0) @map("view_count")
+  lastViewAt   DateTime? @map("last_view_at") @db.Timestamptz
+  expiresAt    DateTime? @map("expires_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, type])
+  @@index([shortCode])
+  @@index([referenceId])
+  @@map("verifiable_documents")
 }

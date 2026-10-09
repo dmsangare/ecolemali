@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { settingsApi, Settings, AppearanceSettings, TemplatesSettings, ThresholdsSettings } from "@/api/settings";
+import { settingsApi, Settings, AppearanceSettings, TemplatesSettings, ThresholdsSettings, FinanceSettings } from "@/api/settings";
 import { useAuth } from "@/contexts/AuthContext";
 
 const KEY = ["settings"];
@@ -96,3 +96,14 @@ export function useUpdateThresholds() {
 }
 
 export type { ThresholdsSettings };
+
+export function useUpdateFinance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (finance: Partial<FinanceSettings>) =>
+      settingsApi.updateFinance(finance),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+}

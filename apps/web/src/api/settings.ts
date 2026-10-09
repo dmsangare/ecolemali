@@ -26,12 +26,17 @@ export interface NumberingSettings {
   invoicePrefix?: string;
   receiptPrefix?: string;
 }
+export interface FinanceSettings {
+  warningThreshold?: number;
+  criticalThreshold?: number;
+}
 export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;
   thresholds?: ThresholdsSettings;
   honorRoll?: HonorRollSettings;
   numbering?: NumberingSettings;
+  finance?: FinanceSettings;
 }
 
 export interface Settings {
@@ -77,6 +82,17 @@ export const settingsApi = {
       templates: {
         ...(current.data?.templates || {}),
         ...templates,
+      },
+    };
+    return this.update({ data: merged } as any);
+  },
+  async updateFinance(finance: Partial<FinanceSettings>): Promise<Settings> {
+    const current = await this.get();
+    const merged = {
+      ...(current.data || {}),
+      finance: {
+        ...(current.data?.finance || {}),
+        ...finance,
       },
     };
     return this.update({ data: merged } as any);

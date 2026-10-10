@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -28,14 +28,14 @@ import { CreateAssessmentModal } from "./components/CreateAssessmentModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 const TYPE_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-  INTERROGATION: { label: "Interrogation", emoji: "⚪", color: "bg-gray-500/10 text-gray-700 border-gray-300" },
-  DEVOIR: { label: "Devoir", emoji: "🔵", color: "bg-blue-500/10 text-blue-700 border-blue-300" },
-  CONTROLE: { label: "Controle", emoji: "🟣", color: "bg-purple-500/10 text-purple-700 border-purple-300" },
-  COMPOSITION: { label: "Composition", emoji: "🟠", color: "bg-orange-500/10 text-orange-700 border-orange-300" },
-  EXAMEN: { label: "Examen", emoji: "🔴", color: "bg-red-500/10 text-red-700 border-red-300" },
-  TP: { label: "TP", emoji: "🟢", color: "bg-green-500/10 text-green-700 border-green-300" },
-  ORAL: { label: "Oral", emoji: "🟡", color: "bg-yellow-500/10 text-yellow-700 border-yellow-300" },
-  PROJET: { label: "Projet", emoji: "🔷", color: "bg-cyan-500/10 text-cyan-700 border-cyan-300" },
+  INTERROGATION: { label: "Interrogation", emoji: "âšª", color: "bg-gray-500/10 text-gray-700 border-gray-300" },
+  DEVOIR: { label: "Devoir", emoji: "ðŸ”µ", color: "bg-blue-500/10 text-blue-700 border-blue-300" },
+  CONTROLE: { label: "Controle", emoji: "ðŸŸ£", color: "bg-purple-500/10 text-purple-700 border-purple-300" },
+  COMPOSITION: { label: "Composition", emoji: "ðŸŸ ", color: "bg-orange-500/10 text-orange-700 border-orange-300" },
+  EXAMEN: { label: "Examen", emoji: "ðŸ”´", color: "bg-red-500/10 text-red-700 border-red-300" },
+  TP: { label: "TP", emoji: "ðŸŸ¢", color: "bg-green-500/10 text-green-700 border-green-300" },
+  ORAL: { label: "Oral", emoji: "ðŸŸ¡", color: "bg-yellow-500/10 text-yellow-700 border-yellow-300" },
+  PROJET: { label: "Projet", emoji: "ðŸ”·", color: "bg-cyan-500/10 text-cyan-700 border-cyan-300" },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -126,7 +126,7 @@ export function AssessmentsListPage() {
             Notes & Evaluations
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalAssessments} evaluation(s) · {totalGrades} note(s) saisie(s)
+            {totalAssessments} evaluation(s) Â· {totalGrades} note(s) saisie(s)
           </p>
         </div>
         {canCreate && (
@@ -144,10 +144,10 @@ export function AssessmentsListPage() {
           onChange={(e) => setClassId(e.target.value)}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="">🏫 Toutes les classes</option>
+          <option value="">ðŸ« Toutes les classes</option>
           {sortedClasses.map((c) => {
             const level = levels?.find((l) => l.id === c.levelId);
-            const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+            const emoji = level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
             return (
               <option key={c.id} value={c.id}>
                 {emoji} {c.name}
@@ -161,7 +161,7 @@ export function AssessmentsListPage() {
           onChange={(e) => setTermId(e.target.value)}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="">📅 Tous les trimestres</option>
+          <option value="">ðŸ“… Tous les trimestres</option>
           {terms?.map((t: any) => (
             <option key={t.id} value={t.id}>
               {t.name}
@@ -174,7 +174,7 @@ export function AssessmentsListPage() {
           onChange={(e) => setSubjectId(e.target.value)}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
-          <option value="">📚 Toutes les matieres</option>
+          <option value="">ðŸ“š Toutes les matieres</option>
           {subjects?.map((s: any) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -256,6 +256,8 @@ export function AssessmentsListPage() {
 // Row component
 // ============================================================
 function AssessmentRow({ assessment }: { assessment: any }) {
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("assessment:update");
   const typeInfo = TYPE_LABELS[assessment.type] || TYPE_LABELS.DEVOIR;
   const statusInfo = STATUS_LABELS[assessment.status] || STATUS_LABELS.DRAFT;
   const gradeCount = assessment._count?.grades || 0;
@@ -288,7 +290,7 @@ function AssessmentRow({ assessment }: { assessment: any }) {
       </td>
       <td className="p-3 font-medium">{assessment.title}</td>
       <td className="p-3 text-muted-foreground">
-        {assessment.date ? formatDate(assessment.date) : "—"}
+        {assessment.date ? formatDate(assessment.date) : "â€”"}
       </td>
       <td className="p-3 text-center font-mono">
         /{Number(assessment.maxScore).toFixed(0)}

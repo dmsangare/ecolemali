@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -86,7 +86,7 @@ export function StudentFormPage() {
   // Charger l'eleve si mode edition
   const { data: existingStudent, isLoading: isLoadingStudent } = useStudentDetail(id);
 
-  // Charger niveaux + classes + années pour le récap
+  // Charger niveaux + classes + annÃ©es pour le rÃ©cap
   const { data: levelsData } = useQuery({
     queryKey: ["levels", "for-summary"],
     queryFn: async () => {
@@ -212,12 +212,12 @@ export function StudentFormPage() {
     }
     setIsSubmitting(true);
     try {
-      // 1. Créer l'élève
+      // 1. CrÃ©er l'Ã©lÃ¨ve
       // MODE EDITION : mettre a jour l'eleve existant
       if (isEdit && id) {
         await updateStudent.mutateAsync({
           id,
-          dto: {
+          data: {
             firstName: identity.firstName.trim(),
             lastName: identity.lastName.trim(),
             gender: identity.gender as "M" | "F",
@@ -243,10 +243,10 @@ export function StudentFormPage() {
         specialSituation: identity.specialSituation || undefined,
       });
 
-      // 2. Créer / lier les tuteurs
+      // 2. CrÃ©er / lier les tuteurs
       const guardianTasks: Promise<any>[] = [];
 
-      // Père
+      // PÃ¨re
       if (family.father.selected) {
         guardianTasks.push(
           linkGuardian.mutateAsync({
@@ -278,7 +278,7 @@ export function StudentFormPage() {
         );
       }
 
-      // Mère
+      // MÃ¨re
       if (family.mother.selected) {
         guardianTasks.push(
           linkGuardian.mutateAsync({
@@ -312,7 +312,7 @@ export function StudentFormPage() {
 
       await Promise.all(guardianTasks);
 
-      // 3. Créer l'inscription
+      // 3. CrÃ©er l'inscription
       await api.post("/enrollments", {
         studentId: student.id,
         academicYearId: school.academicYearId,
@@ -322,20 +322,20 @@ export function StudentFormPage() {
         previousSchool: school.previousSchool || undefined,
       });
 
-      // 4. Facture auto (si demandé)
+      // 4. Facture auto (si demandÃ©)
       if (options.generateInvoice) {
         try {
           await api.post(
             `/invoices/auto/${student.id}/year/${school.academicYearId}`,
           );
         } catch (err) {
-          // Pas bloquant si la facture échoue
+          // Pas bloquant si la facture Ã©choue
           console.warn("Facture auto echouee:", err);
         }
       }
 
       toast.success(
-        `Eleve cree avec succes — Matricule : ${student.matricule}`,
+        `Eleve cree avec succes â€” Matricule : ${student.matricule}`,
       );
       localStorage.removeItem(DRAFT_KEY);
       navigate(`/students/${student.id}`);

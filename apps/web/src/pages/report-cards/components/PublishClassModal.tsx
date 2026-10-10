@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import {
   X,
   Loader2,
@@ -81,6 +81,29 @@ export function PublishClassModal({ onClose }: Props) {
     });
   }, [classes, levels]);
 
+    // Cycle de la classe selectionnee + filtrage des periodes selon le cycle
+  const selectedClass = useMemo(
+    () => classes?.find((c) => c.id === classId),
+    [classes, classId],
+  );
+  const selectedCycle = useMemo(
+    () => levels?.find((l) => l.id === selectedClass?.levelId)?.cycle,
+    [levels, selectedClass],
+  );
+
+  const filteredTerms = useMemo(() => {
+    if (!terms) return [];
+    // 1er cycle -> MOIS (compositions mensuelles)
+    // 2e cycle + lycee -> TRIMESTRE (ou SEMESTRE si configure)
+    if (selectedCycle === "PREMIER_CYCLE") {
+      return terms.filter((t: any) => t.type === "MOIS");
+    }
+    if (selectedCycle) {
+      return terms.filter((t: any) => t.type === "TRIMESTRE" || t.type === "SEMESTRE");
+    }
+    return terms;
+  }, [terms, selectedCycle]);
+
   const formValid = termId && classId && counts.VALIDATED > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,7 +137,7 @@ export function PublishClassModal({ onClose }: Props) {
               <div>
                 <h2 className="text-lg font-semibold">Publier une classe</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Publie en une seule action tous les bulletins validés
+                  Publie en une seule action tous les bulletins validÃ©s
                 </p>
               </div>
             </div>
@@ -131,11 +154,13 @@ export function PublishClassModal({ onClose }: Props) {
 
           {/* CORPS */}
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-            {/* TRIMESTRE */}
+            {/* PERIODE (Trimestre ou Composition mensuelle selon le cycle) */}
             <div>
               <Label className="flex items-center gap-2">
                 <Calendar className="h-3.5 w-3.5" />
-                Trimestre
+                {selectedCycle === "PREMIER_CYCLE"
+                  ? "Composition mensuelle"
+                  : "Periode"}
               </Label>
               <select
                 value={termId}
@@ -143,13 +168,20 @@ export function PublishClassModal({ onClose }: Props) {
                 className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 required
               >
-                <option value="">-- Sélectionner --</option>
-                {terms?.map((t: any) => (
+                <option value="">-- Selectionner --</option>
+                {filteredTerms.map((t: any) => (
                   <option key={t.id} value={t.id}>
-                    {t.name}
+                    {t.name} ({t.type === "MOIS" ? "mensuel" : t.type.toLowerCase()})
                   </option>
                 ))}
               </select>
+              {selectedCycle && filteredTerms.length === 0 && (
+                <p className="mt-1 text-xs text-orange-600">
+                  {selectedCycle === "PREMIER_CYCLE"
+                    ? "Aucune composition mensuelle pour cette annee. Creez-les depuis Parametres."
+                    : "Aucune periode (trimestre/semestre) pour cette annee."}
+                </p>
+              )}
             </div>
 
             {/* CLASSE */}
@@ -164,10 +196,10 @@ export function PublishClassModal({ onClose }: Props) {
                 className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 required
               >
-                <option value="">-- Sélectionner --</option>
+                <option value="">-- SÃ©lectionner --</option>
                 {sortedClasses.map((c) => {
                   const level = levels?.find((l) => l.id === c.levelId);
-                  const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+                  const emoji = level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
                   return (
                     <option key={c.id} value={c.id}>
                       {emoji} {c.name}
@@ -181,7 +213,7 @@ export function PublishClassModal({ onClose }: Props) {
             {classId && termId && (
               <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground uppercase">
-                  État de préparation
+                  Ã‰tat de prÃ©paration
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center justify-between">
@@ -190,14 +222,14 @@ export function PublishClassModal({ onClose }: Props) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-green-600 font-medium">
-                      Validés :
+                      ValidÃ©s :
                     </span>
                     <span className="font-mono font-bold text-green-600">
                       {counts.VALIDATED}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Publiés :</span>
+                    <span className="text-muted-foreground">PubliÃ©s :</span>
                     <span className="font-mono font-medium">
                       {counts.PUBLISHED}
                     </span>
@@ -215,7 +247,7 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded p-2.5">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  Aucun bulletin <strong>validé</strong> à publier. Validez
+                  Aucun bulletin <strong>validÃ©</strong> Ã  publier. Validez
                   d'abord les bulletins en brouillon.
                 </span>
               </div>
@@ -225,8 +257,8 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2.5">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  Aucun bulletin généré pour cette classe/trimestre.
-                  Générez-les d'abord.
+                  Aucun bulletin gÃ©nÃ©rÃ© pour cette classe/trimestre.
+                  GÃ©nÃ©rez-les d'abord.
                 </span>
               </div>
             )}
@@ -235,8 +267,8 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded p-2.5">
                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  <strong>{counts.VALIDATED}</strong> bulletin(s) validé(s)
-                  seront publiés. Les brouillons seront ignorés.
+                  <strong>{counts.VALIDATED}</strong> bulletin(s) validÃ©(s)
+                  seront publiÃ©s. Les brouillons seront ignorÃ©s.
                 </span>
               </div>
             )}

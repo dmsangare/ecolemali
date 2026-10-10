@@ -9,6 +9,6 @@ import { DashboardModule } from "../dashboard/dashboard.module";
   imports: [DashboardModule],
   controllers: [ReportCardsController, AnnualResultsController],
   providers: [ReportCardsService, AnnualResultsService],
-  exports: [ReportCardsService],
+  exports: [ReportCardsService, AnnualResultsService],
 })
 export class ReportCardsModule {}

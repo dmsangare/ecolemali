@@ -12,6 +12,8 @@ export interface AcademicYear {
   isCurrent: boolean;
   closedAt: string | null;
   archivedAt: string | null;
+  financeClosedAt: string | null;
+  financeClosedBy: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: {

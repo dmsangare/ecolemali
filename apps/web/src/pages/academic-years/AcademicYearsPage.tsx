@@ -8,6 +8,7 @@ import {
   Plus,
   AlertTriangle,
   Info,
+  Wallet,
 } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ import {
 } from "@/hooks/academic-years";
 import type { AcademicYear, AcademicYearStatus } from "@/api/academic-years";
 import { CreateAcademicYearModal } from "./components/CreateAcademicYearModal";
+import { FinanceClosureModal } from "./components/FinanceClosureModal";
 
 const STATUS_STYLE: Record<AcademicYearStatus, { label: string; cls: string }> = {
   PREPARATION: { label: "En preparation", cls: "bg-blue-500/10 text-blue-700" },
@@ -34,6 +36,7 @@ export function AcademicYearsPage() {
     type: "close" | "archive";
     year: AcademicYear;
   } | null>(null);
+  const [financeCloseTarget, setFinanceCloseTarget] = useState<AcademicYear | null>(null);
 
   const { data: years, isLoading } = useAcademicYearsList();
   const activateMutation = useActivateAcademicYear();
@@ -114,6 +117,7 @@ export function AcademicYearsPage() {
               onActivate={() => handleActivate(year)}
               onClose={() => setConfirmAction({ type: "close", year })}
               onArchive={() => setConfirmAction({ type: "archive", year })}
+              onFinanceClose={() => setFinanceCloseTarget(year)}
               isActivating={activateMutation.isPending}
               isClosing={closeMutation.isPending}
               isArchiving={archiveMutation.isPending}
@@ -125,6 +129,12 @@ export function AcademicYearsPage() {
       {/* MODALES */}
       {createOpen && (
         <CreateAcademicYearModal onClose={() => setCreateOpen(false)} />
+      )}
+      {financeCloseTarget && (
+        <FinanceClosureModal
+          year={financeCloseTarget}
+          onClose={() => setFinanceCloseTarget(null)}
+        />
       )}
       {confirmAction && (
         <ConfirmActionModal
@@ -154,6 +164,7 @@ function YearCard({
   onActivate,
   onClose,
   onArchive,
+  onFinanceClose,
   isActivating,
   isClosing,
   isArchiving,
@@ -162,6 +173,7 @@ function YearCard({
   onActivate: () => void;
   onClose: () => void;
   onArchive: () => void;
+  onFinanceClose: () => void;
   isActivating: boolean;
   isClosing: boolean;
   isArchiving: boolean;
@@ -217,6 +229,16 @@ function YearCard({
                   <CheckCircle2 className="h-4 w-4 mr-1" />
                 )}
                 Activer
+              </Button>
+            )}
+            {canClose && year.financeClosedAt === null && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onFinanceClose}
+              >
+                <Wallet className="h-4 w-4 mr-1" />
+                Cloture finance
               </Button>
             )}
             {canClose && (

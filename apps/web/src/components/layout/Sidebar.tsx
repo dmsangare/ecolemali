@@ -1,4 +1,4 @@
-﻿import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Trophy,
@@ -91,6 +91,7 @@ const SECTIONS: NavSection[] = [
     {
     title: "Systeme",
     items: [
+      { label: "Annees scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },
       { label: "Parametres", to: "/settings", icon: Settings, permission: "settings:view" },
     ],

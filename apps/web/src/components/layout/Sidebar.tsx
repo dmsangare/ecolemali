@@ -92,6 +92,7 @@ const SECTIONS: NavSection[] = [
     title: "Systeme",
     items: [
       { label: "Annees scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
+      { label: "Passage d'annee", to: "/year-rollover", icon: GraduationCap, permission: "academic_year:create" },
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },
       { label: "Parametres", to: "/settings", icon: Settings, permission: "settings:view" },
     ],

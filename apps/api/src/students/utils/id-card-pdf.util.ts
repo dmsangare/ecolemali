@@ -260,7 +260,7 @@ export async function generateIdCardsPDF(
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+    await page.setContent(html, { waitUntil: "load", timeout: 60_000 });
     const pdf = await page.pdf({
       format: options.format === "PVC" ? "A4" : "A4",
       printBackground: true,

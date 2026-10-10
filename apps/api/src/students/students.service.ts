@@ -7,6 +7,7 @@ import { generateCSV } from "./utils/csv.util";
 import { generateExcel } from "./utils/excel.util";
 import { generatePDF } from "./utils/pdf.util";
 import { generateIdCardsPDF, IdCardData } from "./utils/id-card-pdf.util";
+import { fileToBase64 } from "../common/utils/file-to-base64.util";
 import { VerificationService } from "../verification/verification.service";
 
 type EnrollmentStatusFilter = "NOUVEAU" | "ANCIEN" | "REDOUBLANT";
@@ -1361,6 +1362,9 @@ export class StudentsService {
 
     const QRCode = await import("qrcode");
 
+    // Pre-charger le logo en base64 (une seule fois)
+    const schoolLogoBase64 = await fileToBase64(school.logoUrl);
+
     const cards: IdCardData[] = [];
     for (const st of students) {
       const signed = await this.verification.sign({
@@ -1387,7 +1391,7 @@ export class StudentsService {
       cards.push({
         schoolName: school.name,
         schoolSigle: school.sigle,
-        schoolLogoBase64: school.logoUrl,
+        schoolLogoBase64,
         schoolAddress: school.address,
         schoolPhone: school.phone,
         schoolMotto: school.motto,
@@ -1400,7 +1404,7 @@ export class StudentsService {
           gender: st.gender,
           birthDate: st.birthDate,
           className: klassName,
-          photoUrl: st.photoUrl,
+          photoUrl: await fileToBase64(st.photoUrl),
         },
         qrDataUrl,
         verifyUrl,

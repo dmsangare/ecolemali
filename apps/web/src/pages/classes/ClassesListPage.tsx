@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { School, Search, Loader2, Plus } from "lucide-react";
+import { School, Search, Loader2, Plus, DoorOpen } from "lucide-react";
 import { Input, Button } from "@/components/ui";
 import { useClasses } from "@/hooks/classes";
 import { useAuth } from "@/contexts/AuthContext";
 import { CycleSection } from "./components/CycleSection";
 import { CreateClassModal } from "./components/CreateClassModal";
+import { RoomsTab } from "./components/RoomsTab";
 import type { ClassItem, LevelCycle } from "@/types/class";
 
 export function ClassesListPage() {
@@ -14,6 +15,7 @@ export function ClassesListPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalDefaultCycle, setModalDefaultCycle] =
     useState<LevelCycle>("PREMIER_CYCLE");
+  const [activeTab, setActiveTab] = useState<"classes" | "rooms">("classes");
 
   const { data: classes, isLoading } = useClasses();
 
@@ -57,6 +59,39 @@ export function ClassesListPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* ONGLETS */}
+      <div className="flex items-center gap-1 border-b">
+        <button
+          onClick={() => setActiveTab("classes")}
+          className={
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 " +
+            (activeTab === "classes"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground")
+          }
+        >
+          <School className="h-4 w-4" />
+          Classes
+        </button>
+        <button
+          onClick={() => setActiveTab("rooms")}
+          className={
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 " +
+            (activeTab === "rooms"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground")
+          }
+        >
+          <DoorOpen className="h-4 w-4" />
+          Salles
+        </button>
+      </div>
+
+      {/* CONTENU CONDITIONNEL */}
+      {activeTab === "rooms" ? (
+        <RoomsTab />
+      ) : (
+      <div className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -134,6 +169,8 @@ export function ClassesListPage() {
           defaultCycle={modalDefaultCycle}
           onClose={() => setModalOpen(false)}
         />
+      )}
+      </div>
       )}
     </div>
   );

@@ -106,6 +106,49 @@ export function useRooms() {
   });
 }
 
+export function useCreateRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; type: string; capacity?: number; location?: string }) =>
+      classesApi.createRoom(input),
+    onSuccess: () => {
+      toast.success("Salle creee");
+      qc.invalidateQueries({ queryKey: [KEY_ROOMS] });
+    },
+    onError: (error: any) => toast.error(getErrorMessage(error)),
+  });
+}
+
+export function useUpdateRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: { name?: string; type?: string; capacity?: number; location?: string };
+    }) => classesApi.updateRoom(id, input),
+    onSuccess: () => {
+      toast.success("Salle mise a jour");
+      qc.invalidateQueries({ queryKey: [KEY_ROOMS] });
+    },
+    onError: (error: any) => toast.error(getErrorMessage(error)),
+  });
+}
+
+export function useDeleteRoom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => classesApi.removeRoom(id),
+    onSuccess: () => {
+      toast.success("Salle supprimee");
+      qc.invalidateQueries({ queryKey: [KEY_ROOMS] });
+    },
+    onError: (error: any) => toast.error(getErrorMessage(error)),
+  });
+}
+
 // ============================================================
 // ENSEIGNANTS (Teachers)
 // ============================================================

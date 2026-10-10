@@ -60,6 +60,35 @@ export const classesApi = {
     return data.data || data;
   },
 
+  async createRoom(input: {
+    name: string;
+    type: string;
+    capacity?: number;
+    location?: string;
+    isAvailable?: boolean;
+  }): Promise<Room> {
+    const { data } = await api.post("/rooms", input);
+    return data.data || data;
+  },
+
+  async updateRoom(
+    id: string,
+    input: {
+      name?: string;
+      type?: string;
+      capacity?: number;
+      location?: string;
+      isAvailable?: boolean;
+    },
+  ): Promise<Room> {
+    const { data } = await api.patch(`/rooms/${id}`, input);
+    return data.data || data;
+  },
+
+  async removeRoom(id: string): Promise<void> {
+    await api.delete(`/rooms/${id}`);
+  },
+
   // ============================================================
   // ENSEIGNANTS (Teachers)
   // ============================================================

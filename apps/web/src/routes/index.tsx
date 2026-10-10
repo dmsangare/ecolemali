@@ -36,6 +36,7 @@ import { SettingsPage } from "@/pages/settings";
 import { IdCardsPage } from "@/pages/id-cards/IdCardsPage";
 import { AcademicYearsPage } from "@/pages/academic-years/AcademicYearsPage";
 import { YearRolloverPage } from "@/pages/year-rollover/YearRolloverPage";
+import { StateExamsPage } from "@/pages/state-exams/StateExamsPage";
 import TimetablePage from '@/pages/timetable/TimetablePage';
 
 export function AppRoutes() {
@@ -389,6 +390,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="academic_year:create">
                 <YearRolloverPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/state-exams"
+            element={
+              <ProtectedRoute requiredPermission="academic_year:view">
+                <StateExamsPage />
               </ProtectedRoute>
             }
           />

@@ -772,6 +772,27 @@ function Step3Students(p: Step3Props) {
   const [filterClass, setFilterClass] = useState<string>("");
   const [filterSearch, setFilterSearch] = useState<string>("");
 
+  // Detection des niveaux d'examen d'Etat (DEF/BAC)
+  const stateExamClasses = useMemo(() => {
+    const classes: Array<{ id: string; name: string; exam: string }> = [];
+    const codes = new Map<string, string>(); // code -> exam type
+    codes.set("9EME", "DEF");
+    codes.set("12EME", "BAC");
+
+    for (const cls of p.preview.classes) {
+      // On ne peut pas savoir le code du niveau depuis preview, mais on peut
+      // detecter via le nom (approx). Un vrai fix serait d'exposer levelCode
+      // dans preview (TODO).
+      const examType = cls.name.startsWith("9") ? "DEF"
+        : cls.name.startsWith("12") || cls.name.startsWith("Terminale") ? "BAC"
+        : null;
+      if (examType) {
+        classes.push({ id: cls.fromClassId, name: cls.name, exam: examType });
+      }
+    }
+    return classes;
+  }, [p.preview.classes]);
+
   // Filtrer les decisions
   const filtered = useMemo(() => {
     let list = p.preview.decisions;
@@ -802,6 +823,42 @@ function Step3Students(p: Step3Props) {
 
   return (
     <div className="space-y-4">
+      {/* AVERTISSEMENT DEF/BAC */}
+      {stateExamClasses.length > 0 && (
+        <Card className="border-purple-300 bg-purple-50/50">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-purple-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-sm text-purple-900">
+                Examens d'État détectés ({stateExamClasses.length} classe
+                {stateExamClasses.length > 1 ? "s" : ""})
+              </p>
+              <p className="text-xs text-purple-800 mt-1">
+                Les classes suivantes préparent un examen d'État (DEF ou BAC) :
+              </p>
+              <ul className="mt-2 ml-4 list-disc text-xs text-purple-900">
+                {stateExamClasses.map((c) => (
+                  <li key={c.id}>
+                    <strong>{c.name}</strong> — {c.exam}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-purple-800 mt-2">
+                <strong>Important :</strong> saisissez les résultats de
+                l'examen d'État AVANT de valider cette étape, sinon les élèves
+                seront marqués « Non inscrit ».
+              </p>
+              <Link
+                to="/state-exams"
+                className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-purple-700 hover:underline"
+              >
+                Aller à la saisie des résultats →
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* STATS */}
       <Card>
         <CardContent className="p-6">

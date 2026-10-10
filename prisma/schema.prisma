@@ -50,6 +50,12 @@ enum TermType {
   MOIS
 }
 
+enum StateExamType {
+  NONE
+  DEF
+  BAC
+}
+
 enum LevelCycle {
   PREMIER_CYCLE
   DEUXIEME_CYCLE
@@ -422,6 +428,7 @@ model Level {
   cycle      LevelCycle
   name       String     @db.VarChar(50)
   code       String     @db.VarChar(20)
+  stateExamType StateExamType @default(NONE) @map("state_exam_type")
   orderIndex Int        @map("order_index") @db.SmallInt
   isActive   Boolean    @default(true) @map("is_active")
   createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz

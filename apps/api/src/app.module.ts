@@ -41,6 +41,7 @@ import { DocumentsModule } from "./documents/documents.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { VerificationModule } from "./verification/verification.module";
 import { YearRolloverModule } from "./year-rollover/year-rollover.module";
+import { FinanceClosureModule } from "./finance-closure/finance-closure.module";
 import { ReportsModule } from "./reports/reports.module";
 import { AuditModule } from "./audit/audit.module";
 import { BackupsModule } from "./backups/backups.module";
@@ -95,6 +96,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     NotificationsModule,
     VerificationModule,
     YearRolloverModule,
+    FinanceClosureModule,
     ReportsModule,
     AuditModule,
     BackupsModule,

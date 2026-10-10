@@ -201,6 +201,11 @@ enum FeeCategory {
   AUTRE
 }
 
+enum InvoiceKind {
+  REGULAR
+  CARRY_OVER
+}
+
 enum InvoiceStatus {
   UNPAID
   PARTIAL
@@ -351,6 +356,7 @@ model School {
   messageLogs         MessageLog[]
   topStudents         TopStudent[]
   verifiableDocuments VerifiableDocument[]
+  studentAccounts      StudentAccount[]
 
   @@map("schools")
 }
@@ -365,6 +371,8 @@ model AcademicYear {
   isCurrent   Boolean            @default(false) @map("is_current")
   closedAt    DateTime?          @map("closed_at") @db.Timestamptz
   archivedAt  DateTime?          @map("archived_at") @db.Timestamptz
+  financeClosedAt DateTime?      @map("finance_closed_at") @db.Timestamptz
+  financeClosedBy String?        @map("finance_closed_by") @db.Uuid
   createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -665,6 +673,7 @@ model Student {
   invoices           Invoice[]
   payments           Payment[]
   generatedDocuments GeneratedDocument[]
+  studentAccount     StudentAccount?
   transfers          StudentTransfer[]
 
   @@unique([schoolId, matricule])
@@ -1177,6 +1186,8 @@ model Invoice {
   paidAmount     Decimal       @default(0) @map("paid_amount") @db.Decimal(14, 2)
   balance        Decimal       @default(0) @db.Decimal(14, 2)
   status         InvoiceStatus @default(UNPAID)
+  kind           InvoiceKind   @default(REGULAR)
+  carriedOverFromId String?    @map("carried_over_from_id") @db.Uuid
   cancelledAt    DateTime?     @map("cancelled_at") @db.Timestamptz
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
@@ -1548,6 +1559,30 @@ model MessageLog {
 // possede un short code unique + une signature HMAC pour
 // verification publique via QR code.
 // ============================================================
+model StudentAccount {
+  id             String    @id @default(uuid()) @db.Uuid
+  studentId      String    @unique @map("student_id") @db.Uuid
+  schoolId       String    @map("school_id") @db.Uuid
+
+  // creditBalance > 0 => l'ecole doit de l'argent a l'eleve
+  creditBalance  Decimal   @default(0) @map("credit_balance") @db.Decimal(14, 2)
+  // debtBalance > 0 => l'eleve doit de l'argent a l'ecole
+  debtBalance    Decimal   @default(0) @map("debt_balance") @db.Decimal(14, 2)
+
+  lastCreditAt   DateTime? @map("last_credit_at") @db.Timestamptz
+  lastDebtAt     DateTime? @map("last_debt_at") @db.Timestamptz
+
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, creditBalance])
+  @@index([schoolId, debtBalance])
+  @@map("student_accounts")
+}
+
 model VerifiableDocument {
   id           String    @id @default(uuid()) @db.Uuid
   schoolId     String    @map("school_id") @db.Uuid

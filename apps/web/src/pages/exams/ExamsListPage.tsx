@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { GraduationCap, Loader2, Eye, Plus, Filter, X, Calendar, TrendingUp, Award } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { examsApi } from "@/api/exams";
 import { api } from "@/lib/axios";
 import { useExams } from "@/hooks/exams";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDate } from "@/lib/formatters";
 import { Button, Input, Card, CardContent } from "@/components/ui";
 
@@ -13,14 +14,14 @@ const TYPE_LABELS: Record<string, string> = {
   INTERNE: "Interne",
   COMPOSITION: "Composition",
   BLANC: "Examen blanc",
-  FIN_ANNEE: "Fin d'année",
+  FIN_ANNEE: "Fin d'annÃ©e",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  PLANNED: "Planifié",
+  PLANNED: "PlanifiÃ©",
   ONGOING: "En cours",
-  FINISHED: "Terminé",
-  CANCELLED: "Annulé",
+  FINISHED: "TerminÃ©",
+  CANCELLED: "AnnulÃ©",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function ExamsListPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ type: "", status: "", academicYearId: "" });
   const [showFilters, setShowFilters] = useState(false);
@@ -55,7 +57,7 @@ export function ExamsListPage() {
   const createMut = useMutation({
     mutationFn: (dto: any) => examsApi.create(dto),
     onSuccess: () => {
-      toast.success("Examen créé");
+      toast.success("Examen crÃ©Ã©");
       qc.invalidateQueries({ queryKey: ["exams"] });
       setShowCreate(false);
       setForm({ name: "", type: "COMPOSITION", academicYearId: "", termId: "", startDate: new Date().toISOString().slice(0, 10), endDate: new Date().toISOString().slice(0, 10) });
@@ -80,9 +82,10 @@ export function ExamsListPage() {
 
   const submit = () => {
     if (!form.name || !form.academicYearId || !form.startDate || !form.endDate) {
-      return toast.error("Tous les champs obligatoires doivent être remplis");
+      return toast.error("Tous les champs obligatoires doivent Ãªtre remplis");
     }
     createMut.mutate({
+      schoolId: user?.schoolId,
       name: form.name,
       type: form.type,
       academicYearId: form.academicYearId,
@@ -94,14 +97,14 @@ export function ExamsListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* En-tête */}
+      {/* En-tÃªte */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <GraduationCap className="h-6 w-6" /> Examens
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {meta?.total ?? exams.length} examen(s) enregistré(s)
+            {meta?.total ?? exams.length} examen(s) enregistrÃ©(s)
           </p>
         </div>
         <div className="flex gap-2">
@@ -144,7 +147,7 @@ export function ExamsListPage() {
               <Award className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Terminés</p>
+              <p className="text-xs text-muted-foreground">TerminÃ©s</p>
               <p className="text-xl font-bold text-green-600">{stats.finished}</p>
             </div>
           </CardContent>
@@ -193,7 +196,7 @@ export function ExamsListPage() {
               </select>
             </div>
             <Button variant="ghost" onClick={() => setFilters({ type: "", status: "", academicYearId: "" })}>
-              <X className="h-4 w-4 mr-1" /> Réinitialiser
+              <X className="h-4 w-4 mr-1" /> RÃ©initialiser
             </Button>
           </CardContent>
         </Card>
@@ -209,9 +212,9 @@ export function ExamsListPage() {
           ) : exams.length === 0 ? (
             <div className="flex flex-col h-64 items-center justify-center gap-3">
               <GraduationCap className="h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">Aucun examen enregistré</p>
+              <p className="text-muted-foreground">Aucun examen enregistrÃ©</p>
               <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Créer le premier examen
+                <Plus className="h-4 w-4 mr-1" /> CrÃ©er le premier examen
               </Button>
             </div>
           ) : (
@@ -221,7 +224,7 @@ export function ExamsListPage() {
                   <tr className="text-left text-xs font-medium text-muted-foreground uppercase">
                     <th className="px-4 py-3">Nom</th>
                     <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3">Période</th>
+                    <th className="px-4 py-3">PÃ©riode</th>
                     <th className="px-4 py-3 text-center">Sessions</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3 text-right">Actions</th>
@@ -237,7 +240,7 @@ export function ExamsListPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {formatDate(e.startDate)} → {formatDate(e.endDate)}
+                        {formatDate(e.startDate)} â†’ {formatDate(e.endDate)}
                       </td>
                       <td className="px-4 py-3 text-center font-semibold">
                         {e._count?.sessions ?? e.sessions?.length ?? 0}
@@ -263,7 +266,7 @@ export function ExamsListPage() {
         </CardContent>
       </Card>
 
-      {/* Modale création */}
+      {/* Modale crÃ©ation */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <Card className="bg-white w-full max-w-lg p-6 space-y-4">
@@ -291,13 +294,13 @@ export function ExamsListPage() {
             </div>
 
             <div>
-              <label className="text-sm text-gray-600">Année scolaire *</label>
+              <label className="text-sm text-gray-600">AnnÃ©e scolaire *</label>
               <select
                 className="w-full border rounded px-3 py-2 text-sm"
                 value={form.academicYearId}
                 onChange={(e) => setForm({ ...form, academicYearId: e.target.value })}
               >
-                <option value="">— Choisir —</option>
+                <option value="">â€” Choisir â€”</option>
                 {(years ?? []).map((y: any) => (
                   <option key={y.id} value={y.id}>
                     {y.label} {y.isCurrent ? "(actuelle)" : ""}
@@ -308,7 +311,7 @@ export function ExamsListPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600">Date début *</label>
+                <label className="text-sm text-gray-600">Date dÃ©but *</label>
                 <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
               </div>
               <div>
@@ -321,7 +324,7 @@ export function ExamsListPage() {
               <Button variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
               <Button onClick={submit} disabled={createMut.isPending}>
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Créer
+                CrÃ©er
               </Button>
             </div>
           </Card>

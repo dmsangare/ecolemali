@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 import type { Exam, ExamSession, ExamCandidate } from "@/types/exams";
 
 const unwrap = (res: any) => res.data?.data ?? res.data;
@@ -14,7 +14,13 @@ export interface ExamListFilters {
 
 export const examsApi = {
   list: async (filters: ExamListFilters = {}): Promise<any> => {
-    const res = await api.get("/exams", { params: filters });
+    // Nettoyer les params vides : "" casse la validation du backend
+    const cleanParams = Object.fromEntries(
+      Object.entries(filters).filter(
+        ([_, v]) => v !== "" && v !== null && v !== undefined,
+      ),
+    );
+    const res = await api.get("/exams", { params: cleanParams });
     return res.data;
   },
   getById: async (id: string): Promise<Exam> => {

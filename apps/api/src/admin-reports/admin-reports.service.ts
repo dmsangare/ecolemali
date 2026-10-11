@@ -800,4 +800,119 @@ export class AdminReportsService {
       },
     };
   }
+
+  // ============================================================
+  // B15 : Mode institutionnel (CAP / Academie)
+  // Desactive par defaut (CDC 4.4 / 4.5)
+  // ============================================================
+
+  async getInstitutionalStatus(schoolId: string) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        academy: true,
+        cap: true,
+        institutionalCode: true,
+        institutionalMode: true,
+      },
+    });
+    if (!school) throw new NotFoundException('École introuvable');
+    return { data: school };
+  }
+
+  async setInstitutionalMode(schoolId: string, enabled: boolean) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true },
+    });
+    if (!school) throw new NotFoundException('École introuvable');
+
+    const updated = await this.prisma.school.update({
+      where: { id: schoolId },
+      data: { institutionalMode: enabled },
+      select: {
+        id: true,
+        name: true,
+        institutionalMode: true,
+        academy: true,
+        cap: true,
+      },
+    });
+    return { data: updated };
+  }
+
+  async getConsolidatedView(schoolId: string, academicYearId?: string) {
+    // Verrou : acces uniquement si institutional_mode active
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { institutionalMode: true, name: true, academy: true, cap: true },
+    });
+    if (!school) throw new NotFoundException('École introuvable');
+    if (!school.institutionalMode) {
+      throw new BadRequestException(
+        'Mode institutionnel désactivé. Activez-le pour accéder à la vue consolidée.',
+      );
+    }
+
+    const yearFilter = academicYearId ? { academicYearId } : {};
+
+    // Rapports transmis / receptionnes
+    const transmittedReports = await this.prisma.adminReport.findMany({
+      where: {
+        schoolId,
+        status: { in: ['TRANSMIS', 'RECEPTION_CONFIRMEE', 'CLOTURE'] },
+        ...yearFilter,
+      },
+      include: {
+        academicYear: { select: { startDate: true, endDate: true } },
+        transmissions: {
+          orderBy: { sentAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: [{ validatedAt: 'desc' }],
+    });
+
+    // Resume par code de rapport
+    const byCode: Record<string, { count: number; lastTransmission: string | null }> = {};
+    for (const r of transmittedReports) {
+      byCode[r.code] ??= { count: 0, lastTransmission: null };
+      byCode[r.code].count += 1;
+      const t = r.transmissions[0]?.sentAt;
+      if (t && (!byCode[r.code].lastTransmission || t.toISOString() > byCode[r.code].lastTransmission!)) {
+        byCode[r.code].lastTransmission = t.toISOString();
+      }
+    }
+
+    return {
+      data: {
+        school: {
+          name: school.name,
+          academy: school.academy,
+          cap: school.cap,
+        },
+        totals: {
+          transmittedReports: transmittedReports.length,
+          byCode,
+        },
+        reports: transmittedReports.map((r) => ({
+          id: r.id,
+          code: r.code,
+          title: r.title,
+          status: r.status,
+          version: r.version,
+          bordereau: r.bordereauNumber,
+          validatedAt: r.validatedAt,
+          lastTransmission: r.transmissions[0]?.sentAt ?? null,
+          recipient: r.transmissions[0]?.recipient ?? null,
+          academicYear: r.academicYear
+            ? `${new Date(r.academicYear.startDate).getFullYear()}-${new Date(r.academicYear.endDate).getFullYear()}`
+            : null,
+        })),
+      },
+    };
+  }
 }

@@ -286,6 +286,30 @@ export class AdminReportsController {
   }
 
   // ============================================================
+  // B15 : Mode institutionnel (CAP / Academie)
+  // ============================================================
+
+  @Get('institutional/status')
+  async institutionalStatus(@Req() req: any) {
+    return this.service.getInstitutionalStatus(this.sid(req));
+  }
+
+  @Post('institutional/enable')
+  async institutionalEnable(@Req() req: any) {
+    return this.service.setInstitutionalMode(this.sid(req), true);
+  }
+
+  @Post('institutional/disable')
+  async institutionalDisable(@Req() req: any) {
+    return this.service.setInstitutionalMode(this.sid(req), false);
+  }
+
+  @Get('institutional/consolidated')
+  async institutionalConsolidated(@Req() req: any, @Query() query: any) {
+    return this.service.getConsolidatedView(this.sid(req), query?.academicYearId);
+  }
+
+  // ============================================================
   // Helpers de transformation
   // ============================================================
 

@@ -139,6 +139,9 @@ export class AdminReportsService {
       case 'RAP-03':
         data = await this.builder.buildStats(schoolId, report.academicYearId);
         break;
+      case 'RAP-04':
+        data = await this.builder.buildPersonnel(schoolId, report.academicYearId);
+        break;
       default:
         throw new BadRequestException(`Pré-remplissage non implémenté pour ${report.code}`);
     }

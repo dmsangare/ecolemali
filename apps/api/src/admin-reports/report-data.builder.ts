@@ -126,6 +126,133 @@ export class ReportDataBuilder {
   }
 
   // ============================================================
+  // RAP-04 : Rapport sur le personnel enseignant et administratif
+  // ============================================================
+
+  async buildPersonnel(schoolId: string, academicYearId: string) {
+    // 1. Tous les enseignants
+    const teachers = await this.prisma.teacher.findMany({
+      where: { schoolId, status: 'ACTIVE' },
+      include: {
+        assignments: {
+          where: { academicYearId },
+          include: {
+            subject: { select: { id: true, name: true, code: true } },
+          },
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+
+    // 2. Personnel administratif via UserRole + Role.code
+    // On cherche les users dont le role n'est PAS Enseignant
+    const adminRoles = ['DIRECTOR', 'SECRETARY', 'ACCOUNTANT', 'SUPERVISOR', 'PROMOTER'];
+    const adminUsers = await this.prisma.user.findMany({
+      where: {
+        schoolId,
+        status: 'ACTIVE',
+        userRoles: {
+          some: {
+            role: {
+              OR: [
+                { code: { in: adminRoles } },
+                { name: { in: ['Direction', 'Secrétariat', 'Comptable / Caissier', 'Surveillant', 'Promoteur'] } },
+              ],
+            },
+          },
+        },
+      },
+      include: {
+        userRoles: {
+          include: { role: { select: { code: true, name: true } } },
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+
+    // 3. Detail par enseignant
+    const teachersDetail = teachers.map((t) => ({
+      matricule: t.matricule,
+      fullName: `${t.lastName} ${t.firstName}`,
+      gender: t.gender,
+      specialty: t.specialty,
+      diploma: t.diploma,
+      contractType: t.contractType,
+      hireDate: t.hireDate,
+      subjects: t.assignments.map((a) => a.subject.name).filter((v, i, arr) => arr.indexOf(v) === i),
+      assignmentsCount: t.assignments.length,
+    }));
+
+    // 4. Repartition par matiere
+    const bySubject: Record<string, number> = {};
+    for (const t of teachers) {
+      for (const a of t.assignments) {
+        bySubject[a.subject.name] = (bySubject[a.subject.name] ?? 0) + 1;
+      }
+    }
+
+    // 5. Repartition par diplome
+    const byDiploma: Record<string, number> = {};
+    for (const t of teachers) {
+      const k = t.diploma || 'Non renseigné';
+      byDiploma[k] = (byDiploma[k] ?? 0) + 1;
+    }
+
+    // 6. Repartition par contrat
+    const byContract: Record<string, number> = {};
+    for (const t of teachers) {
+      const k = t.contractType || 'Non renseigné';
+      byContract[k] = (byContract[k] ?? 0) + 1;
+    }
+
+    // 7. Repartition par sexe (enseignants)
+    const teachersByGender = {
+      filles: teachers.filter((t) => t.gender === 'F').length,
+      garcons: teachers.filter((t) => t.gender === 'M').length,
+      total: teachers.length,
+    };
+
+    // 8. Personnel administratif
+    const adminDetail = adminUsers.map((u) => ({
+      fullName: `${u.lastName} ${u.firstName}`,
+      email: u.email,
+      phone: u.phone,
+      roles: u.userRoles.map((ur) => ur.role.name),
+    }));
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        name: true, code: true, type: true, region: true,
+        academy: true, cap: true, directorName: true,
+      },
+    });
+
+    const year = await this.prisma.academicYear.findUnique({
+      where: { id: academicYearId },
+      select: { id: true, startDate: true, endDate: true, isCurrent: true },
+    });
+
+    return {
+      reference: {
+        school,
+        academicYear: year,
+        referenceDate: new Date().toISOString().split('T')[0],
+      },
+      synthese: {
+        totalTeachers: teachers.length,
+        totalAdmin: adminUsers.length,
+        teachersByGender,
+      },
+      repartitionParMatiere: bySubject,
+      repartitionParDiplome: byDiploma,
+      repartitionParContrat: byContract,
+      enseignants: teachersDetail,
+      personnelAdministratif: adminDetail,
+    };
+  }
+
+  // ============================================================
   // RAP-03 : Rapport statistique des effectifs
   // ============================================================
 

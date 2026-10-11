@@ -143,6 +143,18 @@ export class AdminReportsController {
   private buildPdfSummary(report: any): Array<{ label: string; value: string | number }> {
     const d = (report.data as any) ?? {};
     const s = d.synthese ?? {};
+
+    // RAP-04 : personnel
+    if (report.code === 'RAP-04') {
+      return [
+        { label: 'Enseignants', value: s.totalTeachers ?? 0 },
+        { label: 'Personnel administratif', value: s.totalAdmin ?? 0 },
+        { label: 'Enseignantes (F)', value: s.teachersByGender?.filles ?? 0 },
+        { label: 'Enseignants (M)', value: s.teachersByGender?.garcons ?? 0 },
+      ];
+    }
+
+    // Par defaut : effectifs eleves (RAP-02, RAP-03)
     return [
       { label: 'Élèves inscrits', value: s.totalStudents ?? 0 },
       { label: 'Filles', value: s.totalGirls ?? 0 },
@@ -213,6 +225,85 @@ export class AdminReportsController {
           { key: 'boys', label: 'Garçons', align: 'right' },
         ],
       });
+    }
+
+    // ============================================================
+    // RAP-04 : personnel
+    // ============================================================
+    if (report.code === 'RAP-04') {
+      // Section : liste des enseignants
+      if (Array.isArray(d.enseignants) && d.enseignants.length > 0) {
+        sections.push({
+          title: 'Liste des enseignants',
+          rows: d.enseignants.map((t: any) => ({
+            matricule: t.matricule,
+            nom: t.fullName,
+            diplome: t.diploma ?? '—',
+            contrat: t.contractType ?? '—',
+            matieres: (t.subjects ?? []).join(', '),
+          })),
+          columns: [
+            { key: 'matricule', label: 'Matricule' },
+            { key: 'nom', label: 'Nom' },
+            { key: 'diplome', label: 'Diplôme' },
+            { key: 'contrat', label: 'Contrat' },
+            { key: 'matieres', label: 'Matières' },
+          ],
+        });
+      }
+
+      // Section : repartition par matiere
+      if (d.repartitionParMatiere && typeof d.repartitionParMatiere === 'object') {
+        const rows = Object.entries(d.repartitionParMatiere).map(([k, v]) => ({
+          matiere: k,
+          count: v,
+        }));
+        sections.push({
+          title: 'Répartition des enseignants par matière',
+          rows,
+          columns: [
+            { key: 'matiere', label: 'Matière' },
+            { key: 'count', label: 'Nb enseignants', align: 'right' },
+          ],
+        });
+      }
+
+      // Section : repartition par diplome
+      if (d.repartitionParDiplome && typeof d.repartitionParDiplome === 'object') {
+        const rows = Object.entries(d.repartitionParDiplome).map(([k, v]) => ({
+          diplome: k,
+          count: v,
+        }));
+        sections.push({
+          title: 'Répartition par diplôme',
+          rows,
+          columns: [
+            { key: 'diplome', label: 'Diplôme' },
+            { key: 'count', label: 'Nb', align: 'right' },
+          ],
+        });
+      }
+
+      // Section : personnel administratif
+      if (Array.isArray(d.personnelAdministratif) && d.personnelAdministratif.length > 0) {
+        sections.push({
+          title: 'Personnel administratif',
+          rows: d.personnelAdministratif.map((u: any) => ({
+            nom: u.fullName,
+            roles: (u.roles ?? []).join(', '),
+            email: u.email ?? '—',
+            phone: u.phone ?? '—',
+          })),
+          columns: [
+            { key: 'nom', label: 'Nom' },
+            { key: 'roles', label: 'Rôle(s)' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Téléphone' },
+          ],
+        });
+      }
+
+      return sections;
     }
 
     return sections;

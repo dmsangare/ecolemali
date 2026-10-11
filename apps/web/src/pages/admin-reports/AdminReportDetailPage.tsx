@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Loader2, Download, Send, CheckCircle2,
   Unlock, AlertCircle, RefreshCw, FileSpreadsheet, History,
-  Send as SendIcon, ScrollText,
+  Send as SendIcon, ScrollText, Truck, PackageCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,6 +132,19 @@ export function AdminReportDetailPage() {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
 
+  // Transmission
+  const [transmitOpen, setTransmitOpen] = useState(false);
+  const [tRecipient, setTRecipient] = useState("");
+  const [tRecipientRole, setTRecipientRole] = useState("");
+  const [tChannel, setTChannel] = useState("DEPOT_PHYSIQUE");
+  const [tReference, setTReference] = useState("");
+  const [tObs, setTObs] = useState("");
+
+  // Reception
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [rReceipt, setRReceipt] = useState("");
+  const [rObs, setRObs] = useState("");
+
   const reportQ = useQuery({
     queryKey: ["admin-reports", "detail", id],
     queryFn: () => adminReportsApi.getReport(id!),
@@ -174,6 +187,42 @@ export function AdminReportDetailPage() {
       invalidate();
       setUnlockOpen(false);
       setUnlockReason("");
+    },
+    onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
+  });
+
+  const transmitMut = useMutation({
+    mutationFn: () =>
+      adminReportsApi.transmitReport(id!, {
+        recipient: tRecipient,
+        recipientRole: tRecipientRole || undefined,
+        channel: tChannel,
+        referenceNumber: tReference || undefined,
+        observations: tObs || undefined,
+      }),
+    onSuccess: () => {
+      invalidate();
+      setTransmitOpen(false);
+      setTRecipient("");
+      setTRecipientRole("");
+      setTChannel("DEPOT_PHYSIQUE");
+      setTReference("");
+      setTObs("");
+    },
+    onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
+  });
+
+  const receiveMut = useMutation({
+    mutationFn: () =>
+      adminReportsApi.receiveReport(id!, {
+        receiptUrl: rReceipt || undefined,
+        observations: rObs || undefined,
+      }),
+    onSuccess: () => {
+      invalidate();
+      setReceiveOpen(false);
+      setRReceipt("");
+      setRObs("");
     },
     onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
   });
@@ -284,6 +333,20 @@ export function AdminReportDetailPage() {
               </Button>
             </a>
           </>
+        )}
+
+        {canManage && report.status === "VALIDE" && (
+          <Button onClick={() => setTransmitOpen(true)}>
+            <Truck className="h-4 w-4 mr-2" />
+            Transmettre
+          </Button>
+        )}
+
+        {canManage && report.status === "TRANSMIS" && (
+          <Button onClick={() => setReceiveOpen(true)}>
+            <PackageCheck className="h-4 w-4 mr-2" />
+            Marquer réception
+          </Button>
         )}
 
         {canManage && (report.status === "VALIDE" || report.status === "TRANSMIS" || report.status === "A_CORRIGER") && (
@@ -545,6 +608,135 @@ export function AdminReportDetailPage() {
           <p className="text-xs text-muted-foreground">
             Minimum 5 caractères. Ce motif sera enregistré dans le journal d'audit.
           </p>
+        </div>
+      </Modal>
+
+      {/* --- Modal Transmettre --- */}
+      <Modal
+        open={transmitOpen}
+        onClose={() => setTransmitOpen(false)}
+        title="Transmettre le rapport"
+        description="Enregistrez l'envoi au destinataire. Un numéro de bordereau sera généré automatiquement."
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setTransmitOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => transmitMut.mutate()}
+              disabled={transmitMut.isPending || tRecipient.trim().length < 3}
+            >
+              {transmitMut.isPending ? "Enregistrement…" : "Enregistrer la transmission"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="t-recipient">Destinataire *</Label>
+            <Input
+              id="t-recipient"
+              placeholder="Ex: CAP de Bamako Rive Droite"
+              value={tRecipient}
+              onChange={(e) => setTRecipient(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="t-role">Fonction du destinataire</Label>
+            <Input
+              id="t-role"
+              placeholder="Ex: Chef de CAP"
+              value={tRecipientRole}
+              onChange={(e) => setTRecipientRole(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Canal de transmission *</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { v: "DEPOT_PHYSIQUE", l: "Dépôt physique" },
+                { v: "COURRIER", l: "Courrier" },
+                { v: "EMAIL_ADMIN", l: "Email administratif" },
+                { v: "PORTAIL_OFFICIEL", l: "Portail officiel" },
+                { v: "API_OFFICIELLE", l: "API officielle" },
+              ].map((c) => (
+                <button
+                  key={c.v}
+                  type="button"
+                  onClick={() => setTChannel(c.v)}
+                  className={`rounded-md border p-2 text-sm text-left transition-colors ${
+                    tChannel === c.v
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  {c.l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="t-ref">Numéro de référence (optionnel)</Label>
+            <Input
+              id="t-ref"
+              placeholder="Ex: 2026/CAP-BKO/0456"
+              value={tReference}
+              onChange={(e) => setTReference(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="t-obs">Observations (optionnel)</Label>
+            <Input
+              id="t-obs"
+              placeholder="Notes complémentaires"
+              value={tObs}
+              onChange={(e) => setTObs(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* --- Modal Reception --- */}
+      <Modal
+        open={receiveOpen}
+        onClose={() => setReceiveOpen(false)}
+        title="Marquer comme réceptionné"
+        description="Enregistrez la confirmation de réception par le destinataire."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setReceiveOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => receiveMut.mutate()}
+              disabled={receiveMut.isPending}
+            >
+              {receiveMut.isPending ? "Enregistrement…" : "Confirmer la réception"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="r-receipt">N° accusé de réception (optionnel)</Label>
+            <Input
+              id="r-receipt"
+              placeholder="Ex: AR-2026-0123"
+              value={rReceipt}
+              onChange={(e) => setRReceipt(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="r-obs">Observations (optionnel)</Label>
+            <Input
+              id="r-obs"
+              placeholder="Notes"
+              value={rObs}
+              onChange={(e) => setRObs(e.target.value)}
+            />
+          </div>
         </div>
       </Modal>
     </div>

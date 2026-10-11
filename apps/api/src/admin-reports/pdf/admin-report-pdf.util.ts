@@ -118,6 +118,40 @@ function escapeHtml(s: any): string {
     .replace(/"/g, '&quot;');
 }
 
+// ============================================================
+// Libelles propres pour les enums
+// ============================================================
+
+function labelSchoolType(value: string | null | undefined): string {
+  if (!value) return "—";
+  const map: Record<string, string> = {
+    FONDAMENTAL: "École fondamentale",
+    FONDAMENTAL_LYCEE: "Fondamental & Lycée",
+    LYCEE: "Lycée",
+    PRIVE: "Privé",
+    PUBLIC: "Public",
+    MEDERSA: "Médersa",
+    TECHNIQUE: "Enseignement technique",
+  };
+  return map[value] ?? value;
+}
+
+function labelEnrollmentStatus(value: string | null | undefined): string {
+  if (!value) return "—";
+  const map: Record<string, string> = {
+    ACTIVE: "Inscrit",
+    PENDING: "En attente",
+    VALIDATED: "Validé",
+    CANCELLED: "Annulé",
+    COMPLETED: "Terminé",
+    TRANSFERRED: "Transféré",
+    GRADUATED: "Diplômé",
+    DROPPED: "Abandon",
+    SUSPENDED: "Suspendu",
+  };
+  return map[value] ?? value;
+}
+
 function formatDate(d: any): string {
   if (!d) return '—';
   try {
@@ -433,7 +467,7 @@ function buildOfficialHTML(
     <div class="identification-grid">
       <div><span class="label">Établissement :</span>${escapeHtml(school.name)}</div>
       <div><span class="label">Code :</span>${escapeHtml(school.code ?? '—')}</div>
-      <div><span class="label">Type :</span>${escapeHtml(school.type ?? '—')}</div>
+      <div><span class="label">Type :</span>${escapeHtml(labelSchoolType(school.type))}</div>
       <div><span class="label">Région :</span>${escapeHtml(school.region ?? '—')}</div>
       <div><span class="label">Commune :</span>${escapeHtml(school.commune ?? '—')}</div>
       <div><span class="label">Téléphone :</span>${escapeHtml(school.phone ?? '—')}</div>

@@ -354,7 +354,7 @@ export class AdminReportsService {
     });
     const seq = String(count + 1).padStart(4, '0');
 
-    return `${sigle}/${yearLabel}/RAP-${reportCode}-${seq}`;
+    return `${sigle}/${yearLabel}/${reportCode}-${seq}`;
   }
 
   async transmitReport(

@@ -348,6 +348,8 @@ model School {
   adminReportTemplates AdminReportTemplate[]  @relation("SchoolAdminReportTemplates")
   adminReports         AdminReport[]          @relation("SchoolAdminReports")
   adminReportDeadlines AdminReportDeadline[]  @relation("SchoolAdminReportDeadlines")
+  stateExamSessions    StateExamSession[]     @relation("SchoolStateExamSessions")
+  examDossiers         ExamDossier[]          @relation("SchoolExamDossiers")
   users               User[]
   students            Student[]
   guardians           Guardian[]
@@ -406,6 +408,7 @@ model AcademicYear {
   @@index([schoolId, status])
   @@map("academic_years")
   adminReports         AdminReport[]          @relation("YearAdminReports")
+  stateExamSessions    StateExamSession[]     @relation("YearStateExamSessions")
 }
 
 model Term {
@@ -448,6 +451,7 @@ model Level {
   pathways            StudentPathway[]
   subjectCoefficients SubjectCoefficient[]
   feeStructures       FeeStructure[]
+  examDossiers        ExamDossier[]  @relation("LevelExamDossiers")
 
   @@unique([schoolId, code])
   @@index([schoolId, cycle])
@@ -507,6 +511,7 @@ model Class {
   @@index([schoolId])
   @@index([levelId])
   topStudents TopStudent[]
+  examDossiers ExamDossier[] @relation("ClassExamDossiers")
   @@map("classes")
 }
 
@@ -690,6 +695,7 @@ model Student {
   generatedDocuments GeneratedDocument[]
   studentAccount     StudentAccount?
   transfers          StudentTransfer[]
+  examDossierPieces  ExamDossierPiece[]  @relation("StudentExamDossierPieces")
 
   @@unique([schoolId, matricule])
   @@index([schoolId])
@@ -1802,5 +1808,102 @@ model AdminReportAuditLog {
 
   @@index([reportId])
   @@map("admin_report_audit_log")
+}
+
+// ============================================================
+// BLOC B09a : Dossiers d'examens d'Etat (DEF/BAC)
+// ============================================================
+
+enum ExamDossierStatus {
+  BROUILLON
+  PIECES_MANQUANTES
+  PRET_VERIFICATION
+  VALIDE_ETABLISSEMENT
+  TRANSMIS
+  RECEPTION_CONFIRMEE
+  A_CORRIGER
+  COMPLETE
+  CLOTURE
+}
+
+model StateExamSession {
+  id                 String         @id @default(uuid()) @db.Uuid
+  schoolId           String         @map("school_id") @db.Uuid
+  academicYearId     String         @map("academic_year_id") @db.Uuid
+  examType           StateExamType
+  label              String         @db.VarChar(120)
+  registrationOpens  DateTime?      @map("registration_opens") @db.Date
+  registrationCloses DateTime?      @map("registration_closes") @db.Date
+  examDate           DateTime?      @map("exam_date") @db.Date
+  institutionTarget  String?        @map("institution_target") @db.VarChar(150)
+  bordereauPattern   String?        @map("bordereau_pattern") @db.VarChar(120)
+  createdBy          String?        @map("created_by") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School         @relation("SchoolStateExamSessions", fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear   @relation("YearStateExamSessions", fields: [academicYearId], references: [id], onDelete: Cascade)
+  dossiers     ExamDossier[]
+
+  @@unique([schoolId, academicYearId, examType])
+  @@index([schoolId])
+  @@map("state_exam_sessions")
+}
+
+model ExamDossier {
+  id               String            @id @default(uuid()) @db.Uuid
+  sessionId        String            @map("session_id") @db.Uuid
+  schoolId         String            @map("school_id") @db.Uuid
+  classId          String            @map("class_id") @db.Uuid
+  levelId          String            @map("level_id") @db.Uuid
+  status           ExamDossierStatus @default(BROUILLON)
+  bordereauNumber  String?           @map("bordereau_number") @db.VarChar(60)
+  referenceNumber  String?           @map("reference_number") @db.VarChar(60)
+  candidateCount   Int               @default(0) @map("candidate_count")
+  piecesRequired   Json              @default("[]") @map("pieces_required")
+  transmittedAt    DateTime?         @map("transmitted_at") @db.Timestamptz
+  transmittedBy    String?           @map("transmitted_by") @db.Uuid
+  receivedAt       DateTime?         @map("received_at") @db.Timestamptz
+  receivedBy       String?           @map("received_by") @db.Uuid
+  proofUrl         String?           @map("proof_url") @db.VarChar(500)
+  receiptUrl       String?           @map("receipt_url") @db.VarChar(500)
+  observations     String?
+  createdBy        String?           @map("created_by") @db.Uuid
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  session  StateExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  school   School           @relation("SchoolExamDossiers", fields: [schoolId], references: [id], onDelete: Cascade)
+  class    Class            @relation("ClassExamDossiers", fields: [classId], references: [id], onDelete: Cascade)
+  level    Level            @relation("LevelExamDossiers", fields: [levelId], references: [id], onDelete: Cascade)
+  pieces   ExamDossierPiece[]
+
+  @@unique([sessionId, classId])
+  @@index([schoolId])
+  @@index([sessionId])
+  @@index([status])
+  @@map("exam_dossiers")
+}
+
+model ExamDossierPiece {
+  id         String    @id @default(uuid()) @db.Uuid
+  dossierId  String    @map("dossier_id") @db.Uuid
+  studentId  String    @map("student_id") @db.Uuid
+  pieceType  String    @map("piece_type") @db.VarChar(60)
+  isPresent  Boolean   @default(false) @map("is_present")
+  fileUrl    String?   @map("file_url") @db.VarChar(500)
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz
+  verifiedBy String?   @map("verified_by") @db.Uuid
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  dossier ExamDossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  student Student     @relation("StudentExamDossierPieces", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([dossierId, studentId, pieceType])
+  @@index([dossierId])
+  @@index([studentId])
+  @@map("exam_dossier_pieces")
 }
 

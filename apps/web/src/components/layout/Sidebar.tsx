@@ -30,6 +30,7 @@ interface NavItem {
   to: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: string;
+  indent?: boolean;
 }
 
 interface NavSection {
@@ -95,6 +96,10 @@ const SECTIONS: NavSection[] = [
       { label: "Passage d'annee", to: "/year-rollover", icon: GraduationCap, permission: "academic_year:create" },
       { label: "Examens d'Etat", to: "/state-exams", icon: Award, permission: "academic_year:view" },
       { label: "Rapports administratifs", to: "/admin-reports", icon: FileText, permission: "report_card:view" },
+      { label: "Tableau de bord rapports", to: "/admin-reports/dashboard", icon: LayoutDashboard, permission: "report_card:view", indent: true },
+      { label: "Archives rapports", to: "/admin-reports/archives", icon: FileText, permission: "report_card:view", indent: true },
+      { label: "Échéances rapports", to: "/admin-reports/deadlines", icon: Calendar, permission: "report_card:view", indent: true },
+      { label: "Examens d'État (dossiers)", to: "/state-exam-dossiers", icon: GraduationCap, permission: "report_card:view", indent: true },
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },
       { label: "Parametres", to: "/settings", icon: Settings, permission: "settings:view" },
     ],
@@ -155,7 +160,8 @@ export function Sidebar() {
                     to={item.to}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-md py-2 text-sm font-medium transition-colors",
+                        item.indent ? "pl-9 pr-3" : "px-3",
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

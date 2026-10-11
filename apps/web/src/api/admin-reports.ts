@@ -214,13 +214,36 @@ export const adminReportsApi = {
   },
 
   // --- PDF / Excel ---
-  downloadPdf: (id: string) => {
+  // NOTE : downloadPdfUrl / downloadExcelUrl restent pour usage EXTERNE (ex: WhatsApp).
+  // Pour telecharger depuis l'UI, utiliser downloadPdf / downloadExcel ci-dessous (avec auth).
+  downloadPdfUrl: (id: string) => {
     const baseUrl = (api.defaults.baseURL ?? "").replace(/\/$/, "");
     return `${baseUrl}/admin-reports/reports/${id}/pdf`;
   },
-  downloadExcel: (id: string) => {
+  downloadExcelUrl: (id: string) => {
     const baseUrl = (api.defaults.baseURL ?? "").replace(/\/$/, "");
     return `${baseUrl}/admin-reports/reports/${id}/excel`;
+  },
+  downloadPdf: async (id: string, filename?: string) => {
+    const res = await api.get(`/admin-reports/reports/${id}/pdf`, {
+      responseType: "blob",
+    });
+    triggerDownload(res.data, filename ?? `rapport-${id.slice(0, 8)}.pdf`);
+  },
+  downloadExcel: async (id: string, filename?: string) => {
+    const res = await api.get(`/admin-reports/reports/${id}/excel`, {
+      responseType: "blob",
+    });
+    triggerDownload(
+      res.data,
+      filename ?? `rapport-${id.slice(0, 8)}.xlsx`,
+    );
+  },
+  downloadArchivesExcel: async () => {
+    const res = await api.get(`/admin-reports/archives/export`, {
+      responseType: "blob",
+    });
+    triggerDownload(res.data, `archives-rapports-${Date.now()}.xlsx`);
   },
 
   // --- Archives ---
@@ -228,10 +251,7 @@ export const adminReportsApi = {
     const res = await api.get("/admin-reports/archives", { params });
     return unwrap(res) as AdminReport[];
   },
-  downloadArchivesExcel: () => {
-    const baseUrl = (api.defaults.baseURL ?? "").replace(/\/$/, "");
-    return `${baseUrl}/admin-reports/archives/export`;
-  },
+  
 
   // --- Deadlines ---
   listDeadlines: async (academicYearId?: string) => {
@@ -324,3 +344,18 @@ export const REPORT_CATEGORY_LABELS: Record<string, string> = {
   EXAMENS: "Examens",
   COMPLEMENTAIRE: "Complémentaire",
 };
+
+
+// ============================================================
+// Helper : declenche le telechargement d'un blob
+// ============================================================
+function triggerDownload(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}

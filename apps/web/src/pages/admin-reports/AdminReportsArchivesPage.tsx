@@ -48,12 +48,13 @@ export function AdminReportsArchivesPage() {
             </p>
           </div>
         </div>
-        <a href={adminReportsApi.downloadArchivesExcel()} target="_blank" rel="noopener noreferrer">
-          <Button variant="outline">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Exporter en Excel
-          </Button>
-        </a>
+        <Button
+          variant="outline"
+          onClick={() => adminReportsApi.downloadArchivesExcel()}
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Exporter en Excel
+        </Button>
       </div>
 
       {/* Filtres */}
@@ -143,15 +144,13 @@ export function AdminReportsArchivesPage() {
                           {r.bordereauNumber ?? "—"}
                         </td>
                         <td className="p-2 text-right">
-                          <a
-                            href={adminReportsApi.downloadPdf(r.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => adminReportsApi.downloadPdf(r.id)}
                           >
-                            <Button variant="ghost" size="sm">
-                              PDF
-                            </Button>
-                          </a>
+                            PDF
+                          </Button>
                         </td>
                       </tr>
                     );

@@ -316,22 +316,20 @@ export function AdminReportDetailPage() {
 
         {(report.status === "VALIDE" || report.status === "TRANSMIS" || report.status === "RECEPTION_CONFIRMEE") && (
           <>
-            <a
-              href={adminReportsApi.downloadPdf(report.id)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Button
+              variant="outline"
+              onClick={() => adminReportsApi.downloadPdf(report.id)}
             >
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger PDF
-              </Button>
-            </a>
-            <a href={adminReportsApi.downloadExcel(report.id)}>
-              <Button variant="outline">
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Télécharger Excel
-              </Button>
-            </a>
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => adminReportsApi.downloadExcel(report.id)}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Télécharger Excel
+            </Button>
           </>
         )}
 

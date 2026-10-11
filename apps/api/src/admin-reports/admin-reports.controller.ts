@@ -195,6 +195,58 @@ export class AdminReportsController {
   }
 
   // ============================================================
+  // RAP-12 : Archivage
+  // ============================================================
+
+  @Get('archives')
+  async listArchives(@Req() req: any, @Query() query: any) {
+    return this.service.listArchives(this.sid(req), {
+      academicYearId: query?.academicYearId,
+      code: query?.code,
+      status: query?.status,
+      from: query?.from,
+      to: query?.to,
+    });
+  }
+
+  @Get('archives/export')
+  async exportArchives(@Req() req: any, @Query() query: any, @Res() res: Response) {
+    const data = await this.service.buildArchivesExportData(
+      this.sid(req),
+      query?.academicYearId,
+    );
+
+    const excel = await generateExcel({
+      title: 'Archives des rapports',
+      subtitle: 'Historique des rapports validés et transmis',
+      sheetName: 'Archives',
+      schoolName: req.user.schoolName ?? 'Établissement',
+      columns: [
+        { header: 'Code', key: 'code', width: 12 },
+        { header: 'Titre', key: 'title', width: 40 },
+        { header: 'Année scolaire', key: 'anneeScolaire', width: 16 },
+        { header: 'Statut', key: 'statut', width: 20 },
+        { header: 'Version', key: 'version', width: 10 },
+        { header: 'Bordereau', key: 'bordereau', width: 25 },
+        { header: 'Destinataire', key: 'destinataire', width: 25 },
+        { header: 'Date validation', key: 'dateValidation', width: 16 },
+        { header: 'Date transmission', key: 'dateTransmission', width: 16 },
+      ],
+      data,
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="archives-rapports-${Date.now()}.xlsx"`,
+    );
+    res.send(excel);
+  }
+
+  // ============================================================
   // Helpers de transformation
   // ============================================================
 

@@ -492,4 +492,92 @@ export class AdminReportsService {
 
     return { data: { report, transmissions } };
   }
+
+  // ============================================================
+  // RAP-12 : Archivage (CDC 16)
+  // ============================================================
+
+  async listArchives(
+    schoolId: string,
+    query: {
+      academicYearId?: string;
+      code?: string;
+      status?: string;
+      from?: string;
+      to?: string;
+    },
+  ) {
+    const where: any = {
+      schoolId,
+      status: {
+        in: ['VALIDE', 'PRET_A_TRANSMETTRE', 'TRANSMIS', 'RECEPTION_CONFIRMEE', 'CLOTURE'],
+      },
+    };
+    if (query.academicYearId) where.academicYearId = query.academicYearId;
+    if (query.code) where.code = query.code;
+    if (query.status) where.status = query.status;
+    if (query.from || query.to) {
+      where.validatedAt = {};
+      if (query.from) where.validatedAt.gte = new Date(query.from);
+      if (query.to) where.validatedAt.lte = new Date(query.to);
+    }
+
+    const reports = await this.prisma.adminReport.findMany({
+      where,
+      include: {
+        academicYear: { select: { id: true, startDate: true, endDate: true } },
+        transmissions: {
+          orderBy: { sentAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: [{ validatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    return { data: reports };
+  }
+
+  async buildArchivesExportData(schoolId: string, academicYearId?: string) {
+    const where: any = {
+      schoolId,
+      status: {
+        in: ['VALIDE', 'PRET_A_TRANSMETTRE', 'TRANSMIS', 'RECEPTION_CONFIRMEE', 'CLOTURE'],
+      },
+    };
+    if (academicYearId) where.academicYearId = academicYearId;
+
+    const reports = await this.prisma.adminReport.findMany({
+      where,
+      include: {
+        academicYear: { select: { startDate: true, endDate: true } },
+        transmissions: {
+          orderBy: { sentAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: [{ validatedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    // Format pour Excel
+    return reports.map((r) => {
+      const tr = r.transmissions[0];
+      return {
+        code: r.code,
+        title: r.title,
+        anneeScolaire: r.academicYear
+          ? `${new Date(r.academicYear.startDate).getFullYear()}-${new Date(r.academicYear.endDate).getFullYear()}`
+          : '—',
+        statut: r.status,
+        version: r.version,
+        bordereau: r.bordereauNumber ?? '—',
+        destinataire: tr?.recipient ?? '—',
+        dateValidation: r.validatedAt
+          ? new Date(r.validatedAt).toLocaleDateString('fr-FR')
+          : '—',
+        dateTransmission: tr?.sentAt
+          ? new Date(tr.sentAt).toLocaleDateString('fr-FR')
+          : '—',
+      };
+    });
+  }
 }

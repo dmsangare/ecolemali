@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, Query, Req, Res, UseGuards,
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, Res, UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -244,6 +244,36 @@ export class AdminReportsController {
       `attachment; filename="archives-rapports-${Date.now()}.xlsx"`,
     );
     res.send(excel);
+  }
+
+  // ============================================================
+  // RAP-11 : Calendrier + échéances
+  // ============================================================
+
+  @Get('deadlines')
+  async listDeadlines(@Req() req: any, @Query() query: any) {
+    return this.service.listDeadlines(this.sid(req), query?.academicYearId);
+  }
+
+  @Get('deadlines/upcoming')
+  async listUpcoming(@Req() req: any, @Query() query: any) {
+    const days = query?.days ? parseInt(query.days, 10) : 30;
+    return this.service.listUpcomingDeadlines(this.sid(req), days);
+  }
+
+  @Post('deadlines')
+  async createDeadline(@Req() req: any, @Body() body: any) {
+    return this.service.createDeadline(this.sid(req), body);
+  }
+
+  @Patch('deadlines/:id')
+  async patchDeadline(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.service.patchDeadline(this.sid(req), id, body);
+  }
+
+  @Delete('deadlines/:id')
+  async deleteDeadline(@Req() req: any, @Param('id') id: string) {
+    return this.service.deleteDeadline(this.sid(req), id);
   }
 
   // ============================================================

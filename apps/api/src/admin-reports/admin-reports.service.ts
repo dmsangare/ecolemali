@@ -580,4 +580,116 @@ export class AdminReportsService {
       };
     });
   }
+
+  // ============================================================
+  // RAP-11 : Calendrier + echeances (CDC 15)
+  // ============================================================
+
+  async listDeadlines(schoolId: string, academicYearId?: string) {
+    const where: any = { schoolId };
+    if (academicYearId) where.academicYearId = academicYearId;
+
+    const deadlines = await this.prisma.adminReportDeadline.findMany({
+      where,
+      orderBy: [{ deadline: 'asc' }],
+    });
+    return { data: deadlines };
+  }
+
+  async listUpcomingDeadlines(schoolId: string, daysAhead = 30) {
+    const now = new Date();
+    const until = new Date();
+    until.setDate(until.getDate() + daysAhead);
+
+    const deadlines = await this.prisma.adminReportDeadline.findMany({
+      where: {
+        schoolId,
+        deadline: { gte: now, lte: until },
+        status: { in: ['A_VENIR', 'EN_COURS'] },
+      },
+      orderBy: [{ deadline: 'asc' }],
+    });
+    return { data: deadlines };
+  }
+
+  async createDeadline(
+    schoolId: string,
+    input: {
+      templateCode: string;
+      title: string;
+      academicYearId?: string;
+      recipient?: string;
+      prepareFrom?: string;
+      deadline: string;
+      source?: string;
+      confidenceLevel?: string;
+      responsibleUserId?: string;
+    },
+  ) {
+    if (!input.templateCode || !input.title || !input.deadline) {
+      throw new BadRequestException('templateCode, title et deadline requis');
+    }
+
+    const created = await this.prisma.adminReportDeadline.create({
+      data: {
+        schoolId,
+        templateCode: input.templateCode,
+        title: input.title,
+        academicYearId: input.academicYearId,
+        recipient: input.recipient,
+        prepareFrom: input.prepareFrom ? new Date(input.prepareFrom) : null,
+        deadline: new Date(input.deadline),
+        source: input.source,
+        confidenceLevel: input.confidenceLevel ?? 'A_CONFIRMER',
+        responsibleUserId: input.responsibleUserId,
+        status: 'A_VENIR',
+      },
+    });
+    return { data: created };
+  }
+
+  async patchDeadline(
+    schoolId: string,
+    id: string,
+    patch: {
+      title?: string;
+      recipient?: string;
+      prepareFrom?: string;
+      deadline?: string;
+      source?: string;
+      confidenceLevel?: string;
+      responsibleUserId?: string;
+      status?: string;
+    },
+  ) {
+    const deadline = await this.prisma.adminReportDeadline.findFirst({
+      where: { id, schoolId },
+    });
+    if (!deadline) throw new NotFoundException('Échéance introuvable');
+
+    const updated = await this.prisma.adminReportDeadline.update({
+      where: { id },
+      data: {
+        title: patch.title ?? undefined,
+        recipient: patch.recipient ?? undefined,
+        prepareFrom: patch.prepareFrom ? new Date(patch.prepareFrom) : undefined,
+        deadline: patch.deadline ? new Date(patch.deadline) : undefined,
+        source: patch.source ?? undefined,
+        confidenceLevel: patch.confidenceLevel ?? undefined,
+        responsibleUserId: patch.responsibleUserId ?? undefined,
+        status: patch.status ?? undefined,
+      },
+    });
+    return { data: updated };
+  }
+
+  async deleteDeadline(schoolId: string, id: string) {
+    const deadline = await this.prisma.adminReportDeadline.findFirst({
+      where: { id, schoolId },
+    });
+    if (!deadline) throw new NotFoundException('Échéance introuvable');
+
+    await this.prisma.adminReportDeadline.delete({ where: { id } });
+    return { data: { deleted: true } };
+  }
 }

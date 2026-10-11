@@ -277,6 +277,15 @@ export class AdminReportsController {
   }
 
   // ============================================================
+  // RAP-13 : Tableau de bord
+  // ============================================================
+
+  @Get('dashboard')
+  async dashboard(@Req() req: any, @Query() query: any) {
+    return this.service.getDashboard(this.sid(req), query?.academicYearId);
+  }
+
+  // ============================================================
   // Helpers de transformation
   // ============================================================
 

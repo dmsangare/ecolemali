@@ -692,4 +692,112 @@ export class AdminReportsService {
     await this.prisma.adminReportDeadline.delete({ where: { id } });
     return { data: { deleted: true } };
   }
+
+  // ============================================================
+  // RAP-13 : Tableau de bord (CDC 17)
+  // ============================================================
+
+  async getDashboard(schoolId: string, academicYearId?: string) {
+    const yearFilter = academicYearId ? { academicYearId } : {};
+
+    // 1. Compteurs par statut
+    const statuses = [
+      'BROUILLON',
+      'EN_VERIFICATION',
+      'VALIDE',
+      'PRET_A_TRANSMETTRE',
+      'TRANSMIS',
+      'RECEPTION_CONFIRMEE',
+      'A_CORRIGER',
+      'CLOTURE',
+    ] as const;
+
+    const counts = await Promise.all(
+      statuses.map(async (st) => ({
+        status: st,
+        count: await this.prisma.adminReport.count({
+          where: { schoolId, status: st, ...yearFilter },
+        }),
+      })),
+    );
+
+    const countMap: Record<string, number> = {};
+    for (const c of counts) countMap[c.status] = c.count;
+
+    const totalReports = Object.values(countMap).reduce((s, n) => s + n, 0);
+    const validatedOrTransmitted =
+      (countMap['VALIDE'] ?? 0) +
+      (countMap['TRANSMIS'] ?? 0) +
+      (countMap['RECEPTION_CONFIRMEE'] ?? 0) +
+      (countMap['CLOTURE'] ?? 0);
+
+    // 2. Rapports en retard (echeance depassee sans transmission)
+    const now = new Date();
+    const overdueDeadlines = await this.prisma.adminReportDeadline.findMany({
+      where: {
+        schoolId,
+        deadline: { lt: now },
+        status: { notIn: ['TRANSMIS', 'CLOTURE'] },
+        ...(academicYearId ? { academicYearId } : {}),
+      },
+      orderBy: [{ deadline: 'asc' }],
+    });
+
+    // 3. Prochaines echeances (30 jours)
+    const until = new Date();
+    until.setDate(until.getDate() + 30);
+    const upcomingDeadlines = await this.prisma.adminReportDeadline.findMany({
+      where: {
+        schoolId,
+        deadline: { gte: now, lte: until },
+        status: { in: ['A_VENIR', 'EN_COURS'] },
+        ...(academicYearId ? { academicYearId } : {}),
+      },
+      orderBy: [{ deadline: 'asc' }],
+      take: 10,
+    });
+
+    // 4. Dossiers d'examens incomplets
+    const incompleteDossiers = await this.prisma.examDossier.findMany({
+      where: {
+        schoolId,
+        status: { in: ['BROUILLON', 'PIECES_MANQUANTES', 'A_CORRIGER'] },
+      },
+      include: {
+        class: { select: { name: true, code: true } },
+        session: { select: { examType: true, label: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 10,
+    });
+
+    // 5. Taux d'achevement
+    const completionRate =
+      totalReports > 0
+        ? Number(((validatedOrTransmitted / totalReports) * 100).toFixed(1))
+        : 0;
+
+    return {
+      data: {
+        counts: countMap,
+        totals: {
+          totalReports,
+          validatedOrTransmitted,
+          completionRate,
+        },
+        overdue: {
+          count: overdueDeadlines.length,
+          items: overdueDeadlines.slice(0, 10),
+        },
+        upcoming: {
+          count: upcomingDeadlines.length,
+          items: upcomingDeadlines,
+        },
+        incompleteExamDossiers: {
+          count: incompleteDossiers.length,
+          items: incompleteDossiers,
+        },
+      },
+    };
+  }
 }

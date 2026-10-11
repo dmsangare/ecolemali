@@ -332,6 +332,10 @@ model School {
   motto        String?      @db.VarChar(200)
   createdYear  Int?         @map("created_year") @db.SmallInt
   tutelleInfo  String?      @map("tutelle_info")
+  academy            String?  @db.VarChar(100)
+  cap                String?  @db.VarChar(100)
+  institutionalCode  String?  @map("institutional_code") @db.VarChar(50)
+  institutionalMode  Boolean  @default(false) @map("institutional_mode")
   isActive     Boolean      @default(true) @map("is_active")
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
@@ -341,6 +345,9 @@ model School {
   rooms               Room[]
   classes             Class[]
   setting             Setting?
+  adminReportTemplates AdminReportTemplate[]  @relation("SchoolAdminReportTemplates")
+  adminReports         AdminReport[]          @relation("SchoolAdminReports")
+  adminReportDeadlines AdminReportDeadline[]  @relation("SchoolAdminReportDeadlines")
   users               User[]
   students            Student[]
   guardians           Guardian[]
@@ -398,6 +405,7 @@ model AcademicYear {
   @@unique([schoolId, label])
   @@index([schoolId, status])
   @@map("academic_years")
+  adminReports         AdminReport[]          @relation("YearAdminReports")
 }
 
 model Term {
@@ -1613,3 +1621,186 @@ model VerifiableDocument {
   @@index([referenceId])
   @@map("verifiable_documents")
 }
+
+// ============================================================
+// BLOC B01 : Module rapports administratifs (RAP-01..13)
+// ============================================================
+
+enum AdminReportCategory {
+  RENTREE
+  STATISTIQUES
+  PERSONNEL
+  INFRASTRUCTURES
+  SITUATION_ANNUELLE
+  FIN_ANNEE
+  EXAMENS
+  COMPLEMENTAIRE
+}
+
+enum AdminReportStatus {
+  NON_PREPARE
+  BROUILLON
+  EN_VERIFICATION
+  A_VALIDER
+  VALIDE
+  PRET_A_TRANSMETTRE
+  TRANSMIS
+  RECEPTION_CONFIRMEE
+  A_CORRIGER
+  NOUVELLE_VERSION_REQUISE
+  CLOTURE
+}
+
+enum AdminReportTemplateStatus {
+  MODELE_INTERNE
+  INSTRUCTION_LOCALE_VERIFIEE
+  OFFICIEL_VERIFIE
+  A_CONFIRMER
+  ARCHIVE
+}
+
+enum TransmissionChannel {
+  DEPOT_PHYSIQUE
+  COURRIER
+  EMAIL_ADMIN
+  PORTAIL_OFFICIEL
+  API_OFFICIELLE
+}
+
+model AdminReportTemplate {
+  id              String                     @id @default(uuid()) @db.Uuid
+  schoolId        String?                    @map("school_id") @db.Uuid
+  code            String                     @db.VarChar(20)
+  title           String                     @db.VarChar(200)
+  description     String?
+  category        AdminReportCategory
+  status          AdminReportTemplateStatus  @default(MODELE_INTERNE)
+  configuration   Json                       @default("{}")
+  regulatoryRef   String?                    @map("regulatory_ref") @db.VarChar(200)
+  authorityTarget String?                    @map("authority_target") @db.VarChar(100)
+  version         Int                        @default(1)
+  effectiveFrom   DateTime?                  @map("effective_from") @db.Date
+  effectiveTo     DateTime?                  @map("effective_to") @db.Date
+  periodicity     String?                    @db.VarChar(50)
+  deadlineSource  String?                    @map("deadline_source") @db.VarChar(200)
+  isActive        Boolean                    @default(true) @map("is_active")
+  createdBy       String?                    @map("created_by") @db.Uuid
+  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+
+  school  School?       @relation("SchoolAdminReportTemplates", fields: [schoolId], references: [id], onDelete: Cascade)
+  reports AdminReport[] @relation("TemplateAdminReports")
+
+  @@unique([schoolId, code, version])
+  @@index([schoolId])
+  @@index([category])
+  @@map("admin_report_templates")
+}
+
+model AdminReport {
+  id              String             @id @default(uuid()) @db.Uuid
+  schoolId        String             @map("school_id") @db.Uuid
+  templateId      String?            @map("template_id") @db.Uuid
+  academicYearId  String?            @map("academic_year_id") @db.Uuid
+  code            String             @db.VarChar(20)
+  title           String             @db.VarChar(200)
+  status          AdminReportStatus  @default(BROUILLON)
+  referenceDate   DateTime?          @map("reference_date") @db.Date
+  periodLabel     String?            @map("period_label") @db.VarChar(100)
+  bordereauNumber String?            @map("bordereau_number") @db.VarChar(50)
+  data            Json               @default("{}")
+  snapshot        Json?
+  version         Int                @default(1)
+  createdBy       String?            @map("created_by") @db.Uuid
+  validatedBy     String?            @map("validated_by") @db.Uuid
+  validatedAt     DateTime?          @map("validated_at") @db.Timestamptz
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  school        School                    @relation("SchoolAdminReports", fields: [schoolId], references: [id], onDelete: Cascade)
+  template      AdminReportTemplate?      @relation("TemplateAdminReports", fields: [templateId], references: [id])
+  academicYear  AcademicYear?             @relation("YearAdminReports", fields: [academicYearId], references: [id])
+  versions      AdminReportVersion[]
+  transmissions AdminReportTransmission[]
+  auditLogs     AdminReportAuditLog[]
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([academicYearId])
+  @@map("admin_reports")
+}
+
+model AdminReportVersion {
+  id        String    @id @default(uuid()) @db.Uuid
+  reportId  String    @map("report_id") @db.Uuid
+  version   Int
+  data      Json
+  snapshot  Json?
+  reason    String?
+  createdBy String?   @map("created_by") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  report AdminReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, version])
+  @@map("admin_report_versions")
+}
+
+model AdminReportTransmission {
+  id                String              @id @default(uuid()) @db.Uuid
+  reportId          String              @map("report_id") @db.Uuid
+  version           Int
+  recipient         String              @db.VarChar(150)
+  recipientRole     String?             @map("recipient_role") @db.VarChar(100)
+  channel           TransmissionChannel
+  sentAt            DateTime            @default(now()) @map("sent_at") @db.Timestamptz
+  sentBy            String?             @map("sent_by") @db.Uuid
+  bordereauNumber   String?             @map("bordereau_number") @db.VarChar(50)
+  referenceNumber   String?             @map("reference_number") @db.VarChar(50)
+  proofUrl          String?             @map("proof_url") @db.VarChar(500)
+  acknowledgmentUrl String?             @map("acknowledgment_url") @db.VarChar(500)
+  observations      String?
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz
+
+  report AdminReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("admin_report_transmissions")
+}
+
+model AdminReportDeadline {
+  id                 String    @id @default(uuid()) @db.Uuid
+  schoolId           String    @map("school_id") @db.Uuid
+  templateCode       String    @map("template_code") @db.VarChar(20)
+  title              String    @db.VarChar(200)
+  academicYearId     String?   @map("academic_year_id") @db.Uuid
+  recipient          String?   @db.VarChar(150)
+  prepareFrom        DateTime? @map("prepare_from") @db.Date
+  deadline           DateTime  @db.Date
+  source             String?   @db.VarChar(200)
+  confidenceLevel    String?   @default("A_CONFIRMER") @map("confidence_level") @db.VarChar(50)
+  responsibleUserId  String?   @map("responsible_user_id") @db.Uuid
+  status             String?   @default("A_VENIR") @db.VarChar(50)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  school School @relation("SchoolAdminReportDeadlines", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("admin_report_deadlines")
+}
+
+model AdminReportAuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  reportId  String?  @map("report_id") @db.Uuid
+  action    String   @db.VarChar(50)
+  userId    String?  @map("user_id") @db.Uuid
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  report AdminReport? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("admin_report_audit_log")
+}
+

@@ -9,6 +9,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { HonorRollPage } from "@/pages/honor-roll/HonorRollPage";
 import { AdminReportsListPage } from "@/pages/admin-reports/AdminReportsListPage";
+import { AdminReportsPage } from "@/pages/admin-reports/AdminReportsPage";
 import { AdminReportNewPage } from "@/pages/admin-reports/AdminReportNewPage";
 import { AdminReportDetailPage } from "@/pages/admin-reports/AdminReportDetailPage";
 import { AdminReportsDashboardPage } from "@/pages/admin-reports/AdminReportsDashboardPage";
@@ -416,7 +417,7 @@ export function AppRoutes() {
             path="/admin-reports"
             element={
               <ProtectedRoute requiredPermission="report_card:view">
-                <AdminReportsListPage />
+                <AdminReportsPage />
               </ProtectedRoute>
             }
           />

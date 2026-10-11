@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Trophy,
@@ -94,6 +94,7 @@ const SECTIONS: NavSection[] = [
       { label: "Annees scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
       { label: "Passage d'annee", to: "/year-rollover", icon: GraduationCap, permission: "academic_year:create" },
       { label: "Examens d'Etat", to: "/state-exams", icon: Award, permission: "academic_year:view" },
+      { label: "Rapports administratifs", to: "/admin-reports", icon: FileText, permission: "report_card:view" },
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },
       { label: "Parametres", to: "/settings", icon: Settings, permission: "settings:view" },
     ],

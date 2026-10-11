@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { PublicRoute } from "./PublicRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,6 +8,7 @@ import { ForbiddenPage } from "@/pages/ForbiddenPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { HonorRollPage } from "@/pages/honor-roll/HonorRollPage";
+import { AdminReportsListPage } from "@/pages/admin-reports/AdminReportsListPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
@@ -399,6 +400,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="academic_year:view">
                 <StateExamsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin-reports"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <AdminReportsListPage />
               </ProtectedRoute>
             }
           />

@@ -79,7 +79,6 @@ export class AssessmentsController {
       );
     }
 
-    console.log("[ASSESSMENT CREATE] Payload nettoye:", JSON.stringify(dto));
 
     return this.service.create(dto);
   }

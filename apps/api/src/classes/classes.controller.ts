@@ -74,7 +74,6 @@ export class ClassesController {
     }
 
     // Log pour debug
-    console.log("[CLASS CREATE] Payload nettoye:", JSON.stringify(dto));
 
     return this.service.create(dto);
   }

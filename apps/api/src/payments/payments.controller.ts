@@ -80,7 +80,6 @@ export class PaymentsController {
       );
     }
 
-    console.log("[PAYMENT CREATE] Payload nettoye:", JSON.stringify(dto));
 
     return this.service.create(dto);
   }

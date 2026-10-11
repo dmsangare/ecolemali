@@ -154,6 +154,16 @@ export class AdminReportsController {
       ];
     }
 
+    // RAP-05 : infrastructures
+    if (report.code === 'RAP-05') {
+      return [
+        { label: 'Salles totales', value: s.totalRooms ?? 0 },
+        { label: 'Salles disponibles', value: s.totalAvailable ?? 0 },
+        { label: 'Salles de classe', value: s.classroomCount ?? 0 },
+        { label: 'Capacité totale', value: s.totalCapacity ?? 0 },
+      ];
+    }
+
     // Par defaut : effectifs eleves (RAP-02, RAP-03)
     return [
       { label: 'Élèves inscrits', value: s.totalStudents ?? 0 },
@@ -301,6 +311,72 @@ export class AdminReportsController {
             { key: 'phone', label: 'Téléphone' },
           ],
         });
+      }
+
+      return sections;
+    }
+
+    // ============================================================
+    // RAP-05 : infrastructures
+    // ============================================================
+    if (report.code === 'RAP-05') {
+      // Section : detail des salles
+      if (Array.isArray(d.salles) && d.salles.length > 0) {
+        sections.push({
+          title: 'Détail des salles',
+          rows: d.salles.map((r: any) => ({
+            name: r.name,
+            type: r.type,
+            capacity: r.capacity ?? '—',
+            location: r.location ?? '—',
+            available: r.isAvailable ? 'Oui' : 'Non',
+            equipment: r.equipmentCount ?? 0,
+          })),
+          columns: [
+            { key: 'name', label: 'Salle' },
+            { key: 'type', label: 'Type' },
+            { key: 'capacity', label: 'Capacité', align: 'right' },
+            { key: 'location', label: 'Emplacement' },
+            { key: 'available', label: 'Dispo' },
+            { key: 'equipment', label: 'Équip.', align: 'right' },
+          ],
+        });
+      }
+
+      // Section : repartition par type
+      if (d.repartitionParType && typeof d.repartitionParType === 'object') {
+        const rows = Object.entries(d.repartitionParType).map(([k, v]: any) => ({
+          type: k,
+          count: v.count,
+          capacity: v.capacity,
+          available: v.available,
+        }));
+        sections.push({
+          title: 'Répartition par type',
+          rows,
+          columns: [
+            { key: 'type', label: 'Type' },
+            { key: 'count', label: 'Nb', align: 'right' },
+            { key: 'capacity', label: 'Capacité', align: 'right' },
+            { key: 'available', label: 'Dispo', align: 'right' },
+          ],
+        });
+      }
+
+      // Section : equipements agreges
+      if (d.equipements && typeof d.equipements === 'object') {
+        const entries = Object.entries(d.equipements);
+        if (entries.length > 0) {
+          const rows = entries.map(([k, v]) => ({ name: k, count: v }));
+          sections.push({
+            title: 'Équipements (agrégés)',
+            rows,
+            columns: [
+              { key: 'name', label: 'Équipement' },
+              { key: 'count', label: 'Quantité', align: 'right' },
+            ],
+          });
+        }
       }
 
       return sections;

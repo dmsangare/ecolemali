@@ -253,6 +253,100 @@ export class ReportDataBuilder {
   }
 
   // ============================================================
+  // RAP-05 : Rapport sur les infrastructures et equipements
+  // ============================================================
+
+  async buildInfrastructures(schoolId: string, academicYearId: string) {
+    // 1. Toutes les salles
+    const rooms = await this.prisma.room.findMany({
+      where: { schoolId },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+    });
+
+    // 2. Repartition par type
+    const byType: Record<string, { count: number; capacity: number; available: number }> = {};
+    for (const r of rooms) {
+      const k = r.type;
+      byType[k] ??= { count: 0, capacity: 0, available: 0 };
+      byType[k].count += 1;
+      byType[k].capacity += r.capacity ?? 0;
+      if (r.isAvailable) byType[k].available += 1;
+    }
+
+    // 3. Detail de chaque salle
+    const roomsDetail = rooms.map((r) => ({
+      name: r.name,
+      type: r.type,
+      capacity: r.capacity,
+      location: r.location,
+      isAvailable: r.isAvailable,
+      equipment: r.equipment ?? null,
+      equipmentCount: this.countEquipment(r.equipment),
+    }));
+
+    // 4. Synthese
+    const totalRooms = rooms.length;
+    const totalAvailable = rooms.filter((r) => r.isAvailable).length;
+    const totalCapacity = rooms.reduce((s, r) => s + (r.capacity ?? 0), 0);
+    const classroomCount = rooms.filter((r) => r.type === 'CLASSROOM').length;
+    const classroomsCapacity = rooms
+      .filter((r) => r.type === 'CLASSROOM')
+      .reduce((s, r) => s + (r.capacity ?? 0), 0);
+
+    // 5. Equipements agreges (depuis les JSON)
+    const equipmentAggregated: Record<string, number> = {};
+    for (const r of rooms) {
+      if (r.equipment && typeof r.equipment === 'object') {
+        for (const [k, v] of Object.entries(r.equipment as any)) {
+          const n = typeof v === 'number' ? v : 1;
+          equipmentAggregated[k] = (equipmentAggregated[k] ?? 0) + n;
+        }
+      }
+    }
+
+    // 6. Reference
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        name: true, code: true, type: true, region: true,
+        academy: true, cap: true, directorName: true,
+      },
+    });
+
+    const year = await this.prisma.academicYear.findUnique({
+      where: { id: academicYearId },
+      select: { id: true, startDate: true, endDate: true, isCurrent: true },
+    });
+
+    return {
+      reference: {
+        school,
+        academicYear: year,
+        referenceDate: new Date().toISOString().split('T')[0],
+      },
+      synthese: {
+        totalRooms,
+        totalAvailable,
+        totalCapacity,
+        classroomCount,
+        classroomsCapacity,
+      },
+      repartitionParType: byType,
+      equipements: equipmentAggregated,
+      salles: roomsDetail,
+    };
+  }
+
+  private countEquipment(equipment: any): number {
+    if (!equipment || typeof equipment !== 'object') return 0;
+    let total = 0;
+    for (const v of Object.values(equipment)) {
+      total += typeof v === 'number' ? v : 1;
+    }
+    return total;
+  }
+
+  // ============================================================
   // RAP-03 : Rapport statistique des effectifs
   // ============================================================
 

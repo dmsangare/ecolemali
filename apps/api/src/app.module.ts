@@ -47,6 +47,7 @@ import { ReportsModule } from "./reports/reports.module";
 import { AuditModule } from "./audit/audit.module";
 import { BackupsModule } from "./backups/backups.module";
 import { TransfersModule } from "./transfers/transfers.module";
+import { AdminReportsModule } from "./admin-reports/admin-reports.module";
 
 import { JwtAuthGuard, PermissionsGuard, MustChangePasswordGuard } from "./common/guards";
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
@@ -103,6 +104,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     AuditModule,
     BackupsModule,
     TransfersModule,
+    AdminReportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

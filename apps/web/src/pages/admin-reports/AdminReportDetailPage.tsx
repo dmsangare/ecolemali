@@ -1,4 +1,5 @@
-﻿import { useParams, useNavigate, Link } from "react-router-dom";
+﻿import { useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Loader2, Download, Send, CheckCircle2,
@@ -8,6 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Modal } from "@/components/ui/modal";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   adminReportsApi,
   REPORT_STATUS_LABELS,
@@ -123,6 +127,11 @@ export function AdminReportDetailPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("report_card:update");
 
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [validateOpen, setValidateOpen] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const [unlockReason, setUnlockReason] = useState("");
+
   const reportQ = useQuery({
     queryKey: ["admin-reports", "detail", id],
     queryFn: () => adminReportsApi.getReport(id!),
@@ -143,19 +152,29 @@ export function AdminReportDetailPage() {
 
   const submitMut = useMutation({
     mutationFn: () => adminReportsApi.submitReport(id!),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      setSubmitOpen(false);
+    },
     onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
   });
 
   const validateMut = useMutation({
     mutationFn: () => adminReportsApi.validateReport(id!),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      setValidateOpen(false);
+    },
     onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
   });
 
   const unlockMut = useMutation({
     mutationFn: (reason: string) => adminReportsApi.unlockReport(id!, reason),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      setUnlockOpen(false);
+      setUnlockReason("");
+    },
     onError: (e: any) => alert(e?.response?.data?.message ?? "Erreur"),
   });
 
@@ -230,7 +249,7 @@ export function AdminReportDetailPage() {
               Régénérer les données
             </Button>
             <Button
-              onClick={() => submitMut.mutate()}
+              onClick={() => setSubmitOpen(true)}
               disabled={submitMut.isPending}
             >
               <Send className="h-4 w-4 mr-2" />
@@ -240,7 +259,7 @@ export function AdminReportDetailPage() {
         )}
 
         {(report.status === "EN_VERIFICATION" || report.status === "A_VALIDER") && canManage && (
-          <Button onClick={() => validateMut.mutate()} disabled={validateMut.isPending}>
+          <Button onClick={() => setValidateOpen(true)} disabled={validateMut.isPending}>
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Valider le rapport
           </Button>
@@ -270,14 +289,7 @@ export function AdminReportDetailPage() {
         {canManage && (report.status === "VALIDE" || report.status === "TRANSMIS" || report.status === "A_CORRIGER") && (
           <Button
             variant="outline"
-            onClick={() => {
-              const reason = prompt("Motif du déverrouillage (min 5 caractères) :");
-              if (reason && reason.trim().length >= 5) {
-                unlockMut.mutate(reason);
-              } else if (reason !== null) {
-                alert("Motif trop court (min 5 caractères)");
-              }
-            }}
+            onClick={() => setUnlockOpen(true)}
             disabled={unlockMut.isPending}
           >
             <Unlock className="h-4 w-4 mr-2" />
@@ -434,6 +446,107 @@ export function AdminReportDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* --- Modal Soumettre --- */}
+      <Modal
+        open={submitOpen}
+        onClose={() => setSubmitOpen(false)}
+        title="Soumettre le rapport à vérification"
+        description="Le rapport passera en statut 'En vérification'. Un contrôleur pourra ensuite le valider."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setSubmitOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => submitMut.mutate()}
+              disabled={submitMut.isPending}
+            >
+              {submitMut.isPending ? "Envoi…" : "Confirmer la soumission"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">
+          Une fois soumis, le rapport ne pourra plus être modifié tant qu'il n'est pas
+          validé ou renvoyé en brouillon.
+        </p>
+      </Modal>
+
+      {/* --- Modal Valider --- */}
+      <Modal
+        open={validateOpen}
+        onClose={() => setValidateOpen(false)}
+        title="Valider le rapport"
+        description="La validation fige une version (snapshot) et rend le rapport prêt à être transmis."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setValidateOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => validateMut.mutate()}
+              disabled={validateMut.isPending}
+            >
+              {validateMut.isPending ? "Validation…" : "Confirmer la validation"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2 text-sm">
+          <p>
+            Une fois validé, le rapport sera <strong>verrouillé</strong> et une copie de
+            ses données sera conservée telle quelle.
+          </p>
+          <p className="text-muted-foreground">
+            Pour modifier à nouveau, il faudra le déverrouiller (ce qui créera une nouvelle
+            version).
+          </p>
+        </div>
+      </Modal>
+
+      {/* --- Modal Déverrouiller --- */}
+      <Modal
+        open={unlockOpen}
+        onClose={() => setUnlockOpen(false)}
+        title="Déverrouiller le rapport"
+        description="Une nouvelle version sera créée. La version actuelle est conservée dans l'historique."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setUnlockOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => {
+                if (unlockReason.trim().length < 5) {
+                  alert("Motif trop court (min 5 caractères)");
+                  return;
+                }
+                unlockMut.mutate(unlockReason);
+              }}
+              disabled={unlockMut.isPending || unlockReason.trim().length < 5}
+            >
+              {unlockMut.isPending ? "Déverrouillage…" : "Confirmer"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Label htmlFor="unlock-reason">Motif du déverrouillage (obligatoire)</Label>
+          <Input
+            id="unlock-reason"
+            placeholder="Ex: erreur dans les effectifs, correction demandée par le CAP…"
+            value={unlockReason}
+            onChange={(e) => setUnlockReason(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Minimum 5 caractères. Ce motif sera enregistré dans le journal d'audit.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

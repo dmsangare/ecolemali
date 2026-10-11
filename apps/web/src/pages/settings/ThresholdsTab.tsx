@@ -9,7 +9,7 @@ import { FinanceAlertsCard } from "./FinanceAlertsCard";
 // Definition des seuils avec ordre decroissant
 const THRESHOLD_KEYS = [
   { key: "excellent", label: "Excellent", color: "text-green-700 bg-green-50 border-green-300" },
-  { key: "tresBien", label: "TrÃ¨s bien", color: "text-green-600 bg-green-50 border-green-200" },
+  { key: "tresBien", label: "Très bien", color: "text-green-600 bg-green-50 border-green-200" },
   { key: "bien", label: "Bien", color: "text-blue-600 bg-blue-50 border-blue-200" },
   { key: "assezBien", label: "Assez bien", color: "text-blue-500 bg-blue-50 border-blue-200" },
   { key: "passable", label: "Passable", color: "text-orange-600 bg-orange-50 border-orange-200" },
@@ -156,7 +156,7 @@ export function ThresholdsTab() {
           {!isValid && (
             <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
               <strong>Erreur de validation :</strong> Les seuils doivent etre
-              strictement decroissants (Excellent &gt; TrÃ¨s bien &gt; Bien &gt;
+              strictement decroissants (Excellent &gt; Très bien &gt; Bien &gt;
               Assez bien &gt; Passable &gt; Insuffisant).
             </div>
           )}
@@ -175,7 +175,7 @@ export function ThresholdsTab() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { avg: thresholds.excellent + 0.5, label: "Excellent" },
-              { avg: thresholds.tresBien + 0.5, label: "TrÃ¨s bien" },
+              { avg: thresholds.tresBien + 0.5, label: "Très bien" },
               { avg: thresholds.bien + 0.5, label: "Bien" },
               { avg: thresholds.assezBien + 0.5, label: "Assez bien" },
               { avg: thresholds.passable + 0.5, label: "Passable" },

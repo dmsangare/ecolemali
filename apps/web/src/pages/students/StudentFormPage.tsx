@@ -86,7 +86,7 @@ export function StudentFormPage() {
   // Charger l'eleve si mode edition
   const { data: existingStudent, isLoading: isLoadingStudent } = useStudentDetail(id);
 
-  // Charger niveaux + classes + annÃ©es pour le rÃ©cap
+  // Charger niveaux + classes + années pour le récap
   const { data: levelsData } = useQuery({
     queryKey: ["levels", "for-summary"],
     queryFn: async () => {
@@ -212,7 +212,7 @@ export function StudentFormPage() {
     }
     setIsSubmitting(true);
     try {
-      // 1. CrÃ©er l'Ã©lÃ¨ve
+      // 1. Créer l'élève
       // MODE EDITION : mettre a jour l'eleve existant
       if (isEdit && id) {
         await updateStudent.mutateAsync({
@@ -243,10 +243,10 @@ export function StudentFormPage() {
         specialSituation: identity.specialSituation || undefined,
       });
 
-      // 2. CrÃ©er / lier les tuteurs
+      // 2. Créer / lier les tuteurs
       const guardianTasks: Promise<any>[] = [];
 
-      // PÃ¨re
+      // Père
       if (family.father.selected) {
         guardianTasks.push(
           linkGuardian.mutateAsync({
@@ -278,7 +278,7 @@ export function StudentFormPage() {
         );
       }
 
-      // MÃ¨re
+      // Mère
       if (family.mother.selected) {
         guardianTasks.push(
           linkGuardian.mutateAsync({
@@ -312,7 +312,7 @@ export function StudentFormPage() {
 
       await Promise.all(guardianTasks);
 
-      // 3. CrÃ©er l'inscription
+      // 3. Créer l'inscription
       await api.post("/enrollments", {
         studentId: student.id,
         academicYearId: school.academicYearId,
@@ -322,14 +322,14 @@ export function StudentFormPage() {
         previousSchool: school.previousSchool || undefined,
       });
 
-      // 4. Facture auto (si demandÃ©)
+      // 4. Facture auto (si demandé)
       if (options.generateInvoice) {
         try {
           await api.post(
             `/invoices/auto/${student.id}/year/${school.academicYearId}`,
           );
         } catch (err) {
-          // Pas bloquant si la facture Ã©choue
+          // Pas bloquant si la facture échoue
           console.warn("Facture auto echouee:", err);
         }
       }

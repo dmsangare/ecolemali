@@ -88,10 +88,10 @@ export interface ClassRankingItem {
 
 // Helpers
 export const DECISION_LABELS: Record<ReportDecision, string> = {
-  ADMIS: "Admis en classe supÃ©rieure",
+  ADMIS: "Admis en classe supérieure",
   REDOUBLE: "Redouble",
   EXCLU: "Exclu",
-  A_DETERMINER: "Ã€ dÃ©terminer",
+  A_DETERMINER: "à déterminer",
 };
 
 export const DECISION_COLORS: Record<ReportDecision, string> = {
@@ -103,12 +103,12 @@ export const DECISION_COLORS: Record<ReportDecision, string> = {
 
 export const STATUS_LABELS: Record<ReportStatus, { label: string; color: string }> = {
   DRAFT: { label: "Brouillon", color: "bg-gray-500/10 text-gray-700" },
-  VALIDATED: { label: "ValidÃ©", color: "bg-blue-500/10 text-blue-700" },
-  PUBLISHED: { label: "PubliÃ©", color: "bg-green-500/10 text-green-700" },
+  VALIDATED: { label: "Validé", color: "bg-blue-500/10 text-blue-700" },
+  PUBLISHED: { label: "Publié", color: "bg-green-500/10 text-green-700" },
 };
 
 /**
- * Calcule l'apprÃ©ciation automatique depuis une moyenne.
+ * Calcule l'appréciation automatique depuis une moyenne.
  */
 export interface AppreciationThresholds {
   excellent: number;
@@ -137,12 +137,12 @@ export function getAppreciation(
   // Normaliser sur /20 pour comparer aux seuils
   const n = scale === 10 ? average * 2 : average;
   if (n >= thresholds.excellent) return "Excellent";
-  if (n >= thresholds.tresBien) return "TrÃ¨s bien";
+  if (n >= thresholds.tresBien) return "Très bien";
   if (n >= thresholds.bien) return "Bien";
   if (n >= thresholds.assezBien) return "Assez bien";
   if (n >= thresholds.passable) return "Passable";
   if (n >= thresholds.insuffisant) return "Insuffisant";
-  return "TrÃ¨s insuffisant";
+  return "Très insuffisant";
 }
 
 export function getAppreciationColor(

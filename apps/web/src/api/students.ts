@@ -151,7 +151,7 @@ export const studentsApi = {
         format: options.format || "A4",
         includeVerso: !!options.includeVerso,
       },
-      { responseType: "blob" },
+      { responseType: "blob", timeout: 120000 },
     );
     return data;
   },

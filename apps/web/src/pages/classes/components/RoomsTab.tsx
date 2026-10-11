@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import {
   Plus,
   Loader2,
@@ -97,7 +97,7 @@ export function RoomsTab() {
     if (editingRoom) {
       await updateRoom.mutateAsync({ id: editingRoom.id, input: payload });
     } else {
-      await createRoom.mutateAsync(payload as any);
+      await createRoom.mutateAsync({ ...payload, schoolId: user?.schoolId } as any);
     }
     setModalOpen(false);
   };

@@ -137,7 +137,7 @@ export function PublishClassModal({ onClose }: Props) {
               <div>
                 <h2 className="text-lg font-semibold">Publier une classe</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Publie en une seule action tous les bulletins validÃ©s
+                  Publie en une seule action tous les bulletins validés
                 </p>
               </div>
             </div>
@@ -196,10 +196,10 @@ export function PublishClassModal({ onClose }: Props) {
                 className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 required
               >
-                <option value="">-- SÃ©lectionner --</option>
+                <option value="">-- Sélectionner --</option>
                 {sortedClasses.map((c) => {
                   const level = levels?.find((l) => l.id === c.levelId);
-                  const emoji = level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
+                  const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
                   return (
                     <option key={c.id} value={c.id}>
                       {emoji} {c.name}
@@ -213,7 +213,7 @@ export function PublishClassModal({ onClose }: Props) {
             {classId && termId && (
               <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground uppercase">
-                  Ã‰tat de prÃ©paration
+                  État de préparation
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center justify-between">
@@ -222,14 +222,14 @@ export function PublishClassModal({ onClose }: Props) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-green-600 font-medium">
-                      ValidÃ©s :
+                      Validés :
                     </span>
                     <span className="font-mono font-bold text-green-600">
                       {counts.VALIDATED}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">PubliÃ©s :</span>
+                    <span className="text-muted-foreground">Publiés :</span>
                     <span className="font-mono font-medium">
                       {counts.PUBLISHED}
                     </span>
@@ -247,7 +247,7 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded p-2.5">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  Aucun bulletin <strong>validÃ©</strong> Ã  publier. Validez
+                  Aucun bulletin <strong>validé</strong> à publier. Validez
                   d'abord les bulletins en brouillon.
                 </span>
               </div>
@@ -257,8 +257,8 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2.5">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  Aucun bulletin gÃ©nÃ©rÃ© pour cette classe/trimestre.
-                  GÃ©nÃ©rez-les d'abord.
+                  Aucun bulletin généré pour cette classe/trimestre.
+                  Générez-les d'abord.
                 </span>
               </div>
             )}
@@ -267,8 +267,8 @@ export function PublishClassModal({ onClose }: Props) {
               <div className="flex items-start gap-2 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded p-2.5">
                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>
-                  <strong>{counts.VALIDATED}</strong> bulletin(s) validÃ©(s)
-                  seront publiÃ©s. Les brouillons seront ignorÃ©s.
+                  <strong>{counts.VALIDATED}</strong> bulletin(s) validé(s)
+                  seront publiés. Les brouillons seront ignorés.
                 </span>
               </div>
             )}

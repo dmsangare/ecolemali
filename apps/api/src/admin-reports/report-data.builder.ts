@@ -347,6 +347,113 @@ export class ReportDataBuilder {
   }
 
   // ============================================================
+  // RAP-06 : Rapport annuel de situation morale, materielle, pedagogique
+  // ============================================================
+
+  async buildAnnualSituation(schoolId: string, academicYearId: string) {
+    // 1. Agreger les donnees factuelles des autres builders
+    const [rentree, personnel, infra] = await Promise.all([
+      this.buildRentree(schoolId, academicYearId),
+      this.buildPersonnel(schoolId, academicYearId),
+      this.buildInfrastructures(schoolId, academicYearId),
+    ]);
+
+    // 2. Identification
+    const identification = rentree.identification;
+
+    // 3. Situation administrative
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        status: true, type: true, tutelleInfo: true,
+        directorName: true, createdAt: true,
+      },
+    });
+
+    const admin = {
+      statutEtablissement: school?.status,
+      typeEtablissement: school?.type,
+      autorisation: school?.tutelleInfo ?? null,
+      directeur: school?.directorName ?? null,
+      classesOuvertes: rentree.synthese.classesCount,
+      ordresEnseignement: Array.from(new Set(rentree.classes.map((c) => c.cycle))),
+    };
+
+    // 4. Situation pedagogique
+    const pedagogique = {
+      effectifsTotal: rentree.synthese.totalStudents,
+      effectifsFilles: rentree.synthese.totalGirls,
+      effectifsGarcons: rentree.synthese.totalBoys,
+      nombreClasses: rentree.synthese.classesCount,
+      personnelEnseignant: personnel.synthese.totalTeachers,
+      personnelAdministratif: personnel.synthese.totalAdmin,
+      repartitionParCycle: rentree.parCycle,
+      repartitionParMatiere: personnel.repartitionParMatiere,
+      // Resultats scolaires agreges : rempli par le bloc B10 (validation) si besoin
+      resultatsAgreges: null,
+      difficultesPedagogiques: '',
+      actionsCorrectives: '',
+      activitesComplementaires: '',
+    };
+
+    // 5. Situation materielle
+    const materiel = {
+      sallesTotal: infra.synthese.totalRooms,
+      sallesDisponibles: infra.synthese.totalAvailable,
+      sallesClasse: infra.synthese.classroomCount,
+      capaciteTotale: infra.synthese.totalCapacity,
+      repartitionParType: infra.repartitionParType,
+      equipements: infra.equipements,
+      etatLocaux: '',
+      besoinsEquipements: '',
+      travauxRealises: '',
+    };
+
+    // 6. Situation morale (a remplir manuellement)
+    const morale = {
+      reglementInterieur: '',
+      applicationReglement: '',
+      organisationVieScolaire: '',
+      actionsSensibilisation: '',
+      mesuresPrevention: '',
+      activitesEducatives: '',
+      difficultesDiscipline: '',
+    };
+
+    // 7. Difficultes et perspectives (a remplir manuellement)
+    const perspectives = {
+      difficultesRencontrees: '',
+      mesuresPrises: '',
+      besoinsIdentifies: '',
+      planAmelioration: '',
+      projetsAnneeSuivante: '',
+    };
+
+    // 8. Validation (rempli plus tard au moment de la validation)
+    const validation = {
+      responsableNom: school?.directorName ?? '',
+      responsableFonction: 'Directeur',
+      dateValidation: null,
+      signatureUrl: null,
+      cachetUrl: null,
+    };
+
+    return {
+      identification,
+      situationAdministrative: admin,
+      situationPedagogique: pedagogique,
+      situationMaterielle: materiel,
+      situationMorale: morale,
+      perspectives,
+      validation,
+      _meta: {
+        sectionsFactuelles: ['identification', 'situationAdministrative', 'situationPedagogique', 'situationMaterielle'],
+        sectionsManuelles: ['situationMorale', 'perspectives'],
+      },
+    };
+  }
+
+  // ============================================================
   // RAP-03 : Rapport statistique des effectifs
   // ============================================================
 

@@ -164,6 +164,18 @@ export class AdminReportsController {
       ];
     }
 
+    // RAP-06 : situation annuelle
+    if (report.code === 'RAP-06') {
+      const peda = d.situationPedagogique ?? {};
+      const mat = d.situationMaterielle ?? {};
+      return [
+        { label: 'Élèves', value: peda.effectifsTotal ?? 0 },
+        { label: 'Classes', value: peda.nombreClasses ?? 0 },
+        { label: 'Enseignants', value: peda.personnelEnseignant ?? 0 },
+        { label: 'Salles', value: mat.sallesTotal ?? 0 },
+      ];
+    }
+
     // Par defaut : effectifs eleves (RAP-02, RAP-03)
     return [
       { label: 'Élèves inscrits', value: s.totalStudents ?? 0 },
@@ -378,6 +390,115 @@ export class AdminReportsController {
           });
         }
       }
+
+      return sections;
+    }
+
+    // ============================================================
+    // RAP-06 : situation annuelle
+    // ============================================================
+    if (report.code === 'RAP-06') {
+      // Section : situation administrative
+      const admin = d.situationAdministrative ?? {};
+      sections.push({
+        title: 'A. Situation administrative',
+        rows: [
+          { label: 'Statut établissement', value: admin.statutEtablissement ?? '—' },
+          { label: 'Type', value: admin.typeEtablissement ?? '—' },
+          { label: 'Autorisation', value: admin.autorisation ?? '—' },
+          { label: 'Directeur', value: admin.directeur ?? '—' },
+          { label: 'Classes ouvertes', value: admin.classesOuvertes ?? 0 },
+          { label: 'Ordres d\'enseignement', value: (admin.ordresEnseignement ?? []).join(', ') },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : situation pédagogique
+      const peda = d.situationPedagogique ?? {};
+      sections.push({
+        title: 'B. Situation pédagogique',
+        rows: [
+          { label: 'Effectif total', value: peda.effectifsTotal ?? 0 },
+          { label: 'Filles', value: peda.effectifsFilles ?? 0 },
+          { label: 'Garçons', value: peda.effectifsGarcons ?? 0 },
+          { label: 'Nombre de classes', value: peda.nombreClasses ?? 0 },
+          { label: 'Enseignants', value: peda.personnelEnseignant ?? 0 },
+          { label: 'Personnel administratif', value: peda.personnelAdministratif ?? 0 },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : situation matérielle
+      const mat = d.situationMaterielle ?? {};
+      sections.push({
+        title: 'C. Situation matérielle',
+        rows: [
+          { label: 'Salles totales', value: mat.sallesTotal ?? 0 },
+          { label: 'Salles disponibles', value: mat.sallesDisponibles ?? 0 },
+          { label: 'Salles de classe', value: mat.sallesClasse ?? 0 },
+          { label: 'Capacité totale', value: mat.capaciteTotale ?? 0 },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : situation morale (peut etre vide)
+      const morale = d.situationMorale ?? {};
+      const moraleRows = [
+        { label: 'Règlement intérieur', value: morale.reglementInterieur || '—' },
+        { label: 'Application', value: morale.applicationReglement || '—' },
+        { label: 'Vie scolaire', value: morale.organisationVieScolaire || '—' },
+        { label: 'Actions de sensibilisation', value: morale.actionsSensibilisation || '—' },
+        { label: 'Activités éducatives', value: morale.activitesEducatives || '—' },
+      ];
+      sections.push({
+        title: 'D. Situation morale et vie scolaire',
+        rows: moraleRows,
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : perspectives
+      const persp = d.perspectives ?? {};
+      sections.push({
+        title: 'E. Difficultés et perspectives',
+        rows: [
+          { label: 'Difficultés rencontrées', value: persp.difficultesRencontrees || '—' },
+          { label: 'Mesures prises', value: persp.mesuresPrises || '—' },
+          { label: 'Besoins identifiés', value: persp.besoinsIdentifies || '—' },
+          { label: 'Plan d\'amélioration', value: persp.planAmelioration || '—' },
+          { label: 'Projets année suivante', value: persp.projetsAnneeSuivante || '—' },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : validation
+      const val = d.validation ?? {};
+      sections.push({
+        title: 'F. Validation',
+        rows: [
+          { label: 'Responsable', value: val.responsableNom ?? '—' },
+          { label: 'Fonction', value: val.responsableFonction ?? '—' },
+          { label: 'Date', value: val.dateValidation ?? '—' },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
 
       return sections;
     }

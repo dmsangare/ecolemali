@@ -454,6 +454,115 @@ export class ReportDataBuilder {
   }
 
   // ============================================================
+  // RAP-07 : Rapport de fin d'annee
+  // ============================================================
+
+  async buildYearEnd(schoolId: string, academicYearId: string) {
+    // 1. Base : effectifs actuels (fin d'annee = effectifs de rentree, ajustes)
+    const rentree = await this.buildRentree(schoolId, academicYearId);
+
+    // 2. Resultats annuels via StudentPathway
+    const pathways = await this.prisma.studentPathway.findMany({
+      where: {
+        academicYearId,
+        student: { schoolId },
+      },
+      include: {
+        class: { select: { id: true, name: true, levelId: true } },
+        level: { select: { id: true, name: true, cycle: true } },
+      },
+    });
+
+    const totalEvaluated = pathways.length;
+    const passed = pathways.filter((p) => p.result === 'PASSED').length;
+    const repeated = pathways.filter((p) => p.result === 'REPEATED').length;
+    const excluded = pathways.filter((p) => p.result === 'EXCLUDED').length;
+    const transferred = pathways.filter((p) => p.result === 'TRANSFERRED').length;
+    const undecided = pathways.filter((p) => !p.result).length;
+
+    // 3. Taux (uniquement si denominateur > 0)
+    const rates = {
+      tauxReussite: totalEvaluated > 0 ? Number(((passed / totalEvaluated) * 100).toFixed(2)) : null,
+      tauxRedoublement: totalEvaluated > 0 ? Number(((repeated / totalEvaluated) * 100).toFixed(2)) : null,
+      tauxExclusion: totalEvaluated > 0 ? Number(((excluded / totalEvaluated) * 100).toFixed(2)) : null,
+      tauxTransfert: totalEvaluated > 0 ? Number(((transferred / totalEvaluated) * 100).toFixed(2)) : null,
+    };
+
+    // 4. Resultats par classe
+    const byClass: Record<string, any> = {};
+    for (const p of pathways) {
+      const k = p.class?.name ?? 'Non affecté';
+      byClass[k] ??= {
+        classId: p.class?.id,
+        className: p.class?.name,
+        levelName: p.level?.name,
+        cycle: p.level?.cycle,
+        total: 0, passed: 0, repeated: 0, excluded: 0, transferred: 0, undecided: 0,
+      };
+      byClass[k].total += 1;
+      if (p.result === 'PASSED') byClass[k].passed += 1;
+      else if (p.result === 'REPEATED') byClass[k].repeated += 1;
+      else if (p.result === 'EXCLUDED') byClass[k].excluded += 1;
+      else if (p.result === 'TRANSFERRED') byClass[k].transferred += 1;
+      else byClass[k].undecided += 1;
+    }
+
+    // 5. Resultats par niveau
+    const byLevel: Record<string, any> = {};
+    for (const p of pathways) {
+      const k = p.level?.name ?? 'Non affecté';
+      byLevel[k] ??= {
+        levelName: p.level?.name,
+        cycle: p.level?.cycle,
+        total: 0, passed: 0, repeated: 0, excluded: 0, transferred: 0,
+      };
+      byLevel[k].total += 1;
+      if (p.result === 'PASSED') byLevel[k].passed += 1;
+      else if (p.result === 'REPEATED') byLevel[k].repeated += 1;
+      else if (p.result === 'EXCLUDED') byLevel[k].excluded += 1;
+      else if (p.result === 'TRANSFERRED') byLevel[k].transferred += 1;
+    }
+
+    // 6. Sorties (transferts confirmees)
+    const transfersOut = await this.prisma.studentTransfer.count({
+      where: {
+        type: 'OUT',
+        status: 'VERIFIED',
+        effectiveDate: {
+          gte: (await this.prisma.academicYear.findUnique({ where: { id: academicYearId } }))?.startDate ?? undefined,
+          lte: (await this.prisma.academicYear.findUnique({ where: { id: academicYearId } }))?.endDate ?? undefined,
+        },
+        student: { schoolId },
+      },
+    }).catch(() => 0);
+
+    // 7. Reference
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true, code: true, type: true, region: true, academy: true, cap: true, directorName: true },
+    });
+
+    const year = await this.prisma.academicYear.findUnique({
+      where: { id: academicYearId },
+      select: { id: true, startDate: true, endDate: true, isCurrent: true },
+    });
+
+    return {
+      reference: { school, academicYear: year, referenceDate: new Date().toISOString().split('T')[0] },
+      synthese: {
+        effectifDebut: rentree.synthese.totalStudents,
+        effectifFin: totalEvaluated,
+        totalEvaluated,
+        passed, repeated, excluded, transferred, undecided,
+        transfertsSortants: transfersOut,
+      },
+      taux: rates,
+      resultatsParClasse: Object.values(byClass),
+      resultatsParNiveau: Object.values(byLevel),
+    };
+  }
+
+  // ============================================================
   // RAP-03 : Rapport statistique des effectifs
   // ============================================================
 

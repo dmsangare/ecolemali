@@ -176,6 +176,16 @@ export class AdminReportsController {
       ];
     }
 
+    // RAP-07 : fin d'annee
+    if (report.code === 'RAP-07') {
+      return [
+        { label: 'Élèves évalués', value: s.totalEvaluated ?? 0 },
+        { label: 'Admis', value: s.passed ?? 0 },
+        { label: 'Redoublants', value: s.repeated ?? 0 },
+        { label: 'Taux de réussite', value: (d.taux?.tauxReussite ?? 0) + ' %' },
+      ];
+    }
+
     // Par defaut : effectifs eleves (RAP-02, RAP-03)
     return [
       { label: 'Élèves inscrits', value: s.totalStudents ?? 0 },
@@ -499,6 +509,71 @@ export class AdminReportsController {
           { key: 'value', label: 'Valeur' },
         ],
       });
+
+      return sections;
+    }
+
+    // ============================================================
+    // RAP-07 : fin d'annee
+    // ============================================================
+    if (report.code === 'RAP-07') {
+      // Section : synthese
+      const syn = d.synthese ?? {};
+      sections.push({
+        title: 'Synthèse de fin d\'année',
+        rows: [
+          { label: 'Effectif début d\'année', value: syn.effectifDebut ?? 0 },
+          { label: 'Effectif évalué (fin)', value: syn.totalEvaluated ?? 0 },
+          { label: 'Admis en classe supérieure', value: syn.passed ?? 0 },
+          { label: 'Redoublants', value: syn.repeated ?? 0 },
+          { label: 'Exclus', value: syn.excluded ?? 0 },
+          { label: 'Transférés', value: syn.transferred ?? 0 },
+          { label: 'En attente de décision', value: syn.undecided ?? 0 },
+        ],
+        columns: [
+          { key: 'label', label: 'Rubrique' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : taux
+      const taux = d.taux ?? {};
+      sections.push({
+        title: 'Taux',
+        rows: [
+          { label: 'Taux de réussite', value: (taux.tauxReussite ?? '—') + (taux.tauxReussite != null ? ' %' : '') },
+          { label: 'Taux de redoublement', value: (taux.tauxRedoublement ?? '—') + (taux.tauxRedoublement != null ? ' %' : '') },
+          { label: 'Taux d\'exclusion', value: (taux.tauxExclusion ?? '—') + (taux.tauxExclusion != null ? ' %' : '') },
+          { label: 'Taux de transfert', value: (taux.tauxTransfert ?? '—') + (taux.tauxTransfert != null ? ' %' : '') },
+        ],
+        columns: [
+          { key: 'label', label: 'Indicateur' },
+          { key: 'value', label: 'Valeur' },
+        ],
+      });
+
+      // Section : resultats par classe
+      if (Array.isArray(d.resultatsParClasse) && d.resultatsParClasse.length > 0) {
+        sections.push({
+          title: 'Résultats par classe',
+          rows: d.resultatsParClasse.map((c: any) => ({
+            classe: c.className,
+            total: c.total,
+            admis: c.passed,
+            redoublants: c.repeated,
+            exclus: c.excluded,
+            transferes: c.transferred,
+          })),
+          columns: [
+            { key: 'classe', label: 'Classe' },
+            { key: 'total', label: 'Total', align: 'right' },
+            { key: 'admis', label: 'Admis', align: 'right' },
+            { key: 'redoublants', label: 'Redouble', align: 'right' },
+            { key: 'exclus', label: 'Exclus', align: 'right' },
+            { key: 'transferes', label: 'Transférés', align: 'right' },
+          ],
+        });
+      }
 
       return sections;
     }

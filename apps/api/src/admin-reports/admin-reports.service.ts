@@ -197,4 +197,128 @@ export class AdminReportsService {
 
     return { data: updated };
   }
+
+  // ============================================================
+  // RAP-09 : Validation + verrouillage + snapshot (CDC 13)
+  // ============================================================
+
+  async submitForVerification(schoolId: string, userId: string, id: string) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+    if (report.status !== 'BROUILLON') {
+      throw new BadRequestException('Seul un brouillon peut être soumis à vérification');
+    }
+
+    const updated = await this.prisma.adminReport.update({
+      where: { id },
+      data: { status: 'EN_VERIFICATION' },
+    });
+
+    await this.prisma.adminReportAuditLog.create({
+      data: { reportId: id, action: 'SUBMIT', userId },
+    });
+
+    return { data: updated };
+  }
+
+  async validateReport(schoolId: string, userId: string, id: string) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+    if (report.status !== 'EN_VERIFICATION' && report.status !== 'A_VALIDER') {
+      throw new BadRequestException(
+        'Seul un rapport EN_VERIFICATION ou A_VALIDER peut être validé',
+      );
+    }
+
+    // Snapshot : on copie les donnees actuelles pour figer la version
+    const snapshot = {
+      data: report.data,
+      capturedAt: new Date().toISOString(),
+      capturedBy: userId,
+      version: report.version,
+    };
+
+    const updated = await this.prisma.adminReport.update({
+      where: { id },
+      data: {
+        status: 'VALIDE',
+        snapshot: snapshot as any,
+        validatedBy: userId,
+        validatedAt: new Date(),
+      },
+    });
+
+    // Enregistrer aussi dans admin_report_versions
+    await this.prisma.adminReportVersion.create({
+      data: {
+        reportId: id,
+        version: report.version,
+        data: report.data as any,
+        snapshot: snapshot as any,
+        reason: 'Validation initiale',
+        createdBy: userId,
+      },
+    });
+
+    await this.prisma.adminReportAuditLog.create({
+      data: { reportId: id, action: 'VALIDATE', userId, details: { version: report.version } },
+    });
+
+    return { data: updated };
+  }
+
+  async unlockReport(schoolId: string, userId: string, id: string, reason: string) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+    if (report.status !== 'VALIDE' && report.status !== 'TRANSMIS' && report.status !== 'RECEPTION_CONFIRMEE') {
+      throw new BadRequestException('Seul un rapport validé ou transmis peut être déverrouillé');
+    }
+    if (!reason || reason.trim().length < 5) {
+      throw new BadRequestException('Motif de déverrouillage requis (min 5 caractères)');
+    }
+
+    const newVersion = report.version + 1;
+
+    const updated = await this.prisma.adminReport.update({
+      where: { id },
+      data: {
+        status: 'BROUILLON',
+        version: newVersion,
+        validatedBy: null,
+        validatedAt: null,
+      },
+    });
+
+    await this.prisma.adminReportAuditLog.create({
+      data: {
+        reportId: id,
+        action: 'UNLOCK',
+        userId,
+        details: { fromVersion: report.version, toVersion: newVersion, reason },
+      },
+    });
+
+    return { data: updated };
+  }
+
+  async listVersions(schoolId: string, id: string) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+      select: { id: true, code: true, title: true, version: true, status: true },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+
+    const versions = await this.prisma.adminReportVersion.findMany({
+      where: { reportId: id },
+      orderBy: { version: 'desc' },
+    });
+
+    return { data: { report, versions } };
+  }
 }

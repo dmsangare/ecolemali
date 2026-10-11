@@ -137,6 +137,34 @@ export class AdminReportsController {
   }
 
   // ============================================================
+  // RAP-09 : Validation + verrouillage + versions
+  // ============================================================
+
+  @Post('reports/:id/submit')
+  async submit(@Req() req: any, @Param('id') id: string) {
+    return this.service.submitForVerification(this.sid(req), this.uid(req), id);
+  }
+
+  @Post('reports/:id/validate')
+  async validate(@Req() req: any, @Param('id') id: string) {
+    return this.service.validateReport(this.sid(req), this.uid(req), id);
+  }
+
+  @Post('reports/:id/unlock')
+  async unlock(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.service.unlockReport(this.sid(req), this.uid(req), id, body?.reason ?? '');
+  }
+
+  @Get('reports/:id/versions')
+  async versions(@Req() req: any, @Param('id') id: string) {
+    return this.service.listVersions(this.sid(req), id);
+  }
+
+  // ============================================================
   // Helpers de transformation
   // ============================================================
 

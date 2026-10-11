@@ -13,6 +13,8 @@ import { AdminReportNewPage } from "@/pages/admin-reports/AdminReportNewPage";
 import { AdminReportDetailPage } from "@/pages/admin-reports/AdminReportDetailPage";
 import { AdminReportsDashboardPage } from "@/pages/admin-reports/AdminReportsDashboardPage";
 import { AdminReportsDeadlinesPage } from "@/pages/admin-reports/AdminReportsDeadlinesPage";
+import { AdminReportsArchivesPage } from "@/pages/admin-reports/AdminReportsArchivesPage";
+import { StateExamSessionsPage } from "@/pages/state-exam-dossiers/StateExamSessionsPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
@@ -449,6 +451,24 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="report_card:view">
                 <AdminReportDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin-reports/archives"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <AdminReportsArchivesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/state-exam-dossiers"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <StateExamSessionsPage />
               </ProtectedRoute>
             }
           />

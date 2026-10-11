@@ -117,7 +117,7 @@ export function AdminReportsArchivesPage() {
                 </thead>
                 <tbody>
                   {filtered.map((r) => {
-                    const tr = r.transmissions?.[0];
+                    const rr: any = r;
                     return (
                       <tr key={r.id} className="border-b hover:bg-muted/50">
                         <td className="p-2 font-mono text-xs">{r.code}</td>
@@ -130,8 +130,8 @@ export function AdminReportsArchivesPage() {
                           </Link>
                         </td>
                         <td className="p-2 text-muted-foreground">
-                          {r.academicYear
-                            ? `${new Date(r.academicYear.startDate).getFullYear()}-${new Date(r.academicYear.endDate).getFullYear()}`
+                          {rr.academicYear
+                            ? `${new Date(rr.academicYear.startDate).getFullYear()}-${new Date(rr.academicYear.endDate).getFullYear()}`
                             : "—"}
                         </td>
                         <td className="p-2">

@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminReportsService } from './admin-reports.service';
 import { generateReportPDF } from '../reports/pdf/report-pdf.util';
+import { generateOfficialReportPDF } from './pdf/admin-report-pdf.util';
 import { generateExcel } from '../students/utils/excel.util';
 import { ListTemplatesQuerySchema, ListReportsQuerySchema } from './dto';
 
@@ -66,20 +67,69 @@ export class AdminReportsController {
   @Get('reports/:id/pdf')
   async pdf(@Req() req: any, @Param('id') id: string, @Res() res: Response) {
     const { data: report } = await this.service.getReport(this.sid(req), id);
-    const schoolName = report.template?.title ?? report.title;
-    const userName = `${req.user.firstName ?? ''} ${req.user.lastName ?? ''}`.trim() || 'Utilisateur';
+
+    // Charger l'ecole (pour logo, signature, cachet, infos)
+    const school = await this.service['prisma'].school.findUnique({
+      where: { id: this.sid(req) },
+      select: {
+        name: true, code: true, sigle: true, type: true,
+        region: true, cercle: true, commune: true, address: true,
+        phone: true, email: true, website: true, motto: true,
+        directorName: true, academy: true, cap: true,
+        logoUrl: true, stampUrl: true, signatureUrl: true,
+      },
+    });
+
+    // Charger l'annee scolaire si presente
+    let academicYear: any = null;
+    if (report.academicYearId) {
+      academicYear = await this.service['prisma'].academicYear.findUnique({
+        where: { id: report.academicYearId },
+        select: { startDate: true, endDate: true },
+      });
+    }
 
     const sections = this.buildPdfSections(report);
     const summary = this.buildPdfSummary(report);
 
-    const pdf = await generateReportPDF({
-      title: report.title,
-      schoolName: req.user.schoolName ?? 'Établissement',
-      subtitle: `${report.code} — ${schoolName}`,
-      period: report.periodLabel ?? undefined,
-      user: userName,
+    const pdf = await generateOfficialReportPDF({
+      school: {
+        name: school?.name ?? req.user.schoolName ?? 'Établissement',
+        code: school?.code,
+        sigle: school?.sigle,
+        type: school?.type,
+        region: school?.region,
+        cercle: school?.cercle,
+        commune: school?.commune,
+        address: school?.address,
+        phone: school?.phone,
+        email: school?.email,
+        website: school?.website,
+        motto: school?.motto,
+        directorName: school?.directorName,
+        academy: school?.academy,
+        cap: school?.cap,
+        logoUrl: school?.logoUrl,
+        stampUrl: school?.stampUrl,
+        signatureUrl: school?.signatureUrl,
+      },
+      academicYear,
+      report: {
+        code: report.code,
+        title: report.title,
+        version: report.version,
+        bordereauNumber: report.bordereauNumber,
+        validatedAt: report.validatedAt,
+        status: report.status,
+      },
+      referenceDate: report.referenceDate ? String(report.referenceDate) : undefined,
       summary,
       sections,
+      signature: {
+        name: school?.directorName,
+        role: 'Le Directeur',
+        place: school?.commune,
+      },
     });
 
     res.setHeader('Content-Type', 'application/pdf');

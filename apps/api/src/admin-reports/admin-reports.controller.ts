@@ -165,6 +165,36 @@ export class AdminReportsController {
   }
 
   // ============================================================
+  // RAP-10 : Transmission + réception
+  // ============================================================
+
+  @Post('reports/:id/transmit')
+  async transmit(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.service.transmitReport(this.sid(req), this.uid(req), id, {
+      recipient: body?.recipient,
+      recipientRole: body?.recipientRole,
+      channel: body?.channel ?? 'DEPOT_PHYSIQUE',
+      proofUrl: body?.proofUrl,
+      referenceNumber: body?.referenceNumber,
+      observations: body?.observations,
+    });
+  }
+
+  @Post('reports/:id/receive')
+  async receive(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.service.receiveReport(this.sid(req), this.uid(req), id, {
+      transmissionId: body?.transmissionId,
+      receiptUrl: body?.receiptUrl,
+      observations: body?.observations,
+    });
+  }
+
+  @Get('reports/:id/transmissions')
+  async transmissions(@Req() req: any, @Param('id') id: string) {
+    return this.service.listTransmissions(this.sid(req), id);
+  }
+
+  // ============================================================
   // Helpers de transformation
   // ============================================================
 

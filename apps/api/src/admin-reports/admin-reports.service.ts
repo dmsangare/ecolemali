@@ -321,4 +321,175 @@ export class AdminReportsService {
 
     return { data: { report, versions } };
   }
+
+  // ============================================================
+  // RAP-10 : Transmission + reception (CDC 14)
+  // ============================================================
+
+  private async generateBordereauNumber(
+    schoolId: string,
+    reportCode: string,
+  ): Promise<string> {
+    // Recuperer le sigle de l'ecole
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { sigle: true, code: true },
+    });
+    const sigle = (school?.sigle || school?.code || 'SCH').toUpperCase();
+
+    // Recuperer l'annee scolaire courante
+    const year = await this.prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+      select: { startDate: true },
+    });
+    const yearLabel = year?.startDate
+      ? new Date(year.startDate).getFullYear()
+      : new Date().getFullYear();
+
+    // Compter les transmissions existantes pour cette ecole + ce code de rapport
+    const count = await this.prisma.adminReportTransmission.count({
+      where: {
+        report: { schoolId, code: reportCode },
+      },
+    });
+    const seq = String(count + 1).padStart(4, '0');
+
+    return `${sigle}/${yearLabel}/RAP-${reportCode}-${seq}`;
+  }
+
+  async transmitReport(
+    schoolId: string,
+    userId: string,
+    id: string,
+    input: {
+      recipient: string;
+      recipientRole?: string;
+      channel: 'DEPOT_PHYSIQUE' | 'COURRIER' | 'EMAIL_ADMIN' | 'PORTAIL_OFFICIEL' | 'API_OFFICIELLE';
+      proofUrl?: string;
+      referenceNumber?: string;
+      observations?: string;
+    },
+  ) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+
+    const allowed = ['VALIDE', 'PRET_A_TRANSMETTRE', 'A_CORRIGER'];
+    if (!allowed.includes(report.status)) {
+      throw new BadRequestException(
+        `Impossible de transmettre depuis le statut ${report.status}. Validez d'abord le rapport.`,
+      );
+    }
+    if (!input.recipient || input.recipient.trim().length < 3) {
+      throw new BadRequestException('Destinataire requis (min 3 caractères)');
+    }
+
+    // Bordereau : reutiliser celui du rapport s'il existe, sinon generer
+    let bordereau = report.bordereauNumber;
+    if (!bordereau) {
+      bordereau = await this.generateBordereauNumber(schoolId, report.code);
+    }
+
+    const transmission = await this.prisma.adminReportTransmission.create({
+      data: {
+        reportId: id,
+        version: report.version,
+        recipient: input.recipient,
+        recipientRole: input.recipientRole,
+        channel: input.channel,
+        sentBy: userId,
+        bordereauNumber: bordereau,
+        referenceNumber: input.referenceNumber,
+        proofUrl: input.proofUrl,
+        observations: input.observations,
+      },
+    });
+
+    const updated = await this.prisma.adminReport.update({
+      where: { id },
+      data: {
+        status: 'TRANSMIS',
+        bordereauNumber: bordereau,
+      },
+    });
+
+    await this.prisma.adminReportAuditLog.create({
+      data: {
+        reportId: id,
+        action: 'TRANSMIT',
+        userId,
+        details: { recipient: input.recipient, channel: input.channel, bordereau },
+      },
+    });
+
+    return { data: { report: updated, transmission } };
+  }
+
+  async receiveReport(
+    schoolId: string,
+    userId: string,
+    id: string,
+    input: {
+      transmissionId?: string;
+      receiptUrl?: string;
+      observations?: string;
+    },
+  ) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+    if (report.status !== 'TRANSMIS') {
+      throw new BadRequestException(
+        'Seul un rapport TRANSMIS peut être marqué comme réceptionné',
+      );
+    }
+
+    // Si transmissionId fourni → mettre a jour la transmission
+    if (input.transmissionId) {
+      const tr = await this.prisma.adminReportTransmission.findFirst({
+        where: { id: input.transmissionId, reportId: id },
+      });
+      if (!tr) throw new NotFoundException('Transmission introuvable');
+      await this.prisma.adminReportTransmission.update({
+        where: { id: input.transmissionId },
+        data: {
+          acknowledgmentUrl: input.receiptUrl,
+          observations: input.observations ?? tr.observations,
+        },
+      });
+    }
+
+    const updated = await this.prisma.adminReport.update({
+      where: { id },
+      data: { status: 'RECEPTION_CONFIRMEE' },
+    });
+
+    await this.prisma.adminReportAuditLog.create({
+      data: {
+        reportId: id,
+        action: 'RECEIVE',
+        userId,
+        details: { receiptUrl: input.receiptUrl },
+      },
+    });
+
+    return { data: updated };
+  }
+
+  async listTransmissions(schoolId: string, id: string) {
+    const report = await this.prisma.adminReport.findFirst({
+      where: { id, schoolId },
+      select: { id: true, code: true, title: true, status: true, bordereauNumber: true },
+    });
+    if (!report) throw new NotFoundException('Rapport introuvable');
+
+    const transmissions = await this.prisma.adminReportTransmission.findMany({
+      where: { reportId: id },
+      orderBy: { sentAt: 'desc' },
+    });
+
+    return { data: { report, transmissions } };
+  }
 }

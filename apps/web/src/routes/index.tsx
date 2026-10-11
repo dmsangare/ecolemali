@@ -12,6 +12,7 @@ import { AdminReportsListPage } from "@/pages/admin-reports/AdminReportsListPage
 import { AdminReportNewPage } from "@/pages/admin-reports/AdminReportNewPage";
 import { AdminReportDetailPage } from "@/pages/admin-reports/AdminReportDetailPage";
 import { AdminReportsDashboardPage } from "@/pages/admin-reports/AdminReportsDashboardPage";
+import { AdminReportsDeadlinesPage } from "@/pages/admin-reports/AdminReportsDeadlinesPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
@@ -421,6 +422,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="report_card:view">
                 <AdminReportsDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin-reports/deadlines"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <AdminReportsDeadlinesPage />
               </ProtectedRoute>
             }
           />

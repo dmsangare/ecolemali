@@ -2,10 +2,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, FileText, Loader2, Download, Send, CheckCircle2,
-  Unlock, AlertCircle, RefreshCw, FileSpreadsheet,
+  Unlock, AlertCircle, RefreshCw, FileSpreadsheet, History,
+  Send as SendIcon, ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   adminReportsApi,
   REPORT_STATUS_LABELS,
@@ -284,24 +286,154 @@ export function AdminReportDetailPage() {
         )}
       </div>
 
-      {/* Données */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Données du rapport</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {report.data && Object.keys(report.data).length > 0 ? (
-            renderDataTree(report.data)
-          ) : (
-            <div className="text-center py-8">
-              <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 text-sm text-muted-foreground">
-                Aucune donnée. Cliquez sur "Régénérer les données" pour pré-remplir.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tabs : Données / Versions / Transmissions / Journal */}
+      <Tabs defaultValue="data" className="w-full">
+        <TabsList>
+          <TabsTrigger value="data">
+            <FileText className="h-4 w-4 mr-2" />
+            Données
+          </TabsTrigger>
+          <TabsTrigger value="versions">
+            <History className="h-4 w-4 mr-2" />
+            Versions ({report.versions?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="transmissions">
+            <SendIcon className="h-4 w-4 mr-2" />
+            Transmissions ({report.transmissions?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="audit">
+            <ScrollText className="h-4 w-4 mr-2" />
+            Journal ({report.auditLogs?.length ?? 0})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* --- Onglet Données --- */}
+        <TabsContent value="data">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Données du rapport</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {report.data && Object.keys(report.data).length > 0 ? (
+                renderDataTree(report.data)
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Aucune donnée. Cliquez sur "Régénérer les données" pour pré-remplir.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- Onglet Versions --- */}
+        <TabsContent value="versions">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Historique des versions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!report.versions || report.versions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune version enregistrée. Une version est créée à la validation.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {report.versions.map((v) => (
+                    <div key={v.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Version {v.version}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(v.createdAt).toLocaleString("fr-FR")}
+                          </span>
+                        </div>
+                      </div>
+                      {v.reason && (
+                        <p className="text-sm text-muted-foreground mt-1">{v.reason}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- Onglet Transmissions --- */}
+        <TabsContent value="transmissions">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Historique des transmissions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!report.transmissions || report.transmissions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune transmission enregistrée.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {report.transmissions.map((t) => (
+                    <div key={t.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <div className="font-medium">{t.recipient}</div>
+                          {t.recipientRole && (
+                            <div className="text-xs text-muted-foreground">{t.recipientRole}</div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">
+                            {t.channel} — {new Date(t.sentAt).toLocaleString("fr-FR")}
+                          </div>
+                          {t.bordereauNumber && (
+                            <div className="text-xs font-mono mt-1">{t.bordereauNumber}</div>
+                          )}
+                        </div>
+                      </div>
+                      {t.observations && (
+                        <p className="text-sm text-muted-foreground mt-2">{t.observations}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- Onglet Journal --- */}
+        <TabsContent value="audit">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Journal d'audit</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!report.auditLogs || report.auditLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun évènement enregistré.</p>
+              ) : (
+                <div className="space-y-2">
+                  {report.auditLogs.map((a: any) => (
+                    <div key={a.id} className="flex items-start gap-3 border-b py-2 last:border-0">
+                      <span className="font-mono text-xs text-muted-foreground min-w-[100px]">
+                        {new Date(a.createdAt).toLocaleString("fr-FR")}
+                      </span>
+                      <span className="font-medium text-sm">{a.action}</span>
+                      {a.details && (
+                        <span className="text-xs text-muted-foreground flex-1 truncate">
+                          {JSON.stringify(a.details)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

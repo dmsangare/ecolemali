@@ -10,6 +10,7 @@ import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { HonorRollPage } from "@/pages/honor-roll/HonorRollPage";
 import { AdminReportsListPage } from "@/pages/admin-reports/AdminReportsListPage";
 import { AdminReportNewPage } from "@/pages/admin-reports/AdminReportNewPage";
+import { AdminReportDetailPage } from "@/pages/admin-reports/AdminReportDetailPage";
 import { StudentsListPage } from "@/pages/students/StudentsListPage";
 import { StudentDetailPage } from "@/pages/students/StudentDetailPage";
 import { StudentFormPage } from "@/pages/students/StudentFormPage";
@@ -419,6 +420,15 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="report_card:create">
                 <AdminReportNewPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin-reports/:id"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <AdminReportDetailPage />
               </ProtectedRoute>
             }
           />

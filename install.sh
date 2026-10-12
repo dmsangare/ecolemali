@@ -110,26 +110,35 @@ log "Attente de PostgreSQL (30s)…"
 sleep 30
 
 # ============================================================
-# 6. MIGRATIONS PRISMA
+# 6. MIGRATIONS PRISMA + SEED VIERGE (premiere installation)
 # ============================================================
-log "Application des migrations…"
-docker compose -f docker-compose.prod.yml exec -T api npx prisma migrate deploy || {
-  warn "Échec des migrations — vérifie les logs : docker compose -f docker-compose.prod.yml logs api"
-  exit 1
-}
+if [ -f .installed ]; then
+  # Installation deja faite → juste appliquer les nouvelles migrations
+  log "Mise a jour des migrations (installation existante)…"
+  docker compose -f docker-compose.prod.yml exec -T api npx prisma migrate deploy || {
+    warn "Echec des migrations — verifie les logs : docker compose -f docker-compose.prod.yml logs api"
+    exit 1
+  }
+else
+  # Premiere installation → BDD vierge + seed (Super Admin uniquement)
+  log "Premiere installation detectee → initialisation BDD vierge…"
+  docker compose -f docker-compose.prod.yml exec -T api npx prisma migrate reset --force --skip-seed || {
+    warn "Echec du reset — verifie les logs : docker compose -f docker-compose.prod.yml logs api"
+    exit 1
+  }
+  log "Application du seed vierge (roles + permissions + Super Admin)…"
+  docker compose -f docker-compose.prod.yml exec -T api npm run prisma:seed || {
+    warn "Echec du seed — verifie les logs : docker compose -f docker-compose.prod.yml logs api"
+    exit 1
+  }
+  touch .installed
+  log "Marqueur .installed cree (prochaine execution = update)"
+fi
 
 # ============================================================
-# 7. SEED (données initiales)
+# 7. SEED — deja effectue ci-dessus (section 6)
 # ============================================================
-read -p "Charger les données initiales (seed) ? [o/N] " -n 1 -r
-echo
-if [[ $REPLY =~ ^[OoYy]$ ]]; then
-  log "Chargement du seed…"
-  docker compose -f docker-compose.prod.yml exec -T api npm run prisma:seed || \
-    warn "Seed échoué (peut-être déjà chargé)."
-else
-  log "Seed ignoré."
-fi
+# Le seed est desormais automatique et ne cree QUE le Super Admin.
 
 # ============================================================
 # 8. HEALTHCHECK FINAL

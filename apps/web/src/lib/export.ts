@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+﻿import ExcelJS from "exceljs";
 import { api } from "@/lib/axios";
 
 // ============================================================
@@ -22,32 +22,53 @@ export function exportCSV(rows: any[], filename: string) {
 }
 
 // ============================================================
-// EXCEL (.xlsx)
+// EXCEL (.xlsx) - via exceljs
 // ============================================================
-export function exportExcel(
+export async function exportExcel(
   sheets: Array<{ name: string; rows: any[] }>,
   filename: string
 ) {
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "SIS-MALI";
+  wb.created = new Date();
+
   for (const sheet of sheets) {
+    const ws = wb.addWorksheet(sheet.name.slice(0, 31));
+
     if (!sheet.rows || sheet.rows.length === 0) {
-      const ws = XLSX.utils.aoa_to_sheet([["Aucune donnée"]]);
-      XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
+      ws.addRow(["Aucune donnée"]);
       continue;
     }
-    const ws = XLSX.utils.json_to_sheet(sheet.rows);
-    // Auto-width
-    const colWidths = Object.keys(sheet.rows[0]).map((key) => {
-      const maxLen = Math.max(
-        key.length,
-        ...sheet.rows.map((r) => String(r[key] ?? "").length)
-      );
-      return { wch: Math.min(maxLen + 2, 40) };
-    });
-    ws["!cols"] = colWidths;
-    XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31));
+
+    // Headers = cles du premier objet
+    const headers = Object.keys(sheet.rows[0]);
+    ws.columns = headers.map((h) => ({
+      header: h,
+      key: h,
+      width: Math.min(
+        Math.max(
+          h.length,
+          ...sheet.rows.map((r) => String(r[h] ?? "").length)
+        ) + 2,
+        40
+      ),
+    }));
+
+    // Style des headers
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFEEEEEE" },
+    };
+
+    // Donnees
+    for (const row of sheet.rows) {
+      ws.addRow(row);
+    }
   }
-  const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });

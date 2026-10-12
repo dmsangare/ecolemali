@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Download, FileSpreadsheet, FileText, FileType, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -20,19 +20,30 @@ export function ExportMenu({ csvRows, excelSheets, pdfEndpoint, filename }: Expo
       toast.error("Aucune donnée à exporter");
       return;
     }
-    exportCSV(csvRows, filename);
-    toast.success("CSV téléchargé");
-    setOpen(false);
+    try {
+      exportCSV(csvRows, filename);
+      toast.success("CSV téléchargé");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error("Erreur lors de la génération du CSV");
+    }
   };
 
-  const handleExcel = () => {
+  const handleExcel = async () => {
     if (!excelSheets || excelSheets.length === 0) {
       toast.error("Aucune donnée à exporter");
       return;
     }
-    exportExcel(excelSheets, filename);
-    toast.success("Excel téléchargé");
-    setOpen(false);
+    setLoading("excel");
+    try {
+      await exportExcel(excelSheets, filename);
+      toast.success("Excel téléchargé");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error("Erreur lors de la génération de l'Excel");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handlePDF = async () => {
@@ -70,9 +81,15 @@ export function ExportMenu({ csvRows, excelSheets, pdfEndpoint, filename }: Expo
             {excelSheets && (
               <button
                 onClick={handleExcel}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                disabled={loading === "excel"}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
               >
-                <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Export Excel
+                {loading === "excel" ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                )}
+                Export Excel
               </button>
             )}
             {pdfEndpoint && (

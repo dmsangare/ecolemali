@@ -49,6 +49,7 @@ import { BackupsModule } from "./backups/backups.module";
 import { TransfersModule } from "./transfers/transfers.module";
 import { AdminReportsModule } from "./admin-reports/admin-reports.module";
 import { StateExamDossiersModule } from "./state-exam-dossiers/state-exam-dossiers.module";
+import { ExportModule } from "./export/export.module";
 
 import { JwtAuthGuard, PermissionsGuard, MustChangePasswordGuard } from "./common/guards";
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
@@ -107,6 +108,7 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
     TransfersModule,
     AdminReportsModule,
     StateExamDossiersModule,
+    ExportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -12,6 +12,13 @@ mkdir -p "$BACKUP_DIR"
 
 log() { echo -e "\033[0;32m[BACKUP]\033[0m $1"; }
 
+# Charger les variables d'environnement
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
 log "Sauvegarde PostgreSQL…"
 docker compose -f docker-compose.prod.yml exec -T postgres \
   pg_dump -U "${POSTGRES_USER:-sis_user}" "${POSTGRES_DB:-sis_mali}" \

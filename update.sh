@@ -9,7 +9,9 @@ log() { echo -e "\033[0;32m[UPDATE]\033[0m $1"; }
 cd "$(dirname "$0")"
 
 log "Pull des dernières modifications…"
-git pull origin main
+git stash push -m "auto-stash-avant-update" 2>/dev/null || true
+git pull --rebase origin main
+git stash pop 2>/dev/null || true
 
 log "Build des images…"
 docker compose -f docker-compose.prod.yml build

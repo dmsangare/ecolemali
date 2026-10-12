@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/hooks/settings/useSettings";
 
@@ -45,14 +45,11 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     if (!isAuthenticated) return;
 
     const primary = settings?.data?.appearance?.primaryColor;
-    console.log("[AppearanceProvider] primary =", primary, "isLoading =", isLoading);
-
     if (!primary) return;
 
     const hsl = hexToHsl(primary);
     if (!hsl) return;
 
-    console.log("[AppearanceProvider] injection HSL =", hsl);
     const root = document.documentElement;
     root.style.setProperty("--primary", hsl);
     root.style.setProperty("--ring", hsl);

@@ -1,4 +1,4 @@
-import * as puppeteer from 'puppeteer';
+import * as puppeteer from "puppeteer-core";
 import { fileToBase64 } from '../../common/utils/file-to-base64.util';
 
 // ============================================================

@@ -207,7 +207,7 @@ export class AuthService {
 
     const accessToken = this.jwt.sign(accessPayload, {
       secret: this.config.get<string>("jwt.secret"),
-      expiresIn: this.config.get<string>("jwt.expiresIn", "15m"),
+      expiresIn: this.config.get<string>("jwt.expiresIn", "15m") as any,
     });
 
     const tokenId = randomUUID();
@@ -215,7 +215,7 @@ export class AuthService {
 
     const refreshToken = this.jwt.sign(refreshPayload, {
       secret: this.config.get<string>("jwt.refreshSecret"),
-      expiresIn: this.config.get<string>("jwt.refreshExpiresIn", "7d"),
+      expiresIn: this.config.get<string>("jwt.refreshExpiresIn", "7d") as any,
     });
 
     const decoded: any = this.jwt.decode(refreshToken);

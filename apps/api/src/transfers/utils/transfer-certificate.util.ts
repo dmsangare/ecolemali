@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import * as puppeteer from "puppeteer-core";
 import QRCode from "qrcode";
 
 interface TransferCertificateData {

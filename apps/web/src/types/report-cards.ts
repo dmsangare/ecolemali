@@ -133,7 +133,7 @@ export function getAppreciation(
   scale: number = 20,
   thresholds: AppreciationThresholds = DEFAULT_THRESHOLDS,
 ): string {
-  if (average === null || average === undefined) return "â€”";
+  if (average === null || average === undefined) return "—";
   // Normaliser sur /20 pour comparer aux seuils
   const n = scale === 10 ? average * 2 : average;
   if (n >= thresholds.excellent) return "Excellent";

@@ -114,7 +114,7 @@ export function UsersTab() {
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Mail className="h-3 w-3" />
-                          {user.email || "â€”"}
+                          {user.email || "—"}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -446,7 +446,7 @@ function CreateUserModal({
                   <option value="">-- Aucune fiche liee --</option>
                   {availableGuardians.map((g: any) => (
                     <option key={g.id} value={g.id}>
-                      {g.lastName} {g.firstName} Â· {g.phone || "â€”"} ({g.relationType})
+                      {g.lastName} {g.firstName} Â· {g.phone || "—"} ({g.relationType})
                     </option>
                   ))}
                 </select>
@@ -735,7 +735,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
                       <option value="">-- Aucune fiche liee --</option>
                       {availableGuardians.map((g: any) => (
                         <option key={g.id} value={g.id}>
-                          {g.lastName} {g.firstName} Â· {g.phone || "â€”"}
+                          {g.lastName} {g.firstName} Â· {g.phone || "—"}
                         </option>
                       ))}
                     </select>

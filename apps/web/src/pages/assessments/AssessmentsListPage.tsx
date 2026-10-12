@@ -290,7 +290,7 @@ function AssessmentRow({ assessment }: { assessment: any }) {
       </td>
       <td className="p-3 font-medium">{assessment.title}</td>
       <td className="p-3 text-muted-foreground">
-        {assessment.date ? formatDate(assessment.date) : "â€”"}
+        {assessment.date ? formatDate(assessment.date) : "—"}
       </td>
       <td className="p-3 text-center font-mono">
         /{Number(assessment.maxScore).toFixed(0)}

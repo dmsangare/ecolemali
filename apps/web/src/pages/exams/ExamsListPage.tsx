@@ -240,7 +240,7 @@ export function ExamsListPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {formatDate(e.startDate)} â†’ {formatDate(e.endDate)}
+                        {formatDate(e.startDate)} → {formatDate(e.endDate)}
                       </td>
                       <td className="px-4 py-3 text-center font-semibold">
                         {e._count?.sessions ?? e.sessions?.length ?? 0}
@@ -300,7 +300,7 @@ export function ExamsListPage() {
                 value={form.academicYearId}
                 onChange={(e) => setForm({ ...form, academicYearId: e.target.value })}
               >
-                <option value="">â€” Choisir â€”</option>
+                <option value="">— Choisir —</option>
                 {(years ?? []).map((y: any) => (
                   <option key={y.id} value={y.id}>
                     {y.label} {y.isCurrent ? "(actuelle)" : ""}

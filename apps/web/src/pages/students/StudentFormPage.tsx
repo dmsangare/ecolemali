@@ -335,7 +335,7 @@ export function StudentFormPage() {
       }
 
       toast.success(
-        `Eleve cree avec succes â€” Matricule : ${student.matricule}`,
+        `Eleve cree avec succes — Matricule : ${student.matricule}`,
       );
       localStorage.removeItem(DRAFT_KEY);
       navigate(`/students/${student.id}`);

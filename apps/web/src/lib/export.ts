@@ -1,5 +1,4 @@
-﻿import ExcelJS from "exceljs";
-import { api } from "@/lib/axios";
+﻿import { api } from "@/lib/axios";
 
 // ============================================================
 // CSV
@@ -22,54 +21,25 @@ export function exportCSV(rows: any[], filename: string) {
 }
 
 // ============================================================
-// EXCEL (.xlsx) - via exceljs
+// EXCEL (.xlsx) - via backend (POST /api/v1/export/excel)
 // ============================================================
 export async function exportExcel(
   sheets: Array<{ name: string; rows: any[] }>,
   filename: string
 ) {
-  const wb = new ExcelJS.Workbook();
-  wb.creator = "SIS-MALI";
-  wb.created = new Date();
+  const res = await api.post(
+    "/export/excel",
+    {
+      filename,
+      sheets: sheets.map((s) => ({
+        name: s.name,
+        rows: s.rows ?? [],
+      })),
+    },
+    { responseType: "blob" }
+  );
 
-  for (const sheet of sheets) {
-    const ws = wb.addWorksheet(sheet.name.slice(0, 31));
-
-    if (!sheet.rows || sheet.rows.length === 0) {
-      ws.addRow(["Aucune donnée"]);
-      continue;
-    }
-
-    // Headers = cles du premier objet
-    const headers = Object.keys(sheet.rows[0]);
-    ws.columns = headers.map((h) => ({
-      header: h,
-      key: h,
-      width: Math.min(
-        Math.max(
-          h.length,
-          ...sheet.rows.map((r) => String(r[h] ?? "").length)
-        ) + 2,
-        40
-      ),
-    }));
-
-    // Style des headers
-    ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFEEEEEE" },
-    };
-
-    // Donnees
-    for (const row of sheet.rows) {
-      ws.addRow(row);
-    }
-  }
-
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
+  const blob = new Blob([res.data], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   downloadBlob(blob, `${filename}-${new Date().toISOString().slice(0, 10)}.xlsx`);

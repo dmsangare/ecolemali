@@ -18,6 +18,9 @@ COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 COPY prisma ./prisma
 RUN npm install --no-audit --no-fund --prefer-offline
+# Fix : recréer le symlink @sis-mali/shared (casse par la copie Docker)
+RUN mkdir -p /app/node_modules/@sis-mali && \
+    ln -sfn /app/packages/shared /app/node_modules/@sis-mali/shared
 RUN npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/api
 RUN cd apps/api && npx prisma generate --schema=../../prisma/schema.prisma || npx prisma generate
@@ -32,6 +35,9 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages/shared ./packages/shared
+# Fix : recréer le symlink dans le stage runner
+RUN mkdir -p /app/node_modules/@sis-mali && \
+    ln -sfn /app/packages/shared /app/node_modules/@sis-mali/shared
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/prisma ./prisma

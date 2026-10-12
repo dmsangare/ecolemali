@@ -1,0 +1,68 @@
+# ============================================================
+# SIS-MALI — Docker build ignore
+# ============================================================
+# Tout ce qui n'est PAS necessaire au build Docker.
+
+# Dependencies (reinstallees dans le conteneur)
+node_modules
+*/node_modules
+**/node_modules
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts locaux
+dist
+build
+apps/*/dist
+apps/*/build
+packages/*/dist
+
+# Env (jamais dans l'image)
+.env
+.env.*
+!.env.example
+
+# Backups locaux
+backups
+*.bak
+*.bak-*
+*.tar.gz
+*.sql.gz
+
+# Storage (monte en volume)
+storage
+
+# Logs
+*.log
+logs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests / docs
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+docs
+*.md
+!README.md
+
+# Scripts Python temporaires
+*.py
+!scripts/*.py
+
+# Divers
+.cache
+.tmp
+*.tmp

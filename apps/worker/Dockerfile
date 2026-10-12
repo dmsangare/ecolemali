@@ -22,10 +22,9 @@ RUN npm run build --workspace=apps/worker
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto openssl dumb-init postgresql-client
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    TZ=Africa/Bamako \
+# Worker = backup + scheduler uniquement (pas de PDF, pas de Chromium)
+RUN apk add --no-cache openssl dumb-init postgresql-client
+ENV TZ=Africa/Bamako \
     NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
@@ -33,6 +32,6 @@ COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/apps/worker/dist ./apps/worker/dist
 COPY --from=builder /app/apps/worker/package.json ./apps/worker/
 COPY --from=builder /app/prisma ./prisma
-RUN mkdir -p /app/storage/documents /app/storage/backups
+RUN mkdir -p /app/storage/backups
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "apps/worker/dist/main.js"]

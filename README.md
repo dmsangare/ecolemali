@@ -4,11 +4,11 @@ Application de gestion scolaire pour les établissements du Mali.
 
 ## Stack
 
-- **Backend** : NestJS 10 + TypeScript + Prisma
+- **Backend** : NestJS 11 + TypeScript + Prisma
 - **Base de données** : PostgreSQL 16
 - **Cache / Queue** : Redis 7
 - **Frontend** : React 18 + Vite + TailwindCSS
-- **PDF / Excel** : Puppeteer (Chromium Alpine) + xlsx
+- **PDF / Excel** : puppeteer-core (Chromium system) + exceljs (côté backend)
 - **Déploiement** : Docker + Docker Compose + Nginx
 
 ## Installation rapide (Ubuntu LTS 22.04 / 24.04)
@@ -72,6 +72,19 @@ backup.sh       Sauvegarde
 
 ### Pédagogie
 Présences, évaluations, notes, bulletins, examens.
+
+### Rapports administratifs
+Référentiel des modèles, rapports de rentrée / statistiques / personnel /
+infrastructures / situation annuelle / fin d'année, workflow de validation
+(brouillon → soumis → validé → transmis → réception confirmée), bordereau
+automatique, archivage, calendrier des échéances, tableau de bord,
+export PDF/Excel, mode institutionnel CAP/Académie (dormant par défaut).
+
+### Examens d'État (DEF / BAC)
+Sessions d'examen, dossiers candidats par classe, pièces justificatives
+(acte de naissance, certificat scolarité, photo, frais), workflow
+dossier (9 statuts CDC 12.3), transmission au CAP/Académie, suivi des
+réceptions.
 
 ### Finance
 Grille tarifaire, factures, paiements, caisse, rapports.

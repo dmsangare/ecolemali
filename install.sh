@@ -48,6 +48,16 @@ if grep -q "CHANGE_ME" .env; then
   error "Le .env contient encore des 'CHANGE_ME'. Édite-le avant de relancer."
 fi
 
+# Vérifier que le mot de passe Super Admin est défini (1ère install uniquement)
+if [ ! -f .installed ]; then
+  if ! grep -q "^SUPER_ADMIN_PASSWORD=." .env; then
+    error "SUPER_ADMIN_PASSWORD est vide dans .env. Remplis-le AVANT de relancer (le Super Admin en a besoin pour se connecter la premiere fois)."
+  fi
+  if ! grep -q "^SUPER_ADMIN_EMAIL=." .env; then
+    error "SUPER_ADMIN_EMAIL est vide dans .env. Remplis-le AVANT de relancer."
+  fi
+fi
+
 log "Environnement OK."
 
 # ============================================================

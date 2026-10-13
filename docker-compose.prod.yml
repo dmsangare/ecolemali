@@ -63,6 +63,11 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       PORT: 3000
       TZ: Africa/Bamako
+      # Super Admin (seed 1ere installation)
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL}
+      SUPER_ADMIN_FIRSTNAME: ${SUPER_ADMIN_FIRSTNAME}
+      SUPER_ADMIN_LASTNAME: ${SUPER_ADMIN_LASTNAME}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
     volumes:
       - ./storage:/app/storage
     networks:

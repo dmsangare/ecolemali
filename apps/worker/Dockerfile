@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.6
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
@@ -17,7 +16,8 @@ COPY packages/shared ./packages/shared
 COPY apps/worker ./apps/worker
 COPY prisma ./prisma
 RUN npm install --no-audit --no-fund --prefer-offline
-RUN npm run build --workspace=packages/shared
+RUN rm -f packages/shared/tsconfig.tsbuildinfo \
+    && npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/worker
 
 FROM node:20-alpine AS runner

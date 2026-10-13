@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.6
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
@@ -21,7 +20,8 @@ RUN npm install --no-audit --no-fund --prefer-offline
 # Fix : recréer le symlink @sis-mali/shared (casse par la copie Docker)
 RUN mkdir -p /app/node_modules/@sis-mali && \
     ln -sfn /app/packages/shared /app/node_modules/@sis-mali/shared
-RUN npm run build --workspace=packages/shared
+RUN rm -f packages/shared/tsconfig.tsbuildinfo \
+    && npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/api
 RUN cd apps/api && npx prisma generate --schema=../../prisma/schema.prisma || npx prisma generate
 

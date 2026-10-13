@@ -18,7 +18,11 @@ dist
 build
 apps/*/dist
 apps/*/build
-packages/*/dist
+
+# On GARDE packages/shared/dist (utilise par l'API au build)
+# Mais on exclut les caches TS
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Env (jamais dans l'image)
 .env

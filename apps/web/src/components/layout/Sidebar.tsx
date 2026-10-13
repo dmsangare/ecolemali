@@ -20,7 +20,7 @@ import {
   UserCog,
   Tag,
   Coins,
-  TrendingDown, AlertTriangle, CreditCard } from "lucide-react";
+  TrendingDown, AlertTriangle, CreditCard, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/hooks/school/useSchool";
@@ -50,6 +50,7 @@ const SECTIONS: NavSection[] = [
     title: "Scolarite",
     items: [
       { label: "Eleves", to: "/students", icon: Users, permission: "student:view" },
+      { label: "Niveaux", to: "/levels", icon: Layers, permission: "level:view" },
       { label: "Classes", to: "/classes", icon: School, permission: "class:view" },
       { label: "Enseignants", to: "/teachers", icon: UsersRound, permission: "teacher:view" },
       { label: "Matieres", to: "/subjects", icon: BookOpen, permission: "subject:view" },

@@ -26,6 +26,7 @@ import { ImportStudentsPage } from "@/pages/students/ImportStudentsPage";
 import { ClassesListPage, ClassDetailPage } from "@/pages/classes";
 import { TeachersListPage, TeacherFormPage, TeacherDetailPage } from "@/pages/teachers";
 import { SubjectsListPage, SubjectFormPage } from "@/pages/subjects";
+import { LevelsListPage } from "@/pages/levels/LevelsListPage";
 import { AttendanceListPage, AttendanceDetailPage } from "@/pages/attendance";
 import { AssessmentsListPage, AssessmentGradesPage } from "@/pages/assessments";
 import { ReportCardsListPage, ReportCardDetailPage } from "@/pages/report-cards";
@@ -190,6 +191,16 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="subject:update">
                 <SubjectFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Niveaux */}
+          <Route
+            path="/levels"
+            element={
+              <ProtectedRoute requiredPermission="level:view">
+                <LevelsListPage />
               </ProtectedRoute>
             }
           />

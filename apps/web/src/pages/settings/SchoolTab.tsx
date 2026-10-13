@@ -136,7 +136,12 @@ export function SchoolTab() {
   };
 
   const onSubmit = async (data: any) => {
-    if (!school) return;
+    if (!school) {
+      alert(
+        "Aucune ecole configuree. Veuillez d'abord creer votre etablissement."
+      );
+      return;
+    }
     await updateMutation.mutateAsync({ id: school.id, dto: data });
   };
 

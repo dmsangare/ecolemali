@@ -212,6 +212,20 @@ enum InvoiceKind {
   CARRY_OVER
 }
 
+enum InstallmentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum InstallmentMode {
+  CASH
+  TRIMESTER
+  MONTHLY
+  CUSTOM
+}
+
 enum InvoiceStatus {
   UNPAID
   PARTIAL
@@ -304,92 +318,90 @@ enum TransferStatus {
   ARCHIVED
 }
 
-
-
 // ============================================================
 // 1. BLOC ADMINISTRATION
 // ============================================================
 
 model School {
-  id           String       @id @default(uuid()) @db.Uuid
-  code         String       @unique @db.VarChar(20)
-  sigle        String?      @db.VarChar(20)
-  name         String       @db.VarChar(150)
-  type         SchoolType
-  status       SchoolStatus
-  address      String?
-  region       String?      @db.VarChar(100)
-  cercle       String?      @db.VarChar(100)
-  commune      String?      @db.VarChar(100)
-  quarter      String?      @db.VarChar(100)
-  phone        String?      @db.VarChar(30)
-  email        String?      @db.VarChar(150)
-  website      String?      @db.VarChar(200)
-  directorName String?      @map("director_name") @db.VarChar(150)
-  logoUrl      String?      @map("logo_url")
-  stampUrl     String?      @map("stamp_url")
-  signatureUrl String?      @map("signature_url")
-  motto        String?      @db.VarChar(200)
-  createdYear  Int?         @map("created_year") @db.SmallInt
-  tutelleInfo  String?      @map("tutelle_info")
-  academy            String?  @db.VarChar(100)
-  cap                String?  @db.VarChar(100)
-  institutionalCode  String?  @map("institutional_code") @db.VarChar(50)
-  institutionalMode  Boolean  @default(false) @map("institutional_mode")
-  isActive     Boolean      @default(true) @map("is_active")
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  id                String       @id @default(uuid()) @db.Uuid
+  code              String       @unique @db.VarChar(20)
+  sigle             String?      @db.VarChar(20)
+  name              String       @db.VarChar(150)
+  type              SchoolType
+  status            SchoolStatus
+  address           String?
+  region            String?      @db.VarChar(100)
+  cercle            String?      @db.VarChar(100)
+  commune           String?      @db.VarChar(100)
+  quarter           String?      @db.VarChar(100)
+  phone             String?      @db.VarChar(30)
+  email             String?      @db.VarChar(150)
+  website           String?      @db.VarChar(200)
+  directorName      String?      @map("director_name") @db.VarChar(150)
+  logoUrl           String?      @map("logo_url")
+  stampUrl          String?      @map("stamp_url")
+  signatureUrl      String?      @map("signature_url")
+  motto             String?      @db.VarChar(200)
+  createdYear       Int?         @map("created_year") @db.SmallInt
+  tutelleInfo       String?      @map("tutelle_info")
+  academy           String?      @db.VarChar(100)
+  cap               String?      @db.VarChar(100)
+  institutionalCode String?      @map("institutional_code") @db.VarChar(50)
+  institutionalMode Boolean      @default(false) @map("institutional_mode")
+  isActive          Boolean      @default(true) @map("is_active")
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  academicYears       AcademicYear[]
-  levels              Level[]
-  rooms               Room[]
-  classes             Class[]
-  setting             Setting?
-  adminReportTemplates AdminReportTemplate[]  @relation("SchoolAdminReportTemplates")
-  adminReports         AdminReport[]          @relation("SchoolAdminReports")
-  adminReportDeadlines AdminReportDeadline[]  @relation("SchoolAdminReportDeadlines")
-  stateExamSessions    StateExamSession[]     @relation("SchoolStateExamSessions")
-  examDossiers         ExamDossier[]          @relation("SchoolExamDossiers")
-  users               User[]
-  students            Student[]
-  guardians           Guardian[]
-  teachers            Teacher[]
-  subjects            Subject[]
-  assessments         Assessment[]
-  timetableSlots      TimetableSlot[]
-  feesTypes           FeeType[]
-  feeStructures       FeeStructure[]
-  invoices            Invoice[]
-  payments            Payment[]
-  cashSessions        CashSession[]
-  documentTemplates   DocumentTemplate[]
-  notifications       Notification[]
-  auditLogs           AuditLog[]
-  backups             Backup[]
-  expenseCategories   ExpenseCategory[]
-  expenses            Expense[]
-  messageLogs         MessageLog[]
-  topStudents         TopStudent[]
-  verifiableDocuments VerifiableDocument[]
+  academicYears        AcademicYear[]
+  levels               Level[]
+  rooms                Room[]
+  classes              Class[]
+  setting              Setting?
+  adminReportTemplates AdminReportTemplate[] @relation("SchoolAdminReportTemplates")
+  adminReports         AdminReport[]         @relation("SchoolAdminReports")
+  adminReportDeadlines AdminReportDeadline[] @relation("SchoolAdminReportDeadlines")
+  stateExamSessions    StateExamSession[]    @relation("SchoolStateExamSessions")
+  examDossiers         ExamDossier[]         @relation("SchoolExamDossiers")
+  users                User[]
+  students             Student[]
+  guardians            Guardian[]
+  teachers             Teacher[]
+  subjects             Subject[]
+  assessments          Assessment[]
+  timetableSlots       TimetableSlot[]
+  feesTypes            FeeType[]
+  feeStructures        FeeStructure[]
+  invoices             Invoice[]
+  payments             Payment[]
+  cashSessions         CashSession[]
+  documentTemplates    DocumentTemplate[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  backups              Backup[]
+  expenseCategories    ExpenseCategory[]
+  expenses             Expense[]
+  messageLogs          MessageLog[]
+  topStudents          TopStudent[]
+  verifiableDocuments  VerifiableDocument[]
   studentAccounts      StudentAccount[]
 
   @@map("schools")
 }
 
 model AcademicYear {
-  id          String             @id @default(uuid()) @db.Uuid
-  schoolId    String             @map("school_id") @db.Uuid
-  label       String             @db.VarChar(20)
-  startDate   DateTime           @map("start_date") @db.Date
-  endDate     DateTime           @map("end_date") @db.Date
-  status      AcademicYearStatus @default(PREPARATION)
-  isCurrent   Boolean            @default(false) @map("is_current")
-  closedAt    DateTime?          @map("closed_at") @db.Timestamptz
-  archivedAt  DateTime?          @map("archived_at") @db.Timestamptz
-  financeClosedAt DateTime?      @map("finance_closed_at") @db.Timestamptz
-  financeClosedBy String?        @map("finance_closed_by") @db.Uuid
-  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  id              String             @id @default(uuid()) @db.Uuid
+  schoolId        String             @map("school_id") @db.Uuid
+  label           String             @db.VarChar(20)
+  startDate       DateTime           @map("start_date") @db.Date
+  endDate         DateTime           @map("end_date") @db.Date
+  status          AcademicYearStatus @default(PREPARATION)
+  isCurrent       Boolean            @default(false) @map("is_current")
+  closedAt        DateTime?          @map("closed_at") @db.Timestamptz
+  archivedAt      DateTime?          @map("archived_at") @db.Timestamptz
+  financeClosedAt DateTime?          @map("finance_closed_at") @db.Timestamptz
+  financeClosedBy String?            @map("finance_closed_by") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
   school            School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   terms             Term[]
@@ -403,25 +415,25 @@ model AcademicYear {
   exams             Exam[]
   feeStructures     FeeStructure[]
   invoices          Invoice[]
+  adminReports      AdminReport[]       @relation("YearAdminReports")
+  stateExamSessions StateExamSession[]  @relation("YearStateExamSessions")
 
   @@unique([schoolId, label])
   @@index([schoolId, status])
   @@map("academic_years")
-  adminReports         AdminReport[]          @relation("YearAdminReports")
-  stateExamSessions    StateExamSession[]     @relation("YearStateExamSessions")
 }
 
 model Term {
-  id             String    @id @default(uuid()) @db.Uuid
-  academicYearId String    @map("academic_year_id") @db.Uuid
-  name           String    @db.VarChar(50)
+  id             String   @id @default(uuid()) @db.Uuid
+  academicYearId String   @map("academic_year_id") @db.Uuid
+  name           String   @db.VarChar(50)
   type           TermType
-  startDate      DateTime  @map("start_date") @db.Date
-  endDate        DateTime  @map("end_date") @db.Date
-  orderIndex     Int       @map("order_index") @db.SmallInt
-  isLocked       Boolean   @default(false) @map("is_locked")
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  startDate      DateTime @map("start_date") @db.Date
+  endDate        DateTime @map("end_date") @db.Date
+  orderIndex     Int      @map("order_index") @db.SmallInt
+  isLocked       Boolean  @default(false) @map("is_locked")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   academicYear       AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   attendanceSessions AttendanceSession[]
@@ -434,16 +446,16 @@ model Term {
 }
 
 model Level {
-  id         String     @id @default(uuid()) @db.Uuid
-  schoolId   String     @map("school_id") @db.Uuid
-  cycle      LevelCycle
-  name       String     @db.VarChar(50)
-  code       String     @db.VarChar(20)
+  id            String        @id @default(uuid()) @db.Uuid
+  schoolId      String        @map("school_id") @db.Uuid
+  cycle         LevelCycle
+  name          String        @db.VarChar(50)
+  code          String        @db.VarChar(20)
   stateExamType StateExamType @default(NONE) @map("state_exam_type")
-  orderIndex Int        @map("order_index") @db.SmallInt
-  isActive   Boolean    @default(true) @map("is_active")
-  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  orderIndex    Int           @map("order_index") @db.SmallInt
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes             Class[]
@@ -451,7 +463,7 @@ model Level {
   pathways            StudentPathway[]
   subjectCoefficients SubjectCoefficient[]
   feeStructures       FeeStructure[]
-  examDossiers        ExamDossier[]  @relation("LevelExamDossiers")
+  examDossiers        ExamDossier[]        @relation("LevelExamDossiers")
 
   @@unique([schoolId, code])
   @@index([schoolId, cycle])
@@ -459,18 +471,18 @@ model Level {
 }
 
 model Room {
-  id          String    @id @default(uuid()) @db.Uuid
-  schoolId    String    @map("school_id") @db.Uuid
-  name        String    @db.VarChar(80)
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @map("school_id") @db.Uuid
+  name        String   @db.VarChar(80)
   type        RoomType
-  capacity    Int?      @db.SmallInt
-  location    String?   @db.VarChar(120)
+  capacity    Int?     @db.SmallInt
+  location    String?  @db.VarChar(120)
   equipment   Json?
-  isAvailable Boolean   @default(true) @map("is_available")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  school         School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes        Class[]
   timetableSlots TimetableSlot[]
   examSessions   ExamSession[]
@@ -506,12 +518,12 @@ model Class {
   assessments        Assessment[]
   reportCards        ReportCard[]
   examSessions       ExamSession[]
+  topStudents        TopStudent[]
+  examDossiers       ExamDossier[]       @relation("ClassExamDossiers")
 
   @@unique([academicYearId, code])
   @@index([schoolId])
   @@index([levelId])
-  topStudents TopStudent[]
-  examDossiers ExamDossier[] @relation("ClassExamDossiers")
   @@map("classes")
 }
 
@@ -531,7 +543,6 @@ model Setting {
 
   @@map("settings")
 }
-
 
 // ============================================================
 // 2. BLOC UTILISATEURS & SECURITE
@@ -565,7 +576,7 @@ model User {
   documentsGenerated GeneratedDocument[] @relation("DocumentGeneratedBy")
   backupsCreated     Backup[]            @relation("BackupCreatedBy")
   expensesMade       Expense[]           @relation("ExpenseCashier")
-  cashSessionsOpened CashSession[]      @relation("CashSessionCashier")
+  cashSessionsOpened CashSession[]       @relation("CashSessionCashier")
   messageLogs        MessageLog[]
 
   @@index([schoolId])
@@ -662,24 +673,24 @@ model AuthLog {
 // ============================================================
 
 model Student {
-  id               String        @id @default(uuid()) @db.Uuid
-  schoolId         String        @map("school_id") @db.Uuid
-  matricule        String        @db.VarChar(30)
-  firstName        String        @map("first_name") @db.VarChar(100)
-  lastName         String        @map("last_name") @db.VarChar(100)
-  gender           Gender
-  birthDate        DateTime      @map("birth_date") @db.Date
-  birthPlace       String?       @map("birth_place") @db.VarChar(150)
-  nationality      String?       @db.VarChar(80)
-  photoUrl         String?       @map("photo_url")
-  idCardGeneratedAt DateTime?    @map("id_card_generated_at") @db.Timestamptz
-  phone            String?       @db.VarChar(30)
-  address          String?
-  specialSituation String?       @map("special_situation")
-  status           StudentStatus @default(ACTIVE)
-  deletedAt        DateTime?     @map("deleted_at") @db.Timestamptz
-  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  id                String        @id @default(uuid()) @db.Uuid
+  schoolId          String        @map("school_id") @db.Uuid
+  matricule         String        @db.VarChar(30)
+  firstName         String        @map("first_name") @db.VarChar(100)
+  lastName          String        @map("last_name") @db.VarChar(100)
+  gender            Gender
+  birthDate         DateTime      @map("birth_date") @db.Date
+  birthPlace        String?       @map("birth_place") @db.VarChar(150)
+  nationality       String?       @db.VarChar(80)
+  photoUrl          String?       @map("photo_url")
+  idCardGeneratedAt DateTime?     @map("id_card_generated_at") @db.Timestamptz
+  phone             String?       @db.VarChar(30)
+  address           String?
+  specialSituation  String?       @map("special_situation")
+  status            StudentStatus @default(ACTIVE)
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
   school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   guardians          StudentGuardian[]
@@ -696,13 +707,12 @@ model Student {
   studentAccount     StudentAccount?
   transfers          StudentTransfer[]
   examDossierPieces  ExamDossierPiece[]  @relation("StudentExamDossierPieces")
+  topStudents        TopStudent[]
+  messageLogs        MessageLog[]
 
   @@unique([schoolId, matricule])
   @@index([schoolId])
   @@index([lastName, firstName])
-  topStudents      TopStudent[]
-  messageLogs  MessageLog[]
-
   @@map("students")
 }
 
@@ -725,10 +735,9 @@ model Guardian {
   user          User?             @relation(fields: [userId], references: [id])
   students      StudentGuardian[]
   notifications Notification[]
+  messageLogs   MessageLog[]
 
   @@index([schoolId])
-  messageLogs  MessageLog[]
-
   @@map("guardians")
 }
 
@@ -827,14 +836,14 @@ model Teacher {
   createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  school                  School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user                    User?               @relation(fields: [userId], references: [id])
-  mainTeacherClasses      Class[]             @relation("ClassMainTeacher")
-  assignments             TeacherAssignment[]
-  timetableSlots          TimetableSlot[]
-  attendanceSessions      AttendanceSession[]
-  assessments             Assessment[]
-  examSessionsSupervised  ExamSession[]       @relation("ExamSupervisor")
+  school                 School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user                   User?               @relation(fields: [userId], references: [id])
+  mainTeacherClasses     Class[]             @relation("ClassMainTeacher")
+  assignments            TeacherAssignment[]
+  timetableSlots         TimetableSlot[]
+  attendanceSessions     AttendanceSession[]
+  assessments            Assessment[]
+  examSessionsSupervised ExamSession[]       @relation("ExamSupervisor")
 
   @@unique([schoolId, matricule])
   @@index([schoolId])
@@ -851,14 +860,14 @@ model Subject {
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  coefficients        SubjectCoefficient[]
-  assignments         TeacherAssignment[]
-  timetableSlots      TimetableSlot[]
-  attendanceSessions  AttendanceSession[]
-  assessments         Assessment[]
-  reportCardItems     ReportCardItem[]
-  examSessions        ExamSession[]
+  school             School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  coefficients       SubjectCoefficient[]
+  assignments        TeacherAssignment[]
+  timetableSlots     TimetableSlot[]
+  attendanceSessions AttendanceSession[]
+  assessments        Assessment[]
+  reportCardItems    ReportCardItem[]
+  examSessions       ExamSession[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -1085,7 +1094,6 @@ model ReportCardItem {
   @@map("report_card_items")
 }
 
-
 // ============================================================
 // 8. BLOC EXAMENS
 // ============================================================
@@ -1103,8 +1111,8 @@ model Exam {
   createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  term         Term?        @relation(fields: [termId], references: [id])
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+  term         Term?         @relation(fields: [termId], references: [id])
   sessions     ExamSession[]
 
   @@index([schoolId])
@@ -1196,34 +1204,35 @@ model FeeStructure {
 }
 
 model Invoice {
-  id             String        @id @default(uuid()) @db.Uuid
-  schoolId       String        @map("school_id") @db.Uuid
-  studentId      String        @map("student_id") @db.Uuid
-  academicYearId String        @map("academic_year_id") @db.Uuid
-  number         String        @db.VarChar(30)
-  issuedAt       DateTime      @default(now()) @map("issued_at") @db.Date
-  dueDate        DateTime?     @map("due_date") @db.Date
-  totalAmount    Decimal       @map("total_amount") @db.Decimal(14, 2)
-  paidAmount     Decimal       @default(0) @map("paid_amount") @db.Decimal(14, 2)
-  balance        Decimal       @default(0) @db.Decimal(14, 2)
-  status         InvoiceStatus @default(UNPAID)
-  kind           InvoiceKind   @default(REGULAR)
-  carriedOverFromId String?    @map("carried_over_from_id") @db.Uuid
-  cancelledAt    DateTime?     @map("cancelled_at") @db.Timestamptz
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  id                String          @id @default(uuid()) @db.Uuid
+  schoolId          String          @map("school_id") @db.Uuid
+  studentId         String          @map("student_id") @db.Uuid
+  academicYearId    String          @map("academic_year_id") @db.Uuid
+  number            String          @db.VarChar(30)
+  issuedAt          DateTime        @default(now()) @map("issued_at") @db.Date
+  dueDate           DateTime?       @map("due_date") @db.Date
+  totalAmount       Decimal         @map("total_amount") @db.Decimal(14, 2)
+  paidAmount        Decimal         @default(0) @map("paid_amount") @db.Decimal(14, 2)
+  balance           Decimal         @default(0) @db.Decimal(14, 2)
+  status            InvoiceStatus   @default(UNPAID)
+  kind              InvoiceKind     @default(REGULAR)
+  installmentMode   InstallmentMode @default(CASH) @map("installment_mode")
+  carriedOverFromId String?         @map("carried_over_from_id") @db.Uuid
+  cancelledAt       DateTime?       @map("cancelled_at") @db.Timestamptz
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+  school       School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear         @relation(fields: [academicYearId], references: [id])
   items        InvoiceItem[]
   payments     Payment[]
+  installments InvoiceInstallment[]
+  messageLogs  MessageLog[]
 
   @@unique([schoolId, number])
   @@index([studentId])
   @@index([schoolId, status])
-  messageLogs  MessageLog[]
-
   @@map("invoices")
 }
 
@@ -1245,31 +1254,36 @@ model InvoiceItem {
 }
 
 model Payment {
-  cashSessionId String? @db.Uuid @map("cash_session_id")
-  cashSession   CashSession? @relation(fields: [cashSessionId], references: [id])
-  id           String        @id @default(uuid()) @db.Uuid
-  schoolId     String        @map("school_id") @db.Uuid
-  invoiceId    String        @map("invoice_id") @db.Uuid
-  studentId    String        @map("student_id") @db.Uuid
-  amount       Decimal       @db.Decimal(14, 2)
-  method       PaymentMethod
-  reference    String?       @db.VarChar(80)
-  paidAt       DateTime      @default(now()) @map("paid_at") @db.Timestamptz
-  cashierId    String?       @map("cashier_id") @db.Uuid
-  cancelledAt  DateTime?     @map("cancelled_at") @db.Timestamptz
-  cancelReason String?       @map("cancel_reason")
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  cashSessionId String?       @map("cash_session_id") @db.Uuid
+  cashSession   CashSession?  @relation(fields: [cashSessionId], references: [id])
+  id            String        @id @default(uuid()) @db.Uuid
+  schoolId      String        @map("school_id") @db.Uuid
+  invoiceId     String        @map("invoice_id") @db.Uuid
+  studentId     String        @map("student_id") @db.Uuid
+  amount        Decimal       @db.Decimal(14, 2)
+  method        PaymentMethod
+  reference     String?       @db.VarChar(80)
+  paidAt        DateTime      @default(now()) @map("paid_at") @db.Timestamptz
+  cashierId     String?       @map("cashier_id") @db.Uuid
+  installmentId String?       @map("installment_id") @db.Uuid
+  importedFrom  String?       @map("imported_from") @db.VarChar(80)
+  note          String?       @db.Text
+  cancelledAt   DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancelReason  String?       @map("cancel_reason")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  school   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
-  student  Student  @relation(fields: [studentId], references: [id])
-  cashier  User?    @relation("PaymentCashier", fields: [cashierId], references: [id])
-  receipt  Receipt?
+  school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invoice     Invoice             @relation(fields: [invoiceId], references: [id])
+  student     Student             @relation(fields: [studentId], references: [id])
+  cashier     User?               @relation("PaymentCashier", fields: [cashierId], references: [id])
+  installment InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  receipt     Receipt?
 
   @@index([invoiceId])
   @@index([studentId])
   @@index([paidAt])
+  @@index([installmentId])
   @@map("payments")
 }
 
@@ -1288,7 +1302,7 @@ model Receipt {
 }
 
 model CashSession {
-  payments      Payment[]
+  payments       Payment[]
   id             String     @id @default(uuid()) @db.Uuid
   schoolId       String     @map("school_id") @db.Uuid
   cashierId      String     @map("cashier_id") @db.Uuid
@@ -1350,20 +1364,20 @@ model GeneratedDocument {
 }
 
 model Notification {
-  id         String             @id @default(uuid()) @db.Uuid
-  schoolId   String             @map("school_id") @db.Uuid
-  userId     String?            @map("user_id") @db.Uuid
-  guardianId String?            @map("guardian_id") @db.Uuid
+  id         String              @id @default(uuid()) @db.Uuid
+  schoolId   String              @map("school_id") @db.Uuid
+  userId     String?             @map("user_id") @db.Uuid
+  guardianId String?             @map("guardian_id") @db.Uuid
   type       NotificationType
-  title      String             @db.VarChar(150)
+  title      String              @db.VarChar(150)
   body       String
   channel    NotificationChannel
-  status     NotificationStatus @default(PENDING)
-  sentAt     DateTime?          @map("sent_at") @db.Timestamptz
-  readAt     DateTime?          @map("read_at") @db.Timestamptz
+  status     NotificationStatus  @default(PENDING)
+  sentAt     DateTime?           @map("sent_at") @db.Timestamptz
+  readAt     DateTime?           @map("read_at") @db.Timestamptz
   payload    Json?
-  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz
 
   school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   guardian Guardian? @relation(fields: [guardianId], references: [id])
@@ -1431,33 +1445,33 @@ model SystemLog {
 // ============================================================
 
 model StudentTransfer {
-  id                    String         @id @default(uuid()) @db.Uuid
-  studentId             String         @map("student_id") @db.Uuid
-  type                  TransferType
-  fromSchool            String?        @map("from_school") @db.VarChar(200)
-  fromSchoolAddress     String?        @map("from_school_address") @db.VarChar(200)
-  fromSchoolPhone       String?        @map("from_school_phone") @db.VarChar(30)
-  fromSchoolDirector    String?        @map("from_school_director") @db.VarChar(150)
-  toSchool              String?        @map("to_school") @db.VarChar(200)
-  toSchoolAddress       String?        @map("to_school_address") @db.VarChar(200)
-  toSchoolPhone         String?        @map("to_school_phone") @db.VarChar(30)
-  toSchoolDirector      String?        @map("to_school_director") @db.VarChar(150)
-  reason                TransferReason
-  reasonDetails         String?        @map("reason_details")
-  effectiveDate         DateTime       @map("effective_date") @db.Date
-  certificateUrl        String?        @map("certificate_url")
-  previousMatricule     String?        @map("previous_matricule") @db.VarChar(30)
-  previousClassLevel    String?        @map("previous_class_level") @db.VarChar(50)
-  previousAverage       Decimal?       @map("previous_average") @db.Decimal(5, 2)
-  decision              String?        @db.VarChar(150)
-  verificationCode      String         @unique @map("verification_code") @db.VarChar(20)
-  status                TransferStatus @default(PENDING)
-  verifiedAt            DateTime?      @map("verified_at") @db.Timestamptz
-  verifiedBy            String?        @map("verified_by") @db.Uuid
-  notes                 String?
-  createdBy             String?        @map("created_by") @db.Uuid
-  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt             DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  id                 String         @id @default(uuid()) @db.Uuid
+  studentId          String         @map("student_id") @db.Uuid
+  type               TransferType
+  fromSchool         String?        @map("from_school") @db.VarChar(200)
+  fromSchoolAddress  String?        @map("from_school_address") @db.VarChar(200)
+  fromSchoolPhone    String?        @map("from_school_phone") @db.VarChar(30)
+  fromSchoolDirector String?        @map("from_school_director") @db.VarChar(150)
+  toSchool           String?        @map("to_school") @db.VarChar(200)
+  toSchoolAddress    String?        @map("to_school_address") @db.VarChar(200)
+  toSchoolPhone      String?        @map("to_school_phone") @db.VarChar(30)
+  toSchoolDirector   String?        @map("to_school_director") @db.VarChar(150)
+  reason             TransferReason
+  reasonDetails      String?        @map("reason_details")
+  effectiveDate      DateTime       @map("effective_date") @db.Date
+  certificateUrl     String?        @map("certificate_url")
+  previousMatricule  String?        @map("previous_matricule") @db.VarChar(30)
+  previousClassLevel String?        @map("previous_class_level") @db.VarChar(50)
+  previousAverage    Decimal?       @map("previous_average") @db.Decimal(5, 2)
+  decision           String?        @db.VarChar(150)
+  verificationCode   String         @unique @map("verification_code") @db.VarChar(20)
+  status             TransferStatus @default(PENDING)
+  verifiedAt         DateTime?      @map("verified_at") @db.Timestamptz
+  verifiedBy         String?        @map("verified_by") @db.Uuid
+  notes              String?
+  createdBy          String?        @map("created_by") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
@@ -1492,18 +1506,18 @@ model ExpenseCategory {
 }
 
 model Expense {
-  id             String   @id @default(uuid()) @db.Uuid
-  schoolId       String   @map("school_id") @db.Uuid
-  categoryId     String   @map("category_id") @db.Uuid
-  cashierId      String   @map("cashier_id") @db.Uuid
-  cashSessionId  String?  @map("cash_session_id") @db.Uuid
-  amount         Decimal  @db.Decimal(14, 2)
-  description    String
-  beneficiary    String?  @db.VarChar(150)
-  receiptUrl     String?  @map("receipt_url")
-  spentAt        DateTime @default(now()) @map("spent_at") @db.Timestamptz
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(uuid()) @db.Uuid
+  schoolId      String   @map("school_id") @db.Uuid
+  categoryId    String   @map("category_id") @db.Uuid
+  cashierId     String   @map("cashier_id") @db.Uuid
+  cashSessionId String?  @map("cash_session_id") @db.Uuid
+  amount        Decimal  @db.Decimal(14, 2)
+  description   String
+  beneficiary   String?  @db.VarChar(150)
+  receiptUrl    String?  @map("receipt_url")
+  spentAt       DateTime @default(now()) @map("spent_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   school      School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   category    ExpenseCategory @relation(fields: [categoryId], references: [id])
@@ -1521,18 +1535,18 @@ model Expense {
 // ============================================================
 
 model TopStudent {
-  id          String     @id @default(uuid()) @db.Uuid
-  schoolId    String     @map("school_id") @db.Uuid
-  cycle       String     @db.VarChar(50)
-  periodType  String     @map("period_type") @db.VarChar(20)
-  periodLabel String     @map("period_label") @db.VarChar(100)
-  termId      String?    @map("term_id") @db.Uuid
-  rank        Int        @db.SmallInt
-  studentId   String     @map("student_id") @db.Uuid
-  classId     String     @map("class_id") @db.Uuid
-  average     Decimal    @db.Decimal(5, 2)
-  scale       Int        @default(20) @db.SmallInt
-  computedAt  DateTime   @default(now()) @map("computed_at") @db.Timestamptz
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @map("school_id") @db.Uuid
+  cycle       String   @db.VarChar(50)
+  periodType  String   @map("period_type") @db.VarChar(20)
+  periodLabel String   @map("period_label") @db.VarChar(100)
+  termId      String?  @map("term_id") @db.Uuid
+  rank        Int      @db.SmallInt
+  studentId   String   @map("student_id") @db.Uuid
+  classId     String   @map("class_id") @db.Uuid
+  average     Decimal  @db.Decimal(5, 2)
+  scale       Int      @default(20) @db.SmallInt
+  computedAt  DateTime @default(now()) @map("computed_at") @db.Timestamptz
 
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -1581,20 +1595,20 @@ model MessageLog {
 // verification publique via QR code.
 // ============================================================
 model StudentAccount {
-  id             String    @id @default(uuid()) @db.Uuid
-  studentId      String    @unique @map("student_id") @db.Uuid
-  schoolId       String    @map("school_id") @db.Uuid
+  id        String @id @default(uuid()) @db.Uuid
+  studentId String @unique @map("student_id") @db.Uuid
+  schoolId  String @map("school_id") @db.Uuid
 
   // creditBalance > 0 => l'ecole doit de l'argent a l'eleve
-  creditBalance  Decimal   @default(0) @map("credit_balance") @db.Decimal(14, 2)
+  creditBalance Decimal @default(0) @map("credit_balance") @db.Decimal(14, 2)
   // debtBalance > 0 => l'eleve doit de l'argent a l'ecole
-  debtBalance    Decimal   @default(0) @map("debt_balance") @db.Decimal(14, 2)
+  debtBalance   Decimal @default(0) @map("debt_balance") @db.Decimal(14, 2)
 
-  lastCreditAt   DateTime? @map("last_credit_at") @db.Timestamptz
-  lastDebtAt     DateTime? @map("last_debt_at") @db.Timestamptz
+  lastCreditAt DateTime? @map("last_credit_at") @db.Timestamptz
+  lastDebtAt   DateTime? @map("last_debt_at") @db.Timestamptz
 
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1605,20 +1619,20 @@ model StudentAccount {
 }
 
 model VerifiableDocument {
-  id           String    @id @default(uuid()) @db.Uuid
-  schoolId     String    @map("school_id") @db.Uuid
-  type         String    @db.VarChar(30)          // BULLETIN | RECEIPT | ID_CARD | ATTESTATION | CERTIFICATE
-  referenceId  String    @map("reference_id") @db.Uuid
-  shortCode    String    @unique @map("short_code") @db.VarChar(12)
-  hmacToken    String    @map("hmac_token") @db.VarChar(64)
-  meta         Json?                              // infos utiles (matricule, nom, classe...) pour verif offline
-  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
-  revokedBy    String?   @map("revoked_by") @db.Uuid
-  viewCount    Int       @default(0) @map("view_count")
-  lastViewAt   DateTime? @map("last_view_at") @db.Timestamptz
-  expiresAt    DateTime? @map("expires_at") @db.Timestamptz
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id          String    @id @default(uuid()) @db.Uuid
+  schoolId    String    @map("school_id") @db.Uuid
+  type        String    @db.VarChar(30) // BULLETIN | RECEIPT | ID_CARD | ATTESTATION | CERTIFICATE
+  referenceId String    @map("reference_id") @db.Uuid
+  shortCode   String    @unique @map("short_code") @db.VarChar(12)
+  hmacToken   String    @map("hmac_token") @db.VarChar(64)
+  meta        Json? // infos utiles (matricule, nom, classe...) pour verif offline
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
+  revokedBy   String?   @map("revoked_by") @db.Uuid
+  viewCount   Int       @default(0) @map("view_count")
+  lastViewAt  DateTime? @map("last_view_at") @db.Timestamptz
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1674,25 +1688,25 @@ enum TransmissionChannel {
 }
 
 model AdminReportTemplate {
-  id              String                     @id @default(uuid()) @db.Uuid
-  schoolId        String?                    @map("school_id") @db.Uuid
-  code            String                     @db.VarChar(20)
-  title           String                     @db.VarChar(200)
+  id              String                    @id @default(uuid()) @db.Uuid
+  schoolId        String?                   @map("school_id") @db.Uuid
+  code            String                    @db.VarChar(20)
+  title           String                    @db.VarChar(200)
   description     String?
   category        AdminReportCategory
-  status          AdminReportTemplateStatus  @default(MODELE_INTERNE)
-  configuration   Json                       @default("{}")
-  regulatoryRef   String?                    @map("regulatory_ref") @db.VarChar(200)
-  authorityTarget String?                    @map("authority_target") @db.VarChar(100)
-  version         Int                        @default(1)
-  effectiveFrom   DateTime?                  @map("effective_from") @db.Date
-  effectiveTo     DateTime?                  @map("effective_to") @db.Date
-  periodicity     String?                    @db.VarChar(50)
-  deadlineSource  String?                    @map("deadline_source") @db.VarChar(200)
-  isActive        Boolean                    @default(true) @map("is_active")
-  createdBy       String?                    @map("created_by") @db.Uuid
-  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+  status          AdminReportTemplateStatus @default(MODELE_INTERNE)
+  configuration   Json                      @default("{}")
+  regulatoryRef   String?                   @map("regulatory_ref") @db.VarChar(200)
+  authorityTarget String?                   @map("authority_target") @db.VarChar(100)
+  version         Int                       @default(1)
+  effectiveFrom   DateTime?                 @map("effective_from") @db.Date
+  effectiveTo     DateTime?                 @map("effective_to") @db.Date
+  periodicity     String?                   @db.VarChar(50)
+  deadlineSource  String?                   @map("deadline_source") @db.VarChar(200)
+  isActive        Boolean                   @default(true) @map("is_active")
+  createdBy       String?                   @map("created_by") @db.Uuid
+  createdAt       DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
 
   school  School?       @relation("SchoolAdminReportTemplates", fields: [schoolId], references: [id], onDelete: Cascade)
   reports AdminReport[] @relation("TemplateAdminReports")
@@ -1704,24 +1718,24 @@ model AdminReportTemplate {
 }
 
 model AdminReport {
-  id              String             @id @default(uuid()) @db.Uuid
-  schoolId        String             @map("school_id") @db.Uuid
-  templateId      String?            @map("template_id") @db.Uuid
-  academicYearId  String?            @map("academic_year_id") @db.Uuid
-  code            String             @db.VarChar(20)
-  title           String             @db.VarChar(200)
-  status          AdminReportStatus  @default(BROUILLON)
-  referenceDate   DateTime?          @map("reference_date") @db.Date
-  periodLabel     String?            @map("period_label") @db.VarChar(100)
-  bordereauNumber String?            @map("bordereau_number") @db.VarChar(50)
-  data            Json               @default("{}")
+  id              String            @id @default(uuid()) @db.Uuid
+  schoolId        String            @map("school_id") @db.Uuid
+  templateId      String?           @map("template_id") @db.Uuid
+  academicYearId  String?           @map("academic_year_id") @db.Uuid
+  code            String            @db.VarChar(20)
+  title           String            @db.VarChar(200)
+  status          AdminReportStatus @default(BROUILLON)
+  referenceDate   DateTime?         @map("reference_date") @db.Date
+  periodLabel     String?           @map("period_label") @db.VarChar(100)
+  bordereauNumber String?           @map("bordereau_number") @db.VarChar(50)
+  data            Json              @default("{}")
   snapshot        Json?
-  version         Int                @default(1)
-  createdBy       String?            @map("created_by") @db.Uuid
-  validatedBy     String?            @map("validated_by") @db.Uuid
-  validatedAt     DateTime?          @map("validated_at") @db.Timestamptz
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  version         Int               @default(1)
+  createdBy       String?           @map("created_by") @db.Uuid
+  validatedBy     String?           @map("validated_by") @db.Uuid
+  validatedAt     DateTime?         @map("validated_at") @db.Timestamptz
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   school        School                    @relation("SchoolAdminReports", fields: [schoolId], references: [id], onDelete: Cascade)
   template      AdminReportTemplate?      @relation("TemplateAdminReports", fields: [templateId], references: [id])
@@ -1737,14 +1751,14 @@ model AdminReport {
 }
 
 model AdminReportVersion {
-  id        String    @id @default(uuid()) @db.Uuid
-  reportId  String    @map("report_id") @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  reportId  String   @map("report_id") @db.Uuid
   version   Int
   data      Json
   snapshot  Json?
   reason    String?
-  createdBy String?   @map("created_by") @db.Uuid
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   report AdminReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
@@ -1775,20 +1789,20 @@ model AdminReportTransmission {
 }
 
 model AdminReportDeadline {
-  id                 String    @id @default(uuid()) @db.Uuid
-  schoolId           String    @map("school_id") @db.Uuid
-  templateCode       String    @map("template_code") @db.VarChar(20)
-  title              String    @db.VarChar(200)
-  academicYearId     String?   @map("academic_year_id") @db.Uuid
-  recipient          String?   @db.VarChar(150)
-  prepareFrom        DateTime? @map("prepare_from") @db.Date
-  deadline           DateTime  @db.Date
-  source             String?   @db.VarChar(200)
-  confidenceLevel    String?   @default("A_CONFIRMER") @map("confidence_level") @db.VarChar(50)
-  responsibleUserId  String?   @map("responsible_user_id") @db.Uuid
-  status             String?   @default("A_VENIR") @db.VarChar(50)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id                String    @id @default(uuid()) @db.Uuid
+  schoolId          String    @map("school_id") @db.Uuid
+  templateCode      String    @map("template_code") @db.VarChar(20)
+  title             String    @db.VarChar(200)
+  academicYearId    String?   @map("academic_year_id") @db.Uuid
+  recipient         String?   @db.VarChar(150)
+  prepareFrom       DateTime? @map("prepare_from") @db.Date
+  deadline          DateTime  @db.Date
+  source            String?   @db.VarChar(200)
+  confidenceLevel   String?   @default("A_CONFIRMER") @map("confidence_level") @db.VarChar(50)
+  responsibleUserId String?   @map("responsible_user_id") @db.Uuid
+  status            String?   @default("A_VENIR") @db.VarChar(50)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   school School @relation("SchoolAdminReportDeadlines", fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1827,22 +1841,22 @@ enum ExamDossierStatus {
 }
 
 model StateExamSession {
-  id                 String         @id @default(uuid()) @db.Uuid
-  schoolId           String         @map("school_id") @db.Uuid
-  academicYearId     String         @map("academic_year_id") @db.Uuid
+  id                 String        @id @default(uuid()) @db.Uuid
+  schoolId           String        @map("school_id") @db.Uuid
+  academicYearId     String        @map("academic_year_id") @db.Uuid
   examType           StateExamType
-  label              String         @db.VarChar(120)
-  registrationOpens  DateTime?      @map("registration_opens") @db.Date
-  registrationCloses DateTime?      @map("registration_closes") @db.Date
-  examDate           DateTime?      @map("exam_date") @db.Date
-  institutionTarget  String?        @map("institution_target") @db.VarChar(150)
-  bordereauPattern   String?        @map("bordereau_pattern") @db.VarChar(120)
-  createdBy          String?        @map("created_by") @db.Uuid
-  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  label              String        @db.VarChar(120)
+  registrationOpens  DateTime?     @map("registration_opens") @db.Date
+  registrationCloses DateTime?     @map("registration_closes") @db.Date
+  examDate           DateTime?     @map("exam_date") @db.Date
+  institutionTarget  String?       @map("institution_target") @db.VarChar(150)
+  bordereauPattern   String?       @map("bordereau_pattern") @db.VarChar(120)
+  createdBy          String?       @map("created_by") @db.Uuid
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  school       School         @relation("SchoolStateExamSessions", fields: [schoolId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear   @relation("YearStateExamSessions", fields: [academicYearId], references: [id], onDelete: Cascade)
+  school       School        @relation("SchoolStateExamSessions", fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear  @relation("YearStateExamSessions", fields: [academicYearId], references: [id], onDelete: Cascade)
   dossiers     ExamDossier[]
 
   @@unique([schoolId, academicYearId, examType])
@@ -1851,32 +1865,32 @@ model StateExamSession {
 }
 
 model ExamDossier {
-  id               String            @id @default(uuid()) @db.Uuid
-  sessionId        String            @map("session_id") @db.Uuid
-  schoolId         String            @map("school_id") @db.Uuid
-  classId          String            @map("class_id") @db.Uuid
-  levelId          String            @map("level_id") @db.Uuid
-  status           ExamDossierStatus @default(BROUILLON)
-  bordereauNumber  String?           @map("bordereau_number") @db.VarChar(60)
-  referenceNumber  String?           @map("reference_number") @db.VarChar(60)
-  candidateCount   Int               @default(0) @map("candidate_count")
-  piecesRequired   Json              @default("[]") @map("pieces_required")
-  transmittedAt    DateTime?         @map("transmitted_at") @db.Timestamptz
-  transmittedBy    String?           @map("transmitted_by") @db.Uuid
-  receivedAt       DateTime?         @map("received_at") @db.Timestamptz
-  receivedBy       String?           @map("received_by") @db.Uuid
-  proofUrl         String?           @map("proof_url") @db.VarChar(500)
-  receiptUrl       String?           @map("receipt_url") @db.VarChar(500)
-  observations     String?
-  createdBy        String?           @map("created_by") @db.Uuid
-  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  id              String            @id @default(uuid()) @db.Uuid
+  sessionId       String            @map("session_id") @db.Uuid
+  schoolId        String            @map("school_id") @db.Uuid
+  classId         String            @map("class_id") @db.Uuid
+  levelId         String            @map("level_id") @db.Uuid
+  status          ExamDossierStatus @default(BROUILLON)
+  bordereauNumber String?           @map("bordereau_number") @db.VarChar(60)
+  referenceNumber String?           @map("reference_number") @db.VarChar(60)
+  candidateCount  Int               @default(0) @map("candidate_count")
+  piecesRequired  Json              @default("[]") @map("pieces_required")
+  transmittedAt   DateTime?         @map("transmitted_at") @db.Timestamptz
+  transmittedBy   String?           @map("transmitted_by") @db.Uuid
+  receivedAt      DateTime?         @map("received_at") @db.Timestamptz
+  receivedBy      String?           @map("received_by") @db.Uuid
+  proofUrl        String?           @map("proof_url") @db.VarChar(500)
+  receiptUrl      String?           @map("receipt_url") @db.VarChar(500)
+  observations    String?
+  createdBy       String?           @map("created_by") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  session  StateExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  school   School           @relation("SchoolExamDossiers", fields: [schoolId], references: [id], onDelete: Cascade)
-  class    Class            @relation("ClassExamDossiers", fields: [classId], references: [id], onDelete: Cascade)
-  level    Level            @relation("LevelExamDossiers", fields: [levelId], references: [id], onDelete: Cascade)
-  pieces   ExamDossierPiece[]
+  session StateExamSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  school  School             @relation("SchoolExamDossiers", fields: [schoolId], references: [id], onDelete: Cascade)
+  class   Class              @relation("ClassExamDossiers", fields: [classId], references: [id], onDelete: Cascade)
+  level   Level              @relation("LevelExamDossiers", fields: [levelId], references: [id], onDelete: Cascade)
+  pieces  ExamDossierPiece[]
 
   @@unique([sessionId, classId])
   @@index([schoolId])
@@ -1907,3 +1921,27 @@ model ExamDossierPiece {
   @@map("exam_dossier_pieces")
 }
 
+// ============================================================
+// INVOICE INSTALLMENT (echeancier)
+// ============================================================
+
+model InvoiceInstallment {
+  id         String            @id @default(uuid()) @db.Uuid
+  invoiceId  String            @map("invoice_id") @db.Uuid
+  label      String            @db.VarChar(100)
+  amount     Decimal           @db.Decimal(14, 2)
+  paidAmount Decimal           @default(0) @map("paid_amount") @db.Decimal(14, 2)
+  dueDate    DateTime?         @map("due_date") @db.Date
+  status     InstallmentStatus @default(PENDING)
+  orderIndex Int               @default(0) @map("order_index") @db.SmallInt
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  invoice  Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoice_installments")
+}

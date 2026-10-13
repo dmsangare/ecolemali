@@ -163,6 +163,108 @@ export class InvoicesService {
     });
   }
 
+  /**
+   * Apercu : combien d'eleves seront factures avec ce filtre.
+   * Idempotent, ne modifie rien.
+   */
+  async previewAutoInvoiceBulk(
+    schoolId: string,
+    academicYearId: string,
+    filter: { levelId?: string; classId?: string },
+  ) {
+    const where: any = { academicYearId, status: "VALIDATED" };
+    if (filter.classId) where.classId = filter.classId;
+    if (filter.levelId) where.levelId = filter.levelId;
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where,
+      select: { studentId: true },
+    });
+
+    const total = enrollments.length;
+
+    // Combien ont deja une facture
+    const studentIds = enrollments.map((e) => e.studentId);
+    const alreadyInvoiced = studentIds.length
+      ? await this.prisma.invoice.count({
+          where: {
+            schoolId,
+            academicYearId,
+            studentId: { in: studentIds },
+            status: { not: "CANCELLED" },
+          },
+        })
+      : 0;
+
+    return {
+      total,
+      alreadyInvoiced,
+      toCreate: total - alreadyInvoiced,
+    };
+  }
+
+  /**
+   * Facturation en masse pour les eleves d'un niveau ou d'une classe.
+   * Idempotent : les eleves deja factures sont ignores.
+   */
+  async autoInvoiceBulk(
+    schoolId: string,
+    academicYearId: string,
+    filter: { levelId?: string; classId?: string },
+  ) {
+    const where: any = { academicYearId, status: "VALIDATED" };
+    if (filter.classId) where.classId = filter.classId;
+    if (filter.levelId) where.levelId = filter.levelId;
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where,
+      select: { studentId: true },
+    });
+
+    if (enrollments.length === 0) {
+      throw new BadRequestException(
+        "Aucun eleve inscrit ne correspond a ce filtre",
+      );
+    }
+
+    const results = {
+      total: enrollments.length,
+      created: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [] as { studentId: string; message: string }[],
+    };
+
+    for (const e of enrollments) {
+      try {
+        const before = await this.prisma.invoice.findFirst({
+          where: {
+            studentId: e.studentId,
+            academicYearId,
+            status: { not: "CANCELLED" },
+          },
+          select: { id: true },
+        });
+
+        await this.autoInvoice(schoolId, e.studentId, academicYearId);
+
+        if (before) {
+          results.skipped++;
+        } else {
+          results.created++;
+        }
+      } catch (err: any) {
+        results.failed++;
+        results.errors.push({
+          studentId: e.studentId,
+          message: err?.message || "Erreur inconnue",
+        });
+      }
+    }
+
+    return results;
+  }
+
   async cancel(id: string, dto: InvoiceCancelDto) {
     const invoice = await this.findOne(id);
     if (invoice.status === "CANCELLED") {

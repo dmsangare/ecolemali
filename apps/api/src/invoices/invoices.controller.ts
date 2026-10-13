@@ -70,6 +70,38 @@ export class InvoicesController {
     return this.service.autoInvoice(user.schoolId!, studentId, academicYearId);
   }
 
+  @Post("auto/bulk/preview")
+  @RequirePermissions("invoice:create")
+  @ApiOperation({
+    summary: "Apercu facturation en masse (nombre d'eleves concernes)",
+  })
+  async previewAutoInvoiceBulk(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: { academicYearId: string; levelId?: string; classId?: string },
+  ) {
+    return this.service.previewAutoInvoiceBulk(
+      user.schoolId!,
+      body.academicYearId,
+      { levelId: body.levelId, classId: body.classId },
+    );
+  }
+
+  @Post("auto/bulk")
+  @RequirePermissions("invoice:create")
+  @ApiOperation({
+    summary: "Facturation en masse (niveau ou classe)",
+  })
+  async autoInvoiceBulk(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: { academicYearId: string; levelId?: string; classId?: string },
+  ) {
+    return this.service.autoInvoiceBulk(
+      user.schoolId!,
+      body.academicYearId,
+      { levelId: body.levelId, classId: body.classId },
+    );
+  }
+
   @Post(":id/cancel")
   @RequirePermissions("invoice:cancel")
   @ApiOperation({ summary: "Annuler une facture" })

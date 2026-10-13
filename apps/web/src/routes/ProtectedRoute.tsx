@@ -38,6 +38,16 @@ export function ProtectedRoute({
     return <Navigate to="/change-password-required" replace />;
   }
 
+  // Premiere installation : si l'utilisateur n'a pas d'ecole,
+  // on le force a en creer une (sauf s'il est deja sur la page)
+  if (
+    isAuthenticated &&
+    !user?.schoolId &&
+    location.pathname !== "/init-school"
+  ) {
+    return <Navigate to="/init-school" replace />;
+  }
+
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return <Navigate to="/forbidden" replace />;
   }

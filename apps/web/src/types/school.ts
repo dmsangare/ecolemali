@@ -32,6 +32,24 @@ export interface SystemSettings {
   data: any;
 }
 
+export interface CreateSchoolInput {
+  code: string;
+  name: string;
+  type: "FONDAMENTAL" | "PREMIER_CYCLE" | "DEUXIEME_CYCLE" | "LYCEE" | "FONDAMENTAL_LYCEE";
+  status: "PUBLIC" | "PRIVE" | "CONFESSIONNEL" | "LAIC";
+  sigle?: string;
+  address?: string;
+  region?: string;
+  cercle?: string;
+  commune?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  directorName?: string;
+  motto?: string;
+  createdYear?: number;
+}
+
 export interface UpdateSchoolInput {
   name?: string;
   sigle?: string;

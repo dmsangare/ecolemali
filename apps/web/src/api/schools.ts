@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import type { School, UpdateSchoolInput, SystemSettings } from "@/types/school";
+import type { School, CreateSchoolInput, UpdateSchoolInput, SystemSettings } from "@/types/school";
 
 export const schoolsApi = {
   async list(): Promise<School[]> {
@@ -9,6 +9,11 @@ export const schoolsApi = {
 
   async getById(id: string): Promise<School> {
     const { data } = await api.get(`/schools/${id}`);
+    return data.data || data;
+  },
+
+  async create(input: CreateSchoolInput): Promise<School> {
+    const { data } = await api.post("/schools", input);
     return data.data || data;
   },
 

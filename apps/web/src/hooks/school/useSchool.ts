@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/axios";
+import type { CreateSchoolInput } from "@/types/school";
 
 export interface School {
   id: string;
@@ -31,6 +32,23 @@ export function useSchool() {
       return (Array.isArray(list) ? list[0] : list) as School;
     },
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateSchool() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateSchoolInput) => {
+      const { data } = await api.post("/schools", input);
+      return (data.data || data) as School;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["school"] });
+      toast.success("Etablissement cree avec succes");
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Erreur lors de la creation");
+    },
   });
 }
 

@@ -4,6 +4,7 @@ import { PublicRoute } from "./PublicRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { ChangePasswordRequiredPage } from "@/pages/auth/ChangePasswordRequiredPage";
+import { InitSchoolPage } from "@/pages/init-school/InitSchoolPage";
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
@@ -62,6 +63,8 @@ export function AppRoutes() {
           path="/change-password-required"
           element={<ChangePasswordRequiredPage />}
         />
+        {/* Premiere installation : creation de l'ecole */}
+        <Route path="/init-school" element={<InitSchoolPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>

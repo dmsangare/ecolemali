@@ -63,8 +63,20 @@ export class SchoolsService {
     return school;
   }
 
-  async create(dto: SchoolCreateDto) {
-    return this.prisma.school.create({ data: dto as any });
+  async create(dto: SchoolCreateDto, user: CurrentUserPayload) {
+    // 1. Creer l'ecole
+    const school = await this.prisma.school.create({ data: dto as any });
+
+    // 2. Si le createur est SUPER_ADMIN sans ecole, le rattacher a cette ecole
+    //    (cas de la 1ere installation : l'admin cree sa propre ecole)
+    if (isSuperAdmin(user) && !user.schoolId) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { schoolId: school.id },
+      });
+    }
+
+    return school;
   }
 
   async update(id: string, dto: SchoolUpdateDto, user: CurrentUserPayload) {

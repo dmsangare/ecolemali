@@ -35,8 +35,11 @@ export class SchoolsController {
   @Post()
   @RequirePermissions("school:create")
   @ApiOperation({ summary: "Creer un etablissement" })
-  async create(@Body(new ZodValidationPipe(SchoolCreateSchema)) dto: any) {
-    return this.schoolsService.create(dto);
+  async create(
+    @Body(new ZodValidationPipe(SchoolCreateSchema)) dto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.schoolsService.create(dto, user);
   }
 
   @Patch(":id")

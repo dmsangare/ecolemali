@@ -10,6 +10,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Plus,
+  Sparkles,
+  Upload,
 } from "lucide-react";
 import { Button, Input, Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,7 @@ import { useClasses, useLevels } from "@/hooks/classes";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { CreateInvoiceModal } from "./components/CreateInvoiceModal";
+import { BulkInvoiceModal } from "./components/BulkInvoiceModal";
 import {
   INVOICE_STATUS_LABELS,
   formatFCFA,
@@ -37,6 +40,7 @@ export function InvoicesListPage() {
   const [classFilter, setClassFilter] = useState("");
   const [academicYearId, setAcademicYearId] = useState("");
   const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
   const { data: academicYears } = useQuery({
     queryKey: ["academic-years", "list"],
@@ -137,6 +141,16 @@ export function InvoicesListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline">
+            <Link to="/invoices/import-situation">
+              <Upload className="h-4 w-4 mr-2" />
+              Importer une situation
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={() => setBulkModalOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Facturer en masse
+          </Button>
           <Button onClick={() => setManualModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle facture manuelle
@@ -338,6 +352,11 @@ export function InvoicesListPage() {
         <CreateInvoiceModal
           onClose={() => setManualModalOpen(false)}
         />
+      )}
+
+      {/* MODALE FACTURATION EN MASSE */}
+      {bulkModalOpen && (
+        <BulkInvoiceModal onClose={() => setBulkModalOpen(false)} />
       )}
 
 

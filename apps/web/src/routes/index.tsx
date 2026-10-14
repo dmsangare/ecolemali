@@ -41,6 +41,7 @@ import {
   FeeStructuresListPage,
   ExpensesListPage,
   RemindersListPage,
+  ImportSituationPage,
 } from "@/pages/finance";
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
@@ -297,6 +298,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute requiredPermission="invoice:view">
                 <InvoiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/import-situation"
+            element={
+              <ProtectedRoute requiredPermission="invoice:create">
+                <ImportSituationPage />
               </ProtectedRoute>
             }
           />

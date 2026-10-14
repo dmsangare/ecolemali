@@ -1,9 +1,14 @@
 ﻿import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query,
-  HttpCode, HttpStatus, UseGuards,
+  Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
+  HttpCode, HttpStatus, UseGuards, UseInterceptors, UploadedFile,
+  BadRequestException,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
+import { Response } from "express";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { InvoicesService } from "./invoices.service";
+import { ImportSituationService } from "./import-situation.service";
 import { InvoiceCreateSchema, InvoiceCancelSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
@@ -15,7 +20,10 @@ import { PaginationDto } from "../common/dto/pagination.dto";
 @Controller("invoices")
 @UseGuards(SchoolScopeGuard)
 export class InvoicesController {
-  constructor(private readonly service: InvoicesService) {}
+  constructor(
+    private readonly service: InvoicesService,
+    private readonly importSituation: ImportSituationService,
+  ) {}
 
   @Get()
   @RequirePermissions("invoice:view")
@@ -44,6 +52,79 @@ export class InvoicesController {
     @Query("academicYearId") academicYearId?: string,
   ) {
     return this.service.getDashboard(user.schoolId!, academicYearId);
+  }
+
+
+  // ============================================================
+  // IMPORT SITUATION (Phase C)
+  // ============================================================
+
+  @Get("import-situation/template")
+  @RequirePermissions("invoice:create")
+  @ApiOperation({ summary: "Telecharger le template Excel pre-rempli" })
+  async importSituationTemplate(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query("academicYearId") academicYearId: string,
+    @Res() res: Response,
+  ) {
+    if (!academicYearId) {
+      throw new BadRequestException("academicYearId requis");
+    }
+    const schoolId = user.schoolId!;
+    const buffer = await this.importSituation.getTemplate(schoolId, academicYearId);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="situation-import.xlsx"',
+    );
+    res.send(buffer);
+  }
+
+  @Post("import-situation/preview")
+  @RequirePermissions("invoice:create")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  @ApiOperation({ summary: "Analyser un fichier Excel de situation (sans ecriture)" })
+  async importSituationPreview(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
+    @Query("academicYearId") academicYearId: string,
+  ) {
+    if (!file) throw new BadRequestException("Fichier Excel requis (champ 'file')");
+    if (!academicYearId) throw new BadRequestException("academicYearId requis");
+    return this.importSituation.preview(file.buffer, user.schoolId!, academicYearId);
+  }
+
+  @Post("import-situation/confirm")
+  @RequirePermissions("invoice:create")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  @ApiOperation({ summary: "Confirmer l'import (transaction tout-ou-rien)" })
+  async importSituationConfirm(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
+    @Query("academicYearId") academicYearId: string,
+  ) {
+    if (!file) throw new BadRequestException("Fichier Excel requis (champ 'file')");
+    if (!academicYearId) throw new BadRequestException("academicYearId requis");
+    return this.importSituation.confirm(
+      file.buffer,
+      user.schoolId!,
+      academicYearId,
+      user.id,
+    );
   }
 
   @Get(":id")

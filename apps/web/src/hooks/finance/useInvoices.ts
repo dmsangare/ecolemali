@@ -58,3 +58,32 @@ export function useCancelInvoice() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 }
+
+export function usePreviewAutoInvoiceBulk() {
+  return useMutation({
+    mutationFn: (input: {
+      academicYearId: string;
+      levelId?: string;
+      classId?: string;
+    }) => invoicesApi.previewAutoInvoiceBulk(input),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+}
+
+export function useAutoInvoiceBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      academicYearId: string;
+      levelId?: string;
+      classId?: string;
+    }) => invoicesApi.autoInvoiceBulk(input),
+    onSuccess: (res) => {
+      toast.success(
+        `${res.created} facture(s) creee(s), ${res.skipped} ignoree(s)`,
+      );
+      qc.invalidateQueries({ queryKey: [KEY] });
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+}

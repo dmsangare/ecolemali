@@ -42,4 +42,28 @@ export const invoicesApi = {
     const { data } = await api.post(`/invoices/${id}/cancel`, { reason });
     return data.data || data;
   },
+
+  async previewAutoInvoiceBulk(input: {
+    academicYearId: string;
+    levelId?: string;
+    classId?: string;
+  }): Promise<{ total: number; alreadyInvoiced: number; toCreate: number }> {
+    const { data } = await api.post("/invoices/auto/bulk/preview", input);
+    return data.data || data;
+  },
+
+  async autoInvoiceBulk(input: {
+    academicYearId: string;
+    levelId?: string;
+    classId?: string;
+  }): Promise<{
+    total: number;
+    created: number;
+    skipped: number;
+    failed: number;
+    errors: { studentId: string; message: string }[];
+  }> {
+    const { data } = await api.post("/invoices/auto/bulk", input);
+    return data.data || data;
+  },
 };

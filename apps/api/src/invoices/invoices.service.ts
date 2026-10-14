@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from "@nes
 import { PrismaService } from "../prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { InvoiceCreateDto, InvoiceCancelDto } from "./dto";
+import { InstallmentsService } from "./installments.service";
+import { InstallmentMode } from "@prisma/client";
 
 @Injectable()
 export class InvoicesService {
@@ -10,6 +12,7 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly installments: InstallmentsService,
   ) {}
 
   async findAll(schoolId: string | null, page = 1, limit = 20, filters: {
@@ -105,7 +108,30 @@ export class InvoicesService {
       },
     });
 
-    return invoice;
+    // Generer l'echeancier selon le mode demande (CASH par defaut).
+    // On ne bloque pas la creation si l'echeancier echoue : la facture existe deja.
+    try {
+      await this.installments.generateForInvoice({
+        invoiceId: invoice.id,
+        mode: (dto as any).installmentMode || "CASH",
+        customCount: (dto as any).installmentCount,
+        feeTypeLabel: "Facture",
+        dayOfMonth: (dto as any).dayOfMonth || 15,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Echeancier non genere pour la facture ${invoice.number} : ${err?.message}`,
+      );
+    }
+
+    return this.prisma.invoice.findUnique({
+      where: { id: invoice.id },
+      include: {
+        items: { include: { feeType: true } },
+        installments: { orderBy: { orderIndex: "asc" } },
+        student: { select: { id: true, firstName: true, lastName: true, matricule: true } },
+      },
+    });
   }
 
   /**
@@ -150,7 +176,7 @@ export class InvoicesService {
     }
 
     // Creer la facture
-    return this.create({
+    const invoice = await this.create({
       schoolId,
       studentId,
       academicYearId,
@@ -160,6 +186,51 @@ export class InvoicesService {
         quantity: 1,
         unitAmount: Number(s.amount),
       })),
+    });
+
+    // Generer l'echeancier multi-frais selon la configuration
+    // de chaque FeeStructure (champ installments).
+    try {
+      const blocks = structures.map((s) => {
+        const n = s.installments || 1;
+        let mode: InstallmentMode = "CASH";
+        let customCount: number | undefined;
+
+        if (n === 1) mode = "CASH";
+        else if (n === 3) mode = "TRIMESTER";
+        else if (n === 9) mode = "MONTHLY";
+        else {
+          mode = "CUSTOM";
+          customCount = n;
+        }
+
+        return {
+          feeTypeLabel: s.feeType.name,
+          amount: Number(s.amount),
+          mode,
+          customCount,
+          dueDate: s.dueDate ? new Date(s.dueDate) : null,
+        };
+      });
+
+      await this.installments.generateForInvoiceMultiFee({
+        invoiceId: invoice!.id,
+        blocks,
+        dayOfMonth: 15,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Echeancier multi-frais non genere pour ${invoice?.number} : ${err?.message}`,
+      );
+    }
+
+    return this.prisma.invoice.findUnique({
+      where: { id: invoice!.id },
+      include: {
+        items: { include: { feeType: true } },
+        installments: { orderBy: { orderIndex: "asc" } },
+        student: { select: { id: true, firstName: true, lastName: true, matricule: true } },
+      },
     });
   }
 

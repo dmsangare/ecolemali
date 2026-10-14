@@ -321,6 +321,100 @@ export class InstallmentsService {
   // CALCULS DE STATUT / SOLDE
   // ----------------------------------------------------------
 
+  /**
+   * Genere les echeances d'une facture a partir de plusieurs blocs
+   * (un par FeeStructure). Chaque bloc a son propre mode et son propre nombre.
+   *
+   * Exemple :
+   *  - Inscription : 1 fois
+   *  - Scolarite   : 9 fois (mensuel)
+   *  - Tenue       : 1 fois
+   *  => 1 + 9 + 1 = 11 echeances
+   */
+  async generateForInvoiceMultiFee(params: {
+    invoiceId: string;
+    blocks: Array<{
+      feeTypeLabel: string;
+      amount: number;
+      mode: InstallmentMode;
+      customCount?: number;
+      dueDate?: Date | null;
+    }>;
+    dayOfMonth?: number;
+  }) {
+    const { invoiceId, blocks, dayOfMonth = 15 } = params;
+
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        installments: {
+          include: { payments: { where: { cancelledAt: null } } },
+        },
+      },
+    });
+    if (!invoice) throw new NotFoundException("Facture introuvable");
+    if (invoice.status === "CANCELLED") {
+      throw new BadRequestException("Impossible de modifier une facture annulee");
+    }
+
+    const hasPayments = invoice.installments.some((i) => i.payments.length > 0);
+    if (hasPayments) {
+      throw new BadRequestException(
+        "Des paiements sont deja rattaches. Supprimez-les d'abord.",
+      );
+    }
+
+    // Supprimer les anciennes echeances
+    await this.prisma.invoiceInstallment.deleteMany({ where: { invoiceId } });
+
+    // Generer toutes les echeances dans l'ordre des blocs
+    const startDate = invoice.issuedAt || new Date();
+    let orderIndex = 0;
+    const allDrafts: InstallmentDraft[] = [];
+
+    for (const block of blocks) {
+      const gen = this.buildInstallments({
+        totalAmount: block.amount,
+        startDate: block.dueDate || startDate,
+        mode: block.mode,
+        customCount: block.customCount,
+        feeTypeLabel: block.feeTypeLabel,
+        dayOfMonth,
+      });
+
+      for (const g of gen) {
+        allDrafts.push({
+          label: g.label,
+          amount: g.amount,
+          dueDate: g.dueDate,
+          orderIndex: orderIndex++,
+        });
+      }
+    }
+
+    // Creer toutes les echeances
+    const created = await Promise.all(
+      allDrafts.map((d) =>
+        this.prisma.invoiceInstallment.create({
+          data: {
+            invoiceId,
+            label: d.label,
+            amount: new Prisma.Decimal(d.amount),
+            paidAmount: new Prisma.Decimal(0),
+            dueDate: d.dueDate,
+            status: "PENDING",
+            orderIndex: d.orderIndex,
+          },
+        }),
+      ),
+    );
+
+    this.logger.log(
+      `Facture ${invoice.number} : ${created.length} echeance(s) generee(s) en mode multi-frais`,
+    );
+    return created;
+  }
+
   async recalculateStatus(installmentId: string) {
     const inst = await this.prisma.invoiceInstallment.findUnique({
       where: { id: installmentId },

@@ -102,3 +102,4 @@ infra/nginx/certs/*.key
 coverage/
 .nyc_output/
 *.bak-*
+*.bak[0-9]*

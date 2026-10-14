@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from "@nes
 import { PrismaService } from "../prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { PaymentCancelDto } from "./dto";
+import { InstallmentsService } from "../invoices/installments.service";
 
 type PaymentCreateInput = {
   schoolId: string;
@@ -11,14 +12,19 @@ type PaymentCreateInput = {
   amount: number;
   method?: string;
   reference?: string;
+  /** Optionnel : echeance a regler. Si absent, applique FIFO. */
+  installmentId?: string | null;
 };
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private readonly prisma: PrismaService,
-    private readonly settings: SettingsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+    private readonly installments: InstallmentsService,
+  ) {}
 
   async findAll(schoolId: string | null, page = 1, limit = 20, filters: {
     studentId?: string; invoiceId?: string; method?: string; fromDate?: string; toDate?: string;
@@ -141,7 +147,34 @@ export class PaymentsService {
         orderBy: { openedAt: "desc" },
       });
 
-      // 3. Creer le paiement (rattache la session de caisse si ouverte)
+      // 3. Determiner l'echeance a regler
+      //    - Si dto.installmentId fourni : ciblage explicite
+      //    - Sinon : FIFO (premiere echeance non soldee, dans l'ordre)
+      let targetInstallmentId: string | null = dto.installmentId || null;
+      let targetInstallment: any = null;
+
+      if (targetInstallmentId) {
+        targetInstallment = await tx.invoiceInstallment.findUnique({
+          where: { id: targetInstallmentId },
+        });
+        if (!targetInstallment || targetInstallment.invoiceId !== dto.invoiceId) {
+          throw new BadRequestException("Echeance introuvable pour cette facture");
+        }
+      } else {
+        // FIFO : on prend la 1ere echeance non totalement payee
+        targetInstallment = await tx.invoiceInstallment.findFirst({
+          where: {
+            invoiceId: dto.invoiceId,
+            status: { not: "PAID" },
+          },
+          orderBy: { orderIndex: "asc" },
+        });
+        if (targetInstallment) {
+          targetInstallmentId = targetInstallment.id;
+        }
+      }
+
+      // 4. Creer le paiement (rattache la session de caisse si ouverte)
       const payment = await tx.payment.create({
         data: {
           schoolId: dto.schoolId,
@@ -152,10 +185,36 @@ export class PaymentsService {
           reference: dto.reference,
           cashierId: dto.cashierId,
           cashSessionId: openSession?.id ?? null,
+          installmentId: targetInstallmentId,
         },
       });
 
-      // 4. Mettre a jour la facture
+      // 5. Mettre a jour l'echeance cible
+      if (targetInstallment) {
+        const newInstPaid = Number(targetInstallment.paidAmount) + dto.amount;
+        const instAmount = Number(targetInstallment.amount);
+        let instStatus: any = "PENDING";
+        if (newInstPaid >= instAmount) instStatus = "PAID";
+        else if (newInstPaid > 0) {
+          instStatus = targetInstallment.dueDate && targetInstallment.dueDate < new Date()
+            ? "OVERDUE"
+            : "PARTIAL";
+        } else {
+          instStatus = targetInstallment.dueDate && targetInstallment.dueDate < new Date()
+            ? "OVERDUE"
+            : "PENDING";
+        }
+
+        await tx.invoiceInstallment.update({
+          where: { id: targetInstallment.id },
+          data: {
+            paidAmount: newInstPaid,
+            status: instStatus,
+          },
+        });
+      }
+
+      // 6. Mettre a jour la facture
       const newPaidAmount = Number(invoice.paidAmount) + dto.amount;
       const newBalance = Number(invoice.totalAmount) - newPaidAmount;
       let newStatus: any = "PARTIAL";
@@ -180,6 +239,121 @@ export class PaymentsService {
       });
 
       return { ...payment, receipt };
+    });
+  }
+
+  /**
+   * Regle plusieurs echeances d'un coup (FIFO).
+   * Cree un paiement distinct par echeance affectee.
+   *
+   * @returns le nombre d'echeances soldees et le montant total affecte
+   */
+  async settleAll(params: {
+    schoolId: string;
+    cashierId: string;
+    invoiceId: string;
+    studentId: string;
+    amount: number;
+    method?: string;
+    reference?: string;
+  }) {
+    const { schoolId, cashierId, invoiceId, studentId, amount, method, reference } = params;
+
+    if (amount <= 0) throw new BadRequestException("Montant invalide");
+
+    return this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findUnique({ where: { id: invoiceId } });
+      if (!invoice) throw new NotFoundException("Facture introuvable");
+      if (invoice.status === "CANCELLED") {
+        throw new BadRequestException("Impossible de payer une facture annulee");
+      }
+
+      const balance = Number(invoice.balance);
+      if (amount > balance + 0.001) {
+        throw new BadRequestException(
+          `Le montant depasse le solde restant (${balance} FCFA)`,
+        );
+      }
+
+      // Session de caisse ouverte
+      const openSession = await tx.cashSession.findFirst({
+        where: { schoolId, cashierId, status: "OPEN" },
+        orderBy: { openedAt: "desc" },
+      });
+
+      // Recuperer les echeances non soldees, dans l'ordre
+      const installments = await tx.invoiceInstallment.findMany({
+        where: { invoiceId, status: { not: "PAID" } },
+        orderBy: { orderIndex: "asc" },
+      });
+
+      let remaining = amount;
+      const paymentsCreated: any[] = [];
+
+      for (const inst of installments) {
+        if (remaining <= 0.001) break;
+
+        const due = Number(inst.amount) - Number(inst.paidAmount);
+        if (due <= 0.001) continue;
+
+        const applied = Math.min(due, remaining);
+
+        // Creer un paiement pour cette echeance
+        const p = await tx.payment.create({
+          data: {
+            schoolId,
+            invoiceId,
+            studentId,
+            amount: applied,
+            method: (method ?? "CASH") as any,
+            reference,
+            cashierId,
+            cashSessionId: openSession?.id ?? null,
+            installmentId: inst.id,
+            note: `Settle-all FIFO (echeance ${inst.label})`,
+          },
+        });
+
+        // Maj echeance
+        const newInstPaid = Number(inst.paidAmount) + applied;
+        const instAmount = Number(inst.amount);
+        let instStatus: any = "PENDING";
+        if (newInstPaid >= instAmount) instStatus = "PAID";
+        else if (newInstPaid > 0) {
+          instStatus = inst.dueDate && inst.dueDate < new Date()
+            ? "OVERDUE"
+            : "PARTIAL";
+        }
+
+        await tx.invoiceInstallment.update({
+          where: { id: inst.id },
+          data: { paidAmount: newInstPaid, status: instStatus },
+        });
+
+        paymentsCreated.push(p);
+        remaining -= applied;
+      }
+
+      // Recalcul global facture
+      const newPaidAmount = Number(invoice.paidAmount) + amount;
+      const newBalance = Number(invoice.totalAmount) - newPaidAmount;
+      let newStatus: any = "PARTIAL";
+      if (newBalance <= 0.001) newStatus = "PAID";
+
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          paidAmount: newPaidAmount,
+          balance: Math.max(newBalance, 0),
+          status: newStatus,
+        },
+      });
+
+      return {
+        paymentsCreated: paymentsCreated.length,
+        amountApplied: amount - remaining,
+        remainingUnapplied: remaining,
+      };
     });
   }
 
@@ -213,6 +387,39 @@ export class PaymentsService {
             status: newPaid <= 0 ? "UNPAID" : "PARTIAL",
           },
         });
+      }
+
+      // Si le paiement etait rattache a une echeance, decrementer son paidAmount
+      if (payment.installmentId) {
+        const inst = await tx.invoiceInstallment.findUnique({
+          where: { id: payment.installmentId },
+        });
+        if (inst) {
+          const newInstPaid = Math.max(
+            0,
+            Number(inst.paidAmount) - Number(payment.amount),
+          );
+          const instAmount = Number(inst.amount);
+          let instStatus: any = "PENDING";
+          if (newInstPaid >= instAmount) instStatus = "PAID";
+          else if (newInstPaid > 0) {
+            instStatus = inst.dueDate && inst.dueDate < new Date()
+              ? "OVERDUE"
+              : "PARTIAL";
+          } else {
+            instStatus = inst.dueDate && inst.dueDate < new Date()
+              ? "OVERDUE"
+              : "PENDING";
+          }
+
+          await tx.invoiceInstallment.update({
+            where: { id: inst.id },
+            data: {
+              paidAmount: newInstPaid,
+              status: instStatus,
+            },
+          });
+        }
       }
 
       return { success: true };

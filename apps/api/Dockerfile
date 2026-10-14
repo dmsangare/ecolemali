@@ -22,8 +22,9 @@ RUN mkdir -p /app/node_modules/@sis-mali && \
     ln -sfn /app/packages/shared /app/node_modules/@sis-mali/shared
 RUN rm -f packages/shared/tsconfig.tsbuildinfo \
     && npm run build --workspace=packages/shared
-RUN npm run build --workspace=apps/api
+# Generer Prisma AVANT le build API (sinon les types InstallmentMode/Status manquent)
 RUN cd apps/api && npx prisma generate --schema=../../prisma/schema.prisma || npx prisma generate
+RUN npm run build --workspace=apps/api
 
 FROM node:20-alpine AS runner
 WORKDIR /app

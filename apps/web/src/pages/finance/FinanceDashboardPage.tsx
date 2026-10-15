@@ -187,7 +187,7 @@ export function FinanceDashboardPage() {
               label="Voir les factures"
             />
             <QuickLink
-              to="/finance/encaissement?tab=point"
+              to="/finance/point-de-caisse"
               icon={Coins}
               label="Point de caisse"
             />

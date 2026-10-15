@@ -76,6 +76,7 @@ const ACTION_LABELS: Record<string, string> = {
   print: "Imprimer",
   lock: "Verrouiller",
   close: "Cloturer",
+  cancel: "Annuler",
   archive: "Archiver",
   restore: "Restaurer",
 };

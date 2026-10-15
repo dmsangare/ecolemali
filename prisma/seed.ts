@@ -63,6 +63,7 @@ const ACTIONS = [
   'print',
   'lock',
   'close',
+  'cancel',
   'archive',
   'restore',
 ] as const;
@@ -84,7 +85,7 @@ const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[]; extras
   ACCOUNTANT: {
     modules: ['fee', 'invoice', 'payment', 'cash', 'report'],
     actions: ['view', 'create', 'update', 'validate', 'export', 'print', 'close'],
-    extras: ['student:view', 'student:export', 'class:view', 'level:view', 'academic_year:view'],
+    extras: ['student:view', 'student:export', 'class:view', 'level:view', 'academic_year:view', 'payment:cancel', 'invoice:cancel'],
   },
   SUPERVISOR: {
     modules: ['student', 'attendance'],

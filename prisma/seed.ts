@@ -67,7 +67,7 @@ const ACTIONS = [
   'restore',
 ] as const;
 
-const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[] } | 'all'> = {
+const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[]; extras?: string[] } | 'all'> = {
   SUPER_ADMIN: 'all',
   DIRECTOR: {
     modules: MODULES.filter((m) => m !== 'backup'),
@@ -84,6 +84,7 @@ const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[] } | 'al
   ACCOUNTANT: {
     modules: ['fee', 'invoice', 'payment', 'cash', 'report'],
     actions: ['view', 'create', 'update', 'validate', 'export', 'print', 'close'],
+    extras: ['student:view', 'student:export', 'class:view', 'level:view', 'academic_year:view'],
   },
   SUPERVISOR: {
     modules: ['student', 'attendance'],
@@ -164,6 +165,23 @@ async function main() {
     for (const module of targetModules) {
       for (const action of targetActions) {
         const permCode = `${module}:${action}`;
+        if (!permissions[permCode]) continue;
+        await prisma.rolePermission.upsert({
+          where: {
+            roleId_permissionId: {
+              roleId,
+              permissionId: permissions[permCode].id,
+            },
+          },
+          update: {},
+          create: { roleId, permissionId: permissions[permCode].id },
+        });
+      }
+    }
+
+    // Extras : permissions ciblees hors croisement modules x actions
+    if (config !== 'all' && config.extras) {
+      for (const permCode of config.extras) {
         if (!permissions[permCode]) continue;
         await prisma.rolePermission.upsert({
           where: {

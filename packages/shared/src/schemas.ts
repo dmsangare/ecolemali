@@ -600,8 +600,22 @@ export const PaymentCancelSchema = z.object({
   reason: z.string().min(5, 'Motif requis'),
 });
 
+/**
+ * Encaissement famille : un seul montant reparti en FIFO
+ * sur toutes les factures non soldees des enfants du tuteur.
+ */
+export const PaymentFamilySchema = z.object({
+  guardianId: uuid,
+  amount: z.coerce.number().positive('Le montant doit être supérieur à 0'),
+  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+  reference: z.string().max(80).optional(),
+  idempotencyKey: z.string().max(80).optional(),
+  note: z.string().max(500).optional(),
+});
+
 export type PaymentCreateInput = z.infer<typeof PaymentCreateSchema>;
 export type PaymentCancelInput = z.infer<typeof PaymentCancelSchema>;
+export type PaymentFamilyInput = z.infer<typeof PaymentFamilySchema>;
 
 // ============================================================
 // CASH SESSION

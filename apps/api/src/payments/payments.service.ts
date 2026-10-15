@@ -14,6 +14,19 @@ type PaymentCreateInput = {
   reference?: string;
   /** Optionnel : echeance a regler. Si absent, applique FIFO. */
   installmentId?: string | null;
+  /** Optionnel : cle d'idempotence (anti-doublon) */
+  idempotencyKey?: string | null;
+};
+
+type PaymentFamilyInput = {
+  schoolId: string;
+  cashierId: string;
+  guardianId: string;
+  amount: number;
+  method?: string;
+  reference?: string;
+  idempotencyKey?: string | null;
+  note?: string | null;
 };
 
 @Injectable()
@@ -353,6 +366,257 @@ export class PaymentsService {
         paymentsCreated: paymentsCreated.length,
         amountApplied: amount - remaining,
         remainingUnapplied: remaining,
+      };
+    });
+  }
+
+  /**
+   * Encaissement famille : un seul montant reparti en FIFO
+   * sur toutes les factures non soldees des enfants du tuteur.
+   *
+   * - FIFO global : les echeances les plus anciennes (dueDate) d'abord
+   * - Un paiement par echeance couverte
+   * - Idempotence : si idempotencyKey fourni et deja utilise, renvoie le recap sans rien creer
+   */
+  async settleFamily(params: PaymentFamilyInput) {
+    const {
+      schoolId,
+      cashierId,
+      guardianId,
+      amount,
+      method,
+      reference,
+      idempotencyKey,
+      note,
+    } = params;
+
+    if (amount <= 0) throw new BadRequestException("Montant invalide");
+
+    return this.prisma.$transaction(async (tx) => {
+      // --- 0. Idempotence : si la cle existe deja, renvoyer le recap ---
+      if (idempotencyKey) {
+        const existing = await tx.payment.findFirst({
+          where: { schoolId, idempotencyKey },
+          include: { receipt: true },
+        });
+        if (existing) {
+          this.logger.warn(
+            `settleFamily idempotent hit: key=${idempotencyKey} -> payment=${existing.id}`,
+          );
+          return {
+            idempotent: true,
+            paymentsCreated: 0,
+            amountApplied: 0,
+            remainingUnapplied: amount,
+            firstPaymentId: existing.id,
+            perStudent: [],
+          };
+        }
+      }
+
+      // --- 1. Verifier le tuteur ---
+      const guardian = await tx.guardian.findUnique({
+        where: { id: guardianId },
+      });
+      if (!guardian) throw new NotFoundException("Tuteur introuvable");
+      if (guardian.schoolId !== schoolId) {
+        throw new BadRequestException("Tuteur hors etablissement");
+      }
+
+      // --- 2. Trouver tous les enfants du tuteur ---
+      const links = await tx.studentGuardian.findMany({
+        where: { guardianId },
+        select: { studentId: true },
+      });
+      const studentIds = links.map((l) => l.studentId);
+      if (studentIds.length === 0) {
+        throw new BadRequestException("Ce tuteur n'a aucun eleve rattache");
+      }
+
+      // --- 3. Trouver les factures non soldees de ces eleves ---
+      const invoices = await tx.invoice.findMany({
+        where: {
+          schoolId,
+          studentId: { in: studentIds },
+          status: { notIn: ["PAID", "CANCELLED"] },
+          balance: { gt: 0 },
+        },
+        include: {
+          installments: {
+            where: { status: { not: "PAID" } },
+            orderBy: [{ dueDate: "asc" }, { orderIndex: "asc" }],
+          },
+        },
+      });
+
+      if (invoices.length === 0) {
+        throw new BadRequestException("Aucune facture non soldee pour ce tuteur");
+      }
+
+      // --- 4. Calculer le total du a la famille ---
+      const totalDue = invoices.reduce(
+        (sum, inv) => sum + Number(inv.balance),
+        0,
+      );
+      if (amount > totalDue + 0.001) {
+        throw new BadRequestException(
+          `Le montant depasse le total du par la famille (${totalDue} FCFA)`,
+        );
+      }
+
+      // --- 5. Aplatir toutes les echeances et trier FIFO global ---
+      type InstRef = {
+        inst: any;
+        invoice: any;
+      };
+      const allInstallments: InstRef[] = [];
+      for (const inv of invoices) {
+        if (inv.installments.length === 0) {
+          // Cas : facture sans echeance (ne devrait pas arriver, mais robustesse)
+          allInstallments.push({
+            inst: {
+              id: null,
+              label: "Solde facture",
+              amount: Number(inv.balance),
+              paidAmount: 0,
+              dueDate: inv.dueDate,
+              orderIndex: 0,
+            },
+            invoice: inv,
+          });
+        } else {
+          for (const inst of inv.installments) {
+            allInstallments.push({ inst, invoice: inv });
+          }
+        }
+      }
+
+      allInstallments.sort((a, b) => {
+        const da = a.inst.dueDate ? new Date(a.inst.dueDate).getTime() : Infinity;
+        const db = b.inst.dueDate ? new Date(b.inst.dueDate).getTime() : Infinity;
+        if (da !== db) return da - db;
+        return (a.inst.orderIndex ?? 0) - (b.inst.orderIndex ?? 0);
+      });
+
+      // --- 6. Session de caisse ouverte ---
+      const openSession = await tx.cashSession.findFirst({
+        where: { schoolId, cashierId, status: "OPEN" },
+        orderBy: { openedAt: "desc" },
+      });
+
+      // --- 7. Appliquer le montant en FIFO ---
+      let remaining = amount;
+      const paymentsCreated: any[] = [];
+      const perStudentMap = new Map<string, { amount: number; payments: number }>();
+      let firstPaymentId: string | null = null;
+
+      for (const { inst, invoice } of allInstallments) {
+        if (remaining <= 0.001) break;
+
+        const due =
+          inst.id !== null
+            ? Number(inst.amount) - Number(inst.paidAmount)
+            : Number(invoice.balance);
+        if (due <= 0.001) continue;
+
+        const applied = Math.min(due, remaining);
+
+        // Cle d'idempotence : uniquement sur le PREMIER paiement cree
+        const keyForThis: string | null =
+          firstPaymentId === null ? idempotencyKey ?? null : null;
+
+        const payment: any = await tx.payment.create({
+          data: {
+            schoolId,
+            invoiceId: invoice.id,
+            studentId: invoice.studentId,
+            amount: applied,
+            method: (method ?? "CASH") as any,
+            reference,
+            cashierId,
+            cashSessionId: openSession?.id ?? null,
+            installmentId: inst.id ?? null,
+            idempotencyKey: keyForThis,
+            note:
+              note ??
+              `Encaissement famille - ${inst.label ?? "solde"}`,
+          },
+        });
+
+        if (firstPaymentId === null) firstPaymentId = payment.id;
+        paymentsCreated.push(payment);
+
+        // Maj echeance
+        if (inst.id !== null) {
+          const newInstPaid = Number(inst.paidAmount) + applied;
+          const instAmount = Number(inst.amount);
+          let instStatus: any = "PENDING";
+          if (newInstPaid >= instAmount) instStatus = "PAID";
+          else if (newInstPaid > 0) {
+            instStatus =
+              inst.dueDate && new Date(inst.dueDate) < new Date()
+                ? "OVERDUE"
+                : "PARTIAL";
+          }
+          await tx.invoiceInstallment.update({
+            where: { id: inst.id },
+            data: { paidAmount: newInstPaid, status: instStatus },
+          });
+        }
+
+        // Maj facture
+        const newPaid = Number(invoice.paidAmount) + applied;
+        const newBal = Number(invoice.totalAmount) - newPaid;
+        const newStatus: any = newBal <= 0.001 ? "PAID" : "PARTIAL";
+        await tx.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            paidAmount: newPaid,
+            balance: Math.max(newBal, 0),
+            status: newStatus,
+          },
+        });
+
+        // Recalculer les valeurs locales pour eviter les doubles comptages
+        invoice.paidAmount = newPaid;
+        invoice.balance = Math.max(newBal, 0);
+        if (inst.id !== null) {
+          inst.paidAmount = Number(inst.paidAmount) + applied;
+        }
+
+        // Recap par eleve
+        const prev = perStudentMap.get(invoice.studentId) ?? {
+          amount: 0,
+          payments: 0,
+        };
+        perStudentMap.set(invoice.studentId, {
+          amount: prev.amount + applied,
+          payments: prev.payments + 1,
+        });
+
+        remaining -= applied;
+      }
+
+      // --- 8. Generer un recu par paiement cree ---
+      for (const p of paymentsCreated) {
+        const receiptNumber = await this.generateReceiptNumber(tx, schoolId);
+        await tx.receipt.create({
+          data: { paymentId: p.id, number: receiptNumber },
+        });
+      }
+
+      // --- 9. Construire le recap par eleve ---
+      const perStudent = Array.from(perStudentMap.entries()).map(
+        ([studentId, info]) => ({ studentId, ...info }),
+      );
+
+      return {
+        idempotent: false,
+        paymentsCreated: paymentsCreated.length,
+        amountApplied: amount - remaining,
+        remainingUnapplied: remaining,
+        firstPaymentId,
+        perStudent,
       };
     });
   }

@@ -113,6 +113,36 @@ export class PaymentsController {
     return this.service.settleAll(dto);
   }
 
+  @Post("family")
+  @RequirePermissions("payment:create")
+  @ApiOperation({
+    summary: "Encaisser pour une famille (FIFO sur tous les enfants du tuteur)",
+  })
+  async family(
+    @Body() rawDto: any,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const dto: any = {
+      schoolId: user.schoolId,
+      cashierId: user.id,
+      guardianId: rawDto?.guardianId,
+      amount: Number(rawDto?.amount) || 0,
+      method: rawDto?.method || "CASH",
+      reference: rawDto?.reference,
+      idempotencyKey: rawDto?.idempotencyKey,
+      note: rawDto?.note,
+    };
+
+    if (!dto.guardianId || dto.amount <= 0) {
+      const { BadRequestException } = await import("@nestjs/common");
+      throw new BadRequestException(
+        "Champs requis : guardianId, amount > 0",
+      );
+    }
+
+    return this.service.settleFamily(dto);
+  }
+
   @Post(":id/cancel")
   @RequirePermissions("payment:cancel")
   @ApiOperation({ summary: "Annuler un paiement" })

@@ -1270,6 +1270,7 @@ model Payment {
   note          String?       @db.Text
   cancelledAt   DateTime?     @map("cancelled_at") @db.Timestamptz
   cancelReason  String?       @map("cancel_reason")
+  idempotencyKey String?      @map("idempotency_key") @db.VarChar(80)
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -1280,6 +1281,7 @@ model Payment {
   installment InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
   receipt     Receipt?
 
+  @@unique([schoolId, idempotencyKey], name: "unique_idempotency_per_school")
   @@index([invoiceId])
   @@index([studentId])
   @@index([paidAt])

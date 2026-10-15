@@ -339,6 +339,47 @@ export interface ExpenseListResponse {
   totalAmount: number;
 }
 
+// ============================================================
+// ECHEANCIER (invoice_installments)
+// ============================================================
+
+export type InstallmentStatus = "PENDING" | "PARTIAL" | "PAID" | "OVERDUE";
+
+export interface InvoiceInstallmentPayment {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  paidAt: string;
+}
+
+export interface InvoiceInstallment {
+  id: string;
+  invoiceId: string;
+  label: string;
+  amount: number;
+  paidAmount: number;
+  dueDate?: string | null;
+  status: InstallmentStatus;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+  payments?: InvoiceInstallmentPayment[];
+}
+
+export const INSTALLMENT_STATUS_LABELS: Record<
+  InstallmentStatus,
+  { label: string; color: string; bg: string }
+> = {
+  PENDING: { label: "En attente", color: "text-gray-600", bg: "bg-gray-100" },
+  PARTIAL: { label: "Partiel", color: "text-yellow-700", bg: "bg-yellow-100" },
+  PAID: { label: "Soldé", color: "text-green-700", bg: "bg-green-100" },
+  OVERDUE: { label: "En retard", color: "text-red-700", bg: "bg-red-100" },
+};
+
+// ============================================================
+// DEPENSES (expenses)
+// ============================================================
+
 export const EXPENSE_CATEGORY_EMOJIS: Record<string, string> = {
   SALAIRES: "💼",
   FOURNITURES: "📚",

@@ -1,5 +1,5 @@
 ﻿import { api } from "@/lib/axios";
-import type { Invoice, FinanceDashboard } from "@/types/finance";
+import type { Invoice, FinanceDashboard, InvoiceInstallment } from "@/types/finance";
 
 export interface InvoiceListFilters {
   page?: number;
@@ -64,6 +64,11 @@ export const invoicesApi = {
     errors: { studentId: string; message: string }[];
   }> {
     const { data } = await api.post("/invoices/auto/bulk", input);
+    return data.data || data;
+  },
+
+  async getInstallments(invoiceId: string): Promise<InvoiceInstallment[]> {
+    const { data } = await api.get(`/invoices/${invoiceId}/installments`);
     return data.data || data;
   },
 };

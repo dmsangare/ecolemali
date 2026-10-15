@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CreatePaymentModal } from "./components/CreatePaymentModal";
+import { InstallmentsList } from "./components/InstallmentsList";
 import {
   ArrowLeft,
   Loader2,
@@ -13,20 +14,24 @@ import {
 } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useInvoice, useCancelInvoice } from "@/hooks/finance";
+import { useInvoice, useInvoiceInstallments, useCancelInvoice } from "@/hooks/finance";
 import {
   INVOICE_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
   formatFCFA,
+  type InvoiceInstallment,
 } from "@/types/finance";
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: invoice, isLoading } = useInvoice(id);
+  const { data: installments } = useInvoiceInstallments(id);
   const cancelMutation = useCancelInvoice();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] =
+    useState<InvoiceInstallment | null>(null);
 
   if (isLoading) {
     return (
@@ -145,6 +150,17 @@ export function InvoiceDetailPage() {
           color="text-purple-600"
         />
       </div>
+
+      {/* ECHEANCIER */}
+      {installments && installments.length > 0 && (
+        <InstallmentsList
+          installments={installments}
+          onPayInstallment={(inst) => {
+            setSelectedInstallment(inst);
+            setShowPaymentModal(true);
+          }}
+        />
+      )}
 
       {/* DETAIL ITEMS */}
       <Card>
@@ -311,8 +327,12 @@ export function InvoiceDetailPage() {
       {/* MODALE PAIEMENT */}
       {showPaymentModal && id && (
         <CreatePaymentModal
-          onClose={() => setShowPaymentModal(false)}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedInstallment(null);
+          }}
           preselectedInvoiceId={id}
+          preselectedInstallmentId={selectedInstallment?.id}
         />
       )}
 

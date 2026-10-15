@@ -26,6 +26,7 @@ import { StudentPicker } from "./StudentPicker";
 interface Props {
   onClose: () => void;
   preselectedInvoiceId?: string;
+  preselectedInstallmentId?: string;
 }
 
 interface StudentLite {
@@ -43,12 +44,19 @@ const METHODS: PaymentMethod[] = [
   "OTHER",
 ];
 
-export function CreatePaymentModal({ onClose, preselectedInvoiceId }: Props) {
+export function CreatePaymentModal({
+  onClose,
+  preselectedInvoiceId,
+  preselectedInstallmentId,
+}: Props) {
   const [student, setStudent] = useState<StudentLite | null>(null);
   const [invoiceId, setInvoiceId] = useState(preselectedInvoiceId || "");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("CASH");
   const [reference, setReference] = useState("");
+  const [installmentId, setInstallmentId] = useState<string | undefined>(
+    preselectedInstallmentId,
+  );
 
   const createMutation = useCreatePayment();
   const qc = useQueryClient();
@@ -79,6 +87,14 @@ export function CreatePaymentModal({ onClose, preselectedInvoiceId }: Props) {
 
   // Reset du montant quand on change de facture
   useEffect(() => {
+    // Si la facture change, on efface l'echeance pre-selectionnee
+    if (preselectedInvoiceId && invoiceId !== preselectedInvoiceId) {
+      setInstallmentId(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceId]);
+
+  useEffect(() => {
     if (selectedInvoice) {
       setAmount(String(Math.round(balance)));
     } else {
@@ -102,6 +118,7 @@ export function CreatePaymentModal({ onClose, preselectedInvoiceId }: Props) {
       method,
     };
     if (reference.trim()) input.reference = reference.trim();
+    if (installmentId) input.installmentId = installmentId;
 
     try {
       await createMutation.mutateAsync(input);

@@ -21,6 +21,14 @@ export function useInvoice(id: string | undefined) {
   });
 }
 
+export function useInvoiceInstallments(invoiceId: string | undefined) {
+  return useQuery({
+    queryKey: [KEY, "installments", invoiceId],
+    queryFn: () => invoicesApi.getInstallments(invoiceId!),
+    enabled: !!invoiceId,
+  });
+}
+
 export function useFinanceDashboard(academicYearId?: string) {
   return useQuery({
     queryKey: [KEY, "dashboard", academicYearId],

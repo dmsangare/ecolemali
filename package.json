@@ -55,5 +55,8 @@
       "extract-zip": "^2.0.1"
     },
     "basic-ftp": "^6.2.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

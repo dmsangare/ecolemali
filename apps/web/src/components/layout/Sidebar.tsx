@@ -1,5 +1,6 @@
 ﻿import { NavLink } from "react-router-dom";
 import {
+  PieChart,
   LayoutDashboard,
   Trophy,
   Users,
@@ -75,6 +76,7 @@ const SECTIONS: NavSection[] = [
   {
     title: "Finances",
     items: [
+      { label: "Tableau de bord", to: "/finance/dashboard", icon: PieChart, permission: "invoice:view" },
       { label: "Types de frais", to: "/fee-types", icon: Tag, permission: "fee:view" },
       { label: "Grille tarifaire", to: "/fee-structures", icon: Coins, permission: "fee:view" },
       { label: "Factures", to: "/invoices", icon: Receipt, permission: "invoice:view" },

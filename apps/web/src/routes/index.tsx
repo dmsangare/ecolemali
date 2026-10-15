@@ -42,6 +42,7 @@ import {
   ExpensesListPage,
   RemindersListPage,
   ImportSituationPage,
+  FinanceDashboardPage,
 } from "@/pages/finance";
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
@@ -269,6 +270,15 @@ export function AppRoutes() {
           />
 
           {/* Finances */}
+          <Route
+            path="/finance/dashboard"
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <FinanceDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/fee-types"
             element={

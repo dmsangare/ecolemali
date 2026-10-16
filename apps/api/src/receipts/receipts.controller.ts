@@ -75,6 +75,14 @@ export class ReceiptsController {
       studentMatricule: student.matricule || "—",
       studentClass: null, // TODO : recuperer la classe via enrollment
       invoiceNumber: invoice.number || "—",
+      invoiceItems: Array.isArray((invoice as any).items)
+        ? (invoice as any).items.map((it: any) => ({
+            label: it.feeType?.name || it.description || "Frais",
+            quantity: Number(it.quantity) || 1,
+            unitAmount: Number(it.unitAmount) || 0,
+            totalAmount: Number(it.totalAmount) || 0,
+          }))
+        : [],
       invoiceTotal: Number(invoice.totalAmount || 0),
       invoicePaid: Number(invoice.paidAmount || 0),
       invoiceBalance: Number(invoice.balance || 0),

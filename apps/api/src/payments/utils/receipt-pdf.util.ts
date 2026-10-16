@@ -13,6 +13,12 @@ interface ReceiptData {
   studentMatricule: string;
   studentClass?: string | null;
   invoiceNumber: string;
+  invoiceItems?: Array<{
+    label: string;
+    quantity: number;
+    unitAmount: number;
+    totalAmount: number;
+  }> | null;
   invoiceTotal: number;
   invoicePaid: number;
   invoiceBalance: number;
@@ -149,6 +155,21 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1F293
   <tr><td class="label">Methode</td><td class="value">${methodLabel}</td></tr>
   ${data.paymentReference ? `<tr><td class="label">Reference</td><td class="value">${data.paymentReference}</td></tr>` : ""}
   ${data.cashierName ? `<tr><td class="label">Encaisse par</td><td class="value">${data.cashierName}</td></tr>` : ""}
+  ${data.invoiceItems && data.invoiceItems.length > 0 ? `
+    <tr><td colspan="2" style="padding:12px 0 6px 0;">
+      <div style="font-weight:600;font-size:11px;color:#374151;border-bottom:1px solid #E5E7EB;padding-bottom:4px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">
+        Détail des frais
+      </div>
+    </td></tr>
+    ${data.invoiceItems.map((it) => `
+      <tr>
+        <td class="label" style="padding-left:12px;">
+          ${it.label}${it.quantity > 1 ? ` <span style="color:#6B7280;font-size:9px;">(x${it.quantity})</span>` : ""}
+        </td>
+        <td class="value" style="text-align:right;">${fmtMoney(it.totalAmount)}</td>
+      </tr>
+    `).join("")}
+  ` : ""}
   <tr><td class="label">Total facture</td><td class="value">${fmtMoney(data.invoiceTotal)}</td></tr>
 </tbody></table>
 <div class="balance-box">

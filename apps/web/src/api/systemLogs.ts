@@ -28,19 +28,43 @@ export interface SystemLogsResponse {
 export const systemLogsApi = {
   async list(filters: SystemLogsFilters = {}): Promise<SystemLogsResponse> {
     const { data } = await api.get("/system-logs", { params: filters });
-    if (Array.isArray(data.data) && data.meta) {
+
+    // Structure possible 1 : { data: { items: [], total: N, page, limit } }
+    if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) {
       return {
-        items: data.data,
-        total: data.meta.total ?? data.data.length,
-        page: data.meta.page ?? 1,
-        limit: data.meta.limit ?? 50,
+        items: Array.isArray(data.data.items) ? data.data.items : [],
+        total: data.data.total ?? 0,
+        page: data.data.page ?? 1,
+        limit: data.data.limit ?? 50,
       };
     }
+
+    // Structure possible 2 : { data: [...], meta: {...} } (comme audit)
+    if (Array.isArray(data.data)) {
+      return {
+        items: data.data,
+        total: data.meta?.total ?? data.data.length,
+        page: data.meta?.page ?? 1,
+        limit: data.meta?.limit ?? 50,
+      };
+    }
+
+    // Structure possible 3 : { items: [], total: N } direct
+    if (Array.isArray(data.items)) {
+      return {
+        items: data.items,
+        total: data.total ?? 0,
+        page: data.page ?? 1,
+        limit: data.limit ?? 50,
+      };
+    }
+
+    // Fallback ultime
     return {
-      items: data.items || data.data || [],
-      total: data.total || 0,
-      page: data.page || 1,
-      limit: data.limit || 50,
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 50,
     };
   },
 };

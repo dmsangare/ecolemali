@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, Button, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useCreatePayment } from "@/hooks/finance";
+import { api } from "@/lib/axios";
 import {
   formatFCFA,
   PAYMENT_METHOD_LABELS,
@@ -17,12 +18,49 @@ import {
   type PaymentMethod,
 } from "@/types/finance";
 
+interface PaymentCompleteInfo {
+  paymentId: string;
+  receiptId?: string;
+  receiptNumber?: string;
+  amount: number;
+}
+
 interface Props {
   invoice: Invoice;
   studentId: string;
   installment: InvoiceInstallment | null;
   onPaymentSuccess: () => void;
+  onPaymentComplete?: (info: PaymentCompleteInfo) => void;
   onClearInstallment?: () => void;
+}
+
+async function openReceiptInNewTab(
+  receiptId: string,
+  receiptNumber?: string,
+): Promise<void> {
+  // Ouvrir l'onglet TOUT DE SUITE (avant l'appel API) pour eviter le popup blocker
+  const newTab = window.open("", "_blank");
+  try {
+    const response = await api.get(`/receipts/${receiptId}/pdf`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([response.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    if (newTab) {
+      newTab.location.href = url;
+    } else {
+      // Fallback si popup bloque : telechargement direct
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `recu-${receiptNumber || receiptId.slice(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  } catch {
+    if (newTab) newTab.close();
+    throw new Error("Erreur ouverture recu");
+  }
 }
 
 function generateIdempotencyKey(prefix = "pay"): string {
@@ -35,6 +73,7 @@ export function PaymentPanel({
   studentId,
   installment,
   onPaymentSuccess,
+  onPaymentComplete,
   onClearInstallment,
 }: Props) {
   const [amount, setAmount] = useState("");
@@ -93,7 +132,7 @@ export function PaymentPanel({
     if (!isValid) return;
 
     try {
-      await createMutation.mutateAsync({
+      const result: any = await createMutation.mutateAsync({
         invoiceId: invoice.id,
         studentId,
         amount: amountNum,
@@ -108,6 +147,28 @@ export function PaymentPanel({
       setAmount("");
       setReference("");
       onPaymentSuccess();
+
+      // Recuperer les infos du recu
+      const receiptId = result?.receipt?.id;
+      const receiptNumber = result?.receipt?.number;
+      const paymentId = result?.id;
+
+      // 1. Ouvrir le PDF dans un nouvel onglet
+      if (receiptId) {
+        openReceiptInNewTab(receiptId, receiptNumber).catch(() => {
+          // Silencieux : le paiement est enregistre, c'est le principal
+        });
+      }
+
+      // 2. Signaler au parent pour ouvrir le modal WhatsApp
+      if (onPaymentComplete && paymentId) {
+        onPaymentComplete({
+          paymentId,
+          receiptId,
+          receiptNumber,
+          amount: amountNum,
+        });
+      }
 
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch {

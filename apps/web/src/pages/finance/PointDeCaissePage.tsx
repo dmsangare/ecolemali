@@ -8,6 +8,9 @@ import { StudentPicker } from "./components/StudentPicker";
 import { InvoicePanel } from "./components/InvoicePanel";
 import { PaymentPanel } from "./components/PaymentPanel";
 import { TodaySummary } from "./components/TodaySummary";
+import { SendWhatsAppModal } from "./components/SendWhatsAppModal";
+import { useStudentDetail } from "@/hooks/students/useStudentDetail";
+import { useSchool } from "@/hooks/school/useSchool";
 import type { Invoice, InvoiceInstallment } from "@/types/finance";
 
 interface StudentLite {
@@ -29,6 +32,18 @@ export function PointDeCaissePage() {
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
   const [selectedInstallment, setSelectedInstallment] =
     useState<InvoiceInstallment | null>(null);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [lastPayment, setLastPayment] = useState<{
+    paymentId: string;
+    receiptId?: string;
+    receiptNumber?: string;
+    amount: number;
+    date: string;
+  } | null>(null);
+
+  // Charger le detail complet (avec guardians) quand un eleve est selectionne
+  const { data: studentDetail } = useStudentDetail(student?.id);
+  const { data: school } = useSchool();
 
   // 1. Chargement
   if (isLoading) {
@@ -58,6 +73,7 @@ export function PointDeCaissePage() {
               setStudent(s);
               setActiveInvoice(null);
               setSelectedInstallment(null);
+              setLastPayment(null);
             }}
           />
         </div>
@@ -100,6 +116,16 @@ export function PointDeCaissePage() {
                   onPaymentSuccess={() => {
                     setSelectedInstallment(null);
                   }}
+                  onPaymentComplete={(info) => {
+                    setLastPayment({
+                      paymentId: info.paymentId,
+                      receiptId: info.receiptId,
+                      receiptNumber: info.receiptNumber,
+                      amount: info.amount,
+                      date: new Date().toISOString(),
+                    });
+                    setWhatsappOpen(true);
+                  }}
                   onClearInstallment={() => setSelectedInstallment(null)}
                 />
               ) : (
@@ -119,6 +145,31 @@ export function PointDeCaissePage() {
 
       {/* Recap du jour */}
       <TodaySummary />
+
+      {/* Modal WhatsApp post-paiement */}
+      {whatsappOpen &&
+        lastPayment &&
+        studentDetail &&
+        activeInvoice && (
+          <SendWhatsAppModal
+            student={{
+              firstName: studentDetail.firstName,
+              lastName: studentDetail.lastName,
+              matricule: studentDetail.matricule,
+              guardians: (studentDetail.guardians || []) as any,
+            }}
+            school={school || null}
+            paymentAmount={lastPayment.amount}
+            paymentDate={lastPayment.date}
+            receiptNumber={lastPayment.receiptNumber}
+            invoiceNumber={activeInvoice.number}
+            invoiceItems={(activeInvoice.items || []) as any}
+            onClose={() => {
+              setWhatsappOpen(false);
+              setLastPayment(null);
+            }}
+          />
+        )}
     </div>
   );
 }

@@ -32,7 +32,7 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  app.setGlobalPrefix('api/v1', { exclude: ['health', 'uploads'] });
+  app.setGlobalPrefix('api/v1', { exclude: ['uploads'] });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -59,10 +59,6 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document, { swaggerOptions: { persistAuthorization: true } });
     logger.log(`Swagger: http://localhost:${port}/api/docs`);
   }
-
-  app.getHttpAdapter().get('/health', (_req: any, res: any) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
 
   await app.listen(port, '0.0.0.0');
   logger.log(`SIS-MALI API running on http://0.0.0.0:${port}`);

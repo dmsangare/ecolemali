@@ -109,3 +109,8 @@ coverage/
 *.bak
 *.bak-*
 *.bak.*
+backups/logs/
+backups/weekly/
+backups/monthly/
+backups/db_*.sql.gz
+backups/documents_*.tar.gz

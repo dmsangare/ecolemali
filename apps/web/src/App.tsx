@@ -1,10 +1,13 @@
 import { AppRoutes } from "./routes";
 import { AppearanceProvider } from "@/components/providers/AppearanceProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export function App() {
   return (
-    <AppearanceProvider>
-      <AppRoutes />
-    </AppearanceProvider>
+    <ErrorBoundary>
+      <AppearanceProvider>
+        <AppRoutes />
+      </AppearanceProvider>
+    </ErrorBoundary>
   );
 }

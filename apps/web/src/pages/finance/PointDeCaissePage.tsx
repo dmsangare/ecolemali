@@ -9,7 +9,10 @@ import { InvoicePanel } from "./components/InvoicePanel";
 import { PaymentPanel } from "./components/PaymentPanel";
 import { TodaySummary } from "./components/TodaySummary";
 import { SendWhatsAppModal } from "./components/SendWhatsAppModal";
+import { FamilySettleModal } from "./components/FamilySettleModal";
 import { useStudentDetail } from "@/hooks/students/useStudentDetail";
+import { Button } from "@/components/ui";
+import { Users } from "lucide-react";
 import { useSchool } from "@/hooks/school/useSchool";
 import type { Invoice, InvoiceInstallment } from "@/types/finance";
 
@@ -33,6 +36,7 @@ export function PointDeCaissePage() {
   const [selectedInstallment, setSelectedInstallment] =
     useState<InvoiceInstallment | null>(null);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [familyOpen, setFamilyOpen] = useState(false);
   const [lastPayment, setLastPayment] = useState<{
     paymentId: string;
     receiptId?: string;
@@ -108,6 +112,19 @@ export function PointDeCaissePage() {
 
             {/* Panneau encaissement */}
             <div>
+              {/* Bouton Encaisser Famille (si eleve + guardian principal) */}
+              {student && studentDetail && (studentDetail.guardians?.length || 0) > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFamilyOpen(true)}
+                  className="w-full mb-3 border-primary/40 hover:bg-primary/5"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Encaisser pour la famille
+                </Button>
+              )}
+
               {activeInvoice ? (
                 <PaymentPanel
                   invoice={activeInvoice}
@@ -145,6 +162,31 @@ export function PointDeCaissePage() {
 
       {/* Recap du jour */}
       <TodaySummary />
+
+      {/* Modal Encaissement Famille */}
+      {familyOpen &&
+        student &&
+        studentDetail &&
+        (studentDetail.guardians?.length || 0) > 0 && (
+          <FamilySettleModal
+            studentId={student.id}
+            studentName={`${studentDetail.lastName} ${studentDetail.firstName}`}
+            guardianId={studentDetail.guardians![0].guardian.id}
+            guardianName={`${studentDetail.guardians![0].guardian.lastName.toUpperCase()} ${studentDetail.guardians![0].guardian.firstName}`}
+            onClose={() => setFamilyOpen(false)}
+            onSuccess={(info) => {
+              setFamilyOpen(false);
+              setLastPayment({
+                paymentId: info.paymentId,
+                receiptId: info.receiptId,
+                receiptNumber: info.receiptNumber,
+                amount: info.amount,
+                date: info.date,
+              });
+              setWhatsappOpen(true);
+            }}
+          />
+        )}
 
       {/* Modal WhatsApp post-paiement */}
       {whatsappOpen &&

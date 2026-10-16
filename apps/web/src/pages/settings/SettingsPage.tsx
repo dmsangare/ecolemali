@@ -11,6 +11,7 @@
   Trophy,
   Hash,
   FileText,
+  Bug,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SchoolTab } from "./SchoolTab";
@@ -24,6 +25,7 @@ import { ThresholdsTab } from "./ThresholdsTab";
 import { HonorRollTab } from "./HonorRollTab";
 import { NumberingTab } from "./NumberingTab";
 import { AuditLogsTab } from "./AuditLogsTab";
+import { SystemLogsTab } from "./SystemLogsTab";
 
 export function SettingsPage() {
   return (
@@ -81,6 +83,10 @@ export function SettingsPage() {
             <FileText className="h-4 w-4" />
             Journal d'audit
           </TabsTrigger>
+          <TabsTrigger value="systemLogs" className="flex items-center gap-2">
+            <Bug className="h-4 w-4" />
+            Journal systeme
+          </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
             Systeme
@@ -125,6 +131,10 @@ export function SettingsPage() {
 
         <TabsContent value="audit">
           <AuditLogsTab />
+        </TabsContent>
+
+        <TabsContent value="systemLogs">
+          <SystemLogsTab />
         </TabsContent>
 
         <TabsContent value="system">

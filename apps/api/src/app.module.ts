@@ -54,10 +54,12 @@ import { ExportModule } from "./export/export.module";
 import { JwtAuthGuard, PermissionsGuard, MustChangePasswordGuard } from "./common/guards";
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
 import { HealthModule } from "./health/health.module";
+import { SystemLogsModule } from "./system-logs/system-logs.module";
 
 @Module({
   imports: [
     HealthModule,
+    SystemLogsModule,
     RolesModule,
     ConfigModule.forRoot({
       isGlobal: true,

@@ -10,6 +10,7 @@ import {
   rulesForCycle,
   scaledThreshold,
 } from "./grading-rules";
+import { fileToBase64 } from "../common/utils/file-to-base64.util";
 
 @Injectable()
 export class ReportCardsService {
@@ -477,6 +478,7 @@ export class ReportCardsService {
       schoolPhone: school?.phone,
       schoolMotto: school?.motto,
       schoolLogoUrl: school?.logoUrl,
+      schoolStampBase64: await fileToBase64(school?.stampUrl),
 
       studentName: `${report.student.lastName} ${report.student.firstName}`,
       studentMatricule: report.student.matricule,

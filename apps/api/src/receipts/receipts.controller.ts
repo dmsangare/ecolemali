@@ -16,6 +16,7 @@ import { SchoolScopeGuard } from "../common/guards";
 import { PaginationDto } from "../common/dto/pagination.dto";
 import { generateReceiptPDF } from "../payments/utils/receipt-pdf.util";
 import { loadLogoAsBase64 } from "../common/utils/load-logo.util";
+import { fileToBase64 } from "../common/utils/file-to-base64.util";
 
 @ApiTags("Receipts")
 @ApiBearerAuth("access-token")
@@ -59,10 +60,12 @@ export class ReceiptsController {
 
     // Charger le logo en base64
     const schoolLogoBase64 = await loadLogoAsBase64(school.logoUrl);
+    const schoolStampBase64 = await fileToBase64(school.stampUrl);
 
     const pdfBuffer = await generateReceiptPDF({
       schoolName: school.name || "Ecole",
       schoolLogoBase64,
+      schoolStampBase64,
       schoolAddress: school.address,
       schoolPhone: school.phone,
       schoolMotto: school.motto,

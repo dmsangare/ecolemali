@@ -3,6 +3,7 @@ import * as puppeteer from "puppeteer-core";
 interface ReceiptData {
   schoolName: string;
   schoolLogoBase64?: string | null;
+  schoolStampBase64?: string | null;
   schoolAddress?: string | null;
   schoolPhone?: string | null;
   schoolMotto?: string | null;
@@ -156,7 +157,12 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1F293
 </div>
 <div class="signature-block">
   <div class="signature-item"><div class="signature-line"></div><div class="signature-label">Le Caissier</div></div>
-  <div class="signature-item"><div class="signature-line"></div><div class="signature-label">Cachet etablissement</div></div>
+  <div class="signature-item">
+    ${data.schoolStampBase64
+      ? `<img src="${data.schoolStampBase64}" alt="Cachet" style="height:70px;object-fit:contain;margin-bottom:5px;" />`
+      : `<div class="signature-line"></div>`}
+    <div class="signature-label">Cachet etablissement</div>
+  </div>
 </div>
 <div class="footer">Ce recu ne vaut que pour le montant indique. Toute reproduction non autorisee est interdite.<br/>Document genere par SIS-MALI</div>
 </body></html>`;

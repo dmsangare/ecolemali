@@ -15,6 +15,7 @@ interface ReportCardPDFData {
   schoolPhone?: string | null;
   schoolMotto?: string | null;
   schoolLogoUrl?: string | null;
+  schoolStampBase64?: string | null;
 
   // Élève
   studentName: string;
@@ -401,6 +402,9 @@ function buildHTML(data: ReportCardPDFData): string {
   </div>
   <div class="signature-item">
     <div class="signature-line"></div>
+    ${data.schoolStampBase64
+      ? `<img src="${data.schoolStampBase64}" alt="Cachet" style="height:70px;object-fit:contain;margin-bottom:5px;" />`
+      : ""}
     <div class="signature-label">Le Directeur</div>
   </div>
 </div>

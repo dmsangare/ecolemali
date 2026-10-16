@@ -12,6 +12,7 @@ interface Movement {
 interface CashSessionReportData {
   schoolName: string;
   schoolLogoBase64?: string | null;
+  schoolStampBase64?: string | null;
   schoolSigle?: string | null;
   schoolAddress?: string | null;
   schoolPhone?: string | null;
@@ -224,7 +225,12 @@ table.movements td.empty { text-align: center; color: #9CA3AF; padding: 20px; fo
 </div>
 <div class="signature-block">
   <div class="signature-item"><div class="signature-line"></div><div class="signature-label">Le Caissier</div></div>
-  <div class="signature-item"><div class="signature-line"></div><div class="signature-label">Le Directeur / Comptable</div></div>
+  <div class="signature-item">
+    ${data.schoolStampBase64
+      ? `<img src="${data.schoolStampBase64}" alt="Cachet" style="height:70px;object-fit:contain;margin-bottom:5px;" />`
+      : `<div class="signature-line"></div>`}
+    <div class="signature-label">Le Directeur / Comptable</div>
+  </div>
 </div>
 <div class="footer">Rapport de caisse genere automatiquement par SIS-MALI — Conservez ce document pour vos archives comptables.</div>
 </body></html>`;

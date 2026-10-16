@@ -161,6 +161,8 @@ export class CashSessionsService {
             phone: true,
             email: true,
             logoUrl: true,
+            stampUrl: true,
+            signatureUrl: true,
             motto: true,
           },
         },

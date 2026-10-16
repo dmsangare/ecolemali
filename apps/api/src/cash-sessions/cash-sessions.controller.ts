@@ -17,6 +17,7 @@ import { OpenCashSessionDto } from './dto/open-cash-session.dto';
 import { CloseCashSessionDto } from './dto/close-cash-session.dto';
 import { generateCashSessionPDF } from './utils/cash-session-pdf.util';
 import { loadLogoAsBase64 } from '../common/utils/load-logo.util';
+import { fileToBase64 } from '../common/utils/file-to-base64.util';
 
 @Controller('cash-sessions')
 @UseGuards(JwtAuthGuard)
@@ -94,10 +95,12 @@ export class CashSessionsController {
 
     // Charger le logo de l'ecole en base64 (multi-tenant)
     const schoolLogoBase64 = await loadLogoAsBase64(session.school?.logoUrl);
+    const schoolStampBase64 = await fileToBase64(session.school?.stampUrl);
 
     const pdfBuffer = await generateCashSessionPDF({
       schoolName: session.school?.name || 'Ecole',
       schoolLogoBase64,
+      schoolStampBase64,
       schoolSigle: session.school?.sigle,
       schoolAddress: session.school?.address,
       schoolPhone: session.school?.phone,

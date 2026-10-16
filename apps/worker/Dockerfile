@@ -16,6 +16,7 @@ COPY packages/shared ./packages/shared
 COPY apps/worker ./apps/worker
 COPY prisma ./prisma
 RUN npm install --no-audit --no-fund --prefer-offline
+RUN npx prisma generate
 RUN rm -f packages/shared/tsconfig.tsbuildinfo \
     && npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/worker

@@ -153,6 +153,7 @@ export function PointDeCaissePage() {
         activeInvoice && (
           <SendWhatsAppModal
             student={{
+              id: studentDetail.id,
               firstName: studentDetail.firstName,
               lastName: studentDetail.lastName,
               matricule: studentDetail.matricule,
@@ -163,6 +164,7 @@ export function PointDeCaissePage() {
             paymentDate={lastPayment.date}
             receiptNumber={lastPayment.receiptNumber}
             invoiceNumber={activeInvoice.number}
+            invoiceId={activeInvoice.id}
             invoiceItems={(activeInvoice.items || []) as any}
             onClose={() => {
               setWhatsappOpen(false);

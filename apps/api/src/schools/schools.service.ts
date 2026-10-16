@@ -79,7 +79,14 @@ export class SchoolsService {
         // Creer les categories de depenses par defaut
     await this.createDefaultExpenseCategories(school.id);
 
-return school;
+    // Creer le Setting par defaut (devise, locale, fuseau, seuils)
+    // Defense en profondeur : findBySchool auto-cree aussi, mais on le fait ici
+    // pour garantir que TOUTE ecole a un Setting des sa creation.
+    await this.prisma.setting.create({
+      data: { schoolId: school.id },
+    });
+
+    return school;
   }
 
   async update(id: string, dto: SchoolUpdateDto, user: CurrentUserPayload) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Loader2, Receipt, AlertCircle, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useInvoices, useInvoiceInstallments } from "@/hooks/finance";
+import { useInvoices, useInvoice, useInvoiceInstallments } from "@/hooks/finance";
 import { InstallmentsList } from "./InstallmentsList";
 import { formatFCFA, type Invoice, type InvoiceInstallment } from "@/types/finance";
 
@@ -44,7 +44,7 @@ export function InvoicePanel({
   }, [invoicesPage]);
 
   // 3. Choisir la facture active : premiere non soldee, sinon la plus recente
-  const activeInvoice = useMemo(() => {
+  const activeInvoiceLite = useMemo(() => {
     if (invoices.length === 0) return null;
     const unpaid = invoices.find(
       (inv) => inv.status !== "PAID" && inv.status !== "CANCELLED",
@@ -52,7 +52,11 @@ export function InvoicePanel({
     return unpaid || invoices[0];
   }, [invoices]);
 
-  // 4. Signaler la facture active au parent
+  // 3.b. Charger la facture DETAILLEE (avec items) pour transmission au parent
+  const { data: activeInvoiceDetail } = useInvoice(activeInvoiceLite?.id);
+  const activeInvoice = activeInvoiceDetail || activeInvoiceLite;
+
+  // 4. Signaler la facture active (avec items) au parent
   useEffect(() => {
     onSelectInvoice(activeInvoice);
   }, [activeInvoice, onSelectInvoice]);

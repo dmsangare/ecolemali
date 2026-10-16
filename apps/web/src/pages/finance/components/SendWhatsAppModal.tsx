@@ -3,6 +3,7 @@ import { X, MessageCircle, Send } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { formatFCFA } from "@/types/finance";
+import { messagesApi } from "@/api/messages";
 
 interface Guardian {
   id: string;
@@ -29,6 +30,7 @@ interface InvoiceItem {
 
 interface Props {
   student: {
+    id?: string;
     firstName: string;
     lastName: string;
     matricule: string;
@@ -39,6 +41,7 @@ interface Props {
   paymentDate: string;
   receiptNumber?: string | null;
   invoiceNumber?: string | null;
+  invoiceId?: string | null;
   invoiceItems?: InvoiceItem[];
   onClose: () => void;
 }
@@ -80,6 +83,7 @@ export function SendWhatsAppModal({
   paymentDate,
   receiptNumber,
   invoiceNumber,
+  invoiceId,
   invoiceItems,
   onClose,
 }: Props) {
@@ -125,10 +129,60 @@ export function SendWhatsAppModal({
     setMessage(buildMessage(g));
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!isValid) return;
+
+    // 1. Logger l'envoi AVANT d'ouvrir WhatsApp (tracabilite obligatoire).
+    //    Si le log echoue, on log en console mais on n'empeche PAS l'envoi.
+    try {
+      await messagesApi.create({
+        studentId: student.id,
+        guardianId: selectedGuardian?.id,
+        invoiceId: invoiceId || undefined,
+        type: receiptNumber ? "RECEIPT" : "OTHER",
+        channel: "WHATSAPP",
+        recipientPhone: phone,
+        recipientName: selectedGuardian
+          ? `${selectedGuardian.lastName.toUpperCase()} ${selectedGuardian.firstName}`
+          : undefined,
+        message,
+        status: "SENT",
+      });
+    } catch (err) {
+      // Non bloquant : le message part quand meme
+      console.warn("[WhatsApp] Echec du log message_logs :", err);
+    }
+
+    // 2. Ouvrir WhatsApp
+    //    Certains navigateurs bloquent les window.open() successifs.
+    //    On ouvre un nouvel onglet SYNCHRONE (juste apres l'await), et si
+    //    le navigateur le bloque, on propose un fallback manuel.
     const url = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+
+    const popup = window.open(url, "_blank", "noopener,noreferrer");
+
+    if (!popup || popup.closed || typeof popup.closed === "undefined") {
+      // Popup bloque : on ouvre un lien cliquable dans une alerte discrete
+      // et on ne ferme PAS le modal pour laisser l'utilisateur cliquer.
+      const link = document.createElement("a");
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener,noreferrer";
+      link.textContent = "Cliquez ici pour ouvrir WhatsApp";
+      link.style.cssText =
+        "display:block;padding:12px;margin-top:12px;background:#25D366;color:#fff;border-radius:6px;text-align:center;font-weight:600;text-decoration:none;";
+      // Injecter dans le conteneur du modal (le div avec classe bg-background)
+      const container = document.querySelector(".bg-background.rounded-lg.shadow-xl");
+      if (container) {
+        const existing = container.querySelector("[data-wa-fallback]");
+        if (existing) existing.remove();
+        link.setAttribute("data-wa-fallback", "1");
+        container.appendChild(link);
+      }
+      // NE PAS appeler onClose() : on laisse l'utilisateur cliquer
+      return;
+    }
+
     onClose();
   };
 

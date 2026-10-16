@@ -15,8 +15,20 @@ export class SettingsService {
 
   async findBySchool(schoolId: string) {
     const setting = await this.prisma.setting.findUnique({ where: { schoolId } });
-    if (!setting) throw new NotFoundException("Parametres introuvables pour cet etablissement");
-    return setting;
+    if (setting) return setting;
+
+    // Auto-creation : une ecole sans Setting ne doit JAMAIS produire un 404.
+    // On cree un Setting vierge avec les valeurs par defaut du schema.
+    try {
+      return await this.prisma.setting.create({
+        data: { schoolId },
+      });
+    } catch (err: any) {
+      // Race condition : un autre appel a pu creer le Setting entre-temps
+      const fallback = await this.prisma.setting.findUnique({ where: { schoolId } });
+      if (fallback) return fallback;
+      throw err;
+    }
   }
 
   /**

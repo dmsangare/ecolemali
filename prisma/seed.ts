@@ -83,9 +83,25 @@ const ROLE_MATRIX: Record<string, { modules: string[]; actions: string[]; extras
     actions: ['view', 'create', 'update'],
   },
   ACCOUNTANT: {
+    // Perimetre strict caissier / comptable :
+    //   - fee / invoice / payment / cash / report : modules natifs
+    //   - student:view + student:export : recherche eleve et export situation
+    //   - class:view + level:view + academic_year:view : filtres de recherche
+    //   - payment:cancel + invoice:cancel : annulation (traçabilite obligatoire)
+    // AUCUN acces a : attendance, grade, assessment, enrollment, teacher,
+    //                 parent, notification, timetable, document, exam, role,
+    //                 user, school (sauf via settings:view pour l'UI)
     modules: ['fee', 'invoice', 'payment', 'cash', 'report'],
     actions: ['view', 'create', 'update', 'validate', 'export', 'print', 'close'],
-    extras: ['student:view', 'student:export', 'class:view', 'level:view', 'academic_year:view', 'payment:cancel', 'invoice:cancel'],
+    extras: [
+      'student:view',
+      'student:export',
+      'class:view',
+      'level:view',
+      'academic_year:view',
+      'payment:cancel',
+      'invoice:cancel',
+    ],
   },
   SUPERVISOR: {
     modules: ['student', 'attendance'],
@@ -156,9 +172,26 @@ async function main() {
     }
   }
 
-  // --- 3. Role-Permission matrix ---
-  console.log('🔗 Linking roles to permissions...');
-  for (const [roleCode, config] of Object.entries(ROLE_MATRIX)) {
+  // --- 3. Role-Permission matrix (IDEMPOTENT + PROTEGE) ---
+  // Regle metier : le seed ne touche a la matrice RBAC QUE si l'ecole n'a
+  // jamais ete initialisee (aucun rolePermission existant).
+  // Apres la 1ere passe, les personnalisations du client sont sacrees.
+  const existingRolePerms = await prisma.rolePermission.count();
+  const isFirstRbacSetup = existingRolePerms === 0;
+
+  if (!isFirstRbacSetup) {
+    console.log(
+      `⏭️  RBAC deja initialise (${existingRolePerms} role_permissions existants)`,
+    );
+    console.log('    Les permissions existantes sont preservees.');
+    console.log('    Pour forcer la re-application : vider la table role_permissions.');
+    console.log('');
+  } else {
+    console.log('🔗 Linking roles to permissions (premiere initialisation)…');
+  }
+
+  if (isFirstRbacSetup) {
+    for (const [roleCode, config] of Object.entries(ROLE_MATRIX)) {
     const roleId = roles[roleCode].id;
     const targetModules = config === 'all' ? MODULES : config.modules;
     const targetActions = config === 'all' ? ACTIONS : config.actions;
@@ -197,6 +230,7 @@ async function main() {
       }
     }
   }
+  } // fin if (isFirstRbacSetup)
 
   // --- 4. Super Admin (seul utilisateur cree) ---
   console.log('\n👤 Creating Super Admin...');

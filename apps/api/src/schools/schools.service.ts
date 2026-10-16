@@ -76,7 +76,10 @@ export class SchoolsService {
       });
     }
 
-    return school;
+        // Creer les categories de depenses par defaut
+    await this.createDefaultExpenseCategories(school.id);
+
+return school;
   }
 
   async update(id: string, dto: SchoolUpdateDto, user: CurrentUserPayload) {
@@ -366,5 +369,38 @@ export class SchoolsService {
   async remove(id: string, user: CurrentUserPayload) {
     await this.findOne(id, user);
     return this.prisma.school.delete({ where: { id } });
+  }
+
+  /**
+   * Cree les categories de depenses par defaut pour une nouvelle ecole.
+   */
+  private async createDefaultExpenseCategories(schoolId: string): Promise<void> {
+    const DEFAULT_EXPENSE_CATEGORIES = [
+      { code: 'SALAIRES',    name: 'Salaires',              emoji: '\u{1F4BC}' },
+      { code: 'FOURNITURES', name: 'Fournitures scolaires', emoji: '\u{1F4DA}' },
+      { code: 'ENTRETIEN',   name: 'Entretien et nettoyage',emoji: '\u{1F9F9}' },
+      { code: 'ELECTRICITE', name: 'Electricite',           emoji: '\u{1F4A1}' },
+      { code: 'LOYER',       name: 'Loyer',                 emoji: '\u{1F3E0}' },
+      { code: 'REPARATIONS', name: 'Reparations',           emoji: '\u{1F527}' },
+      { code: 'TRANSPORT',   name: 'Transport',             emoji: '\u{1F697}' },
+      { code: 'GARDIEN',     name: 'Gardiennage',           emoji: '\u{1F6E1}\uFE0F' },
+      { code: 'SANTE',       name: 'Sante',                 emoji: '\u{1F48A}' },
+      { code: 'AUTRE',       name: 'Autre',                 emoji: '\u{1F4E6}' },
+    ];
+
+    for (const cat of DEFAULT_EXPENSE_CATEGORIES) {
+      await this.prisma.expenseCategory.upsert({
+        where: { schoolId_code: { schoolId, code: cat.code } },
+        update: {},
+        create: {
+          schoolId,
+          code: cat.code,
+          name: cat.name,
+          emoji: cat.emoji,
+          isActive: true,
+          isSystem: true,
+        },
+      });
+    }
   }
 }

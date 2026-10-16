@@ -238,7 +238,46 @@ async function main() {
     },
   });
 
-  // --- 5. Resume ---
+  // --- 5. Categories de depenses par defaut (pour chaque ecole) ---
+  console.log('\n📂 Creating default expense categories...');
+
+  const DEFAULT_EXPENSE_CATEGORIES = [
+    { code: 'SALAIRES',    name: 'Salaires',              emoji: '\u{1F4BC}' },
+    { code: 'FOURNITURES', name: 'Fournitures scolaires', emoji: '\u{1F4DA}' },
+    { code: 'ENTRETIEN',   name: 'Entretien et nettoyage',emoji: '\u{1F9F9}' },
+    { code: 'ELECTRICITE', name: 'Electricite',           emoji: '\u{1F4A1}' },
+    { code: 'LOYER',       name: 'Loyer',                 emoji: '\u{1F3E0}' },
+    { code: 'REPARATIONS', name: 'Reparations',           emoji: '\u{1F527}' },
+    { code: 'TRANSPORT',   name: 'Transport',             emoji: '\u{1F697}' },
+    { code: 'GARDIEN',     name: 'Gardiennage',           emoji: '\u{1F6E1}\uFE0F' },
+    { code: 'SANTE',       name: 'Sante',                 emoji: '\u{1F48A}' },
+    { code: 'AUTRE',       name: 'Autre',                 emoji: '\u{1F4E6}' },
+  ];
+
+  const schools = await prisma.school.findMany({ select: { id: true, name: true } });
+  let totalCategories = 0;
+
+  for (const school of schools) {
+    for (const cat of DEFAULT_EXPENSE_CATEGORIES) {
+      await prisma.expenseCategory.upsert({
+        where: { schoolId_code: { schoolId: school.id, code: cat.code } },
+        update: { name: cat.name, emoji: cat.emoji },
+        create: {
+          schoolId: school.id,
+          code: cat.code,
+          name: cat.name,
+          emoji: cat.emoji,
+          isActive: true,
+          isSystem: true,
+        },
+      });
+      totalCategories++;
+    }
+    console.log(`   ✓ ${school.name} : ${DEFAULT_EXPENSE_CATEGORIES.length} categories`);
+  }
+  console.log(`\n📂 ${totalCategories} categories au total pour ${schools.length} ecole(s).`);
+
+  // --- 6. Resume ---
   console.log('\n✅ Seed completed successfully!\n');
   console.log('============================================================');
   console.log('🔑 CREDENTIALS SUPER ADMIN (a changer a la 1ere connexion)');

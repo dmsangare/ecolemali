@@ -144,10 +144,20 @@ export class PaymentsService {
       }
 
       const currentBalance = Number(invoice.balance);
+      const allowOverpayment = (dto as any).allowOverpayment === true;
+      let appliedAmount = dto.amount;
+      let surplusAmount = 0;
+
       if (dto.amount > currentBalance + 0.001) {
-        throw new BadRequestException(
-          `Le montant depasse le solde restant (${currentBalance} FCFA)`,
-        );
+        if (!allowOverpayment) {
+          throw new BadRequestException(
+            `Le montant depasse le solde restant (${currentBalance} FCFA). ` +
+            `Cochez "Autoriser trop-percu" pour crediter le surplus.`,
+          );
+        }
+        // Paiement plus grand que le solde : surplus -> credit eleve
+        appliedAmount = currentBalance;
+        surplusAmount = dto.amount - currentBalance;
       }
 
       // 2. Chercher la session de caisse ouverte du caissier
@@ -193,7 +203,7 @@ export class PaymentsService {
           schoolId: dto.schoolId,
           invoiceId: dto.invoiceId,
           studentId: dto.studentId,
-          amount: dto.amount,
+          amount: appliedAmount,
           method: (dto.method ?? "CASH") as any,
           reference: dto.reference,
           cashierId: dto.cashierId,
@@ -204,7 +214,7 @@ export class PaymentsService {
 
       // 5. Mettre a jour l'echeance cible
       if (targetInstallment) {
-        const newInstPaid = Number(targetInstallment.paidAmount) + dto.amount;
+        const newInstPaid = Number(targetInstallment.paidAmount) + appliedAmount;
         const instAmount = Number(targetInstallment.amount);
         let instStatus: any = "PENDING";
         if (newInstPaid >= instAmount) instStatus = "PAID";
@@ -228,7 +238,7 @@ export class PaymentsService {
       }
 
       // 6. Mettre a jour la facture
-      const newPaidAmount = Number(invoice.paidAmount) + dto.amount;
+      const newPaidAmount = Number(invoice.paidAmount) + appliedAmount;
       const newBalance = Number(invoice.totalAmount) - newPaidAmount;
       let newStatus: any = "PARTIAL";
       if (newBalance <= 0.001) newStatus = "PAID";
@@ -251,7 +261,34 @@ export class PaymentsService {
         },
       });
 
-      return { ...payment, receipt };
+      // 6. Si surplus, crediter le compte eleve
+      if (surplusAmount > 0.001) {
+        await tx.studentAccount.upsert({
+          where: { studentId: dto.studentId },
+          update: {
+            creditBalance: { increment: surplusAmount },
+            lastCreditAt: new Date(),
+          },
+          create: {
+            studentId: dto.studentId,
+            schoolId: dto.schoolId,
+            creditBalance: surplusAmount,
+            debtBalance: 0,
+            lastCreditAt: new Date(),
+          },
+        });
+        this.logger.log(
+          `Trop-percu : +${surplusAmount} FCFA en credit pour eleve ${dto.studentId}`,
+        );
+      }
+
+      return {
+        ...payment,
+        receipt,
+        overpayment: surplusAmount > 0.001
+          ? { credited: surplusAmount }
+          : undefined,
+      };
     });
   }
 

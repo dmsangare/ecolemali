@@ -594,6 +594,9 @@ export const PaymentCreateSchema = z.object({
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
   reference: z.string().max(80).optional(),
   cashierId: uuid.optional(),
+
+  /** Autoriser un paiement > solde du (surplus va en credit eleve) */
+  allowOverpayment: z.boolean().optional().default(false),
 });
 
 export const PaymentCancelSchema = z.object({

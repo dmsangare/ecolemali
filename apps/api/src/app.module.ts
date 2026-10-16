@@ -55,11 +55,13 @@ import { JwtAuthGuard, PermissionsGuard, MustChangePasswordGuard } from "./commo
 import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
 import { HealthModule } from "./health/health.module";
 import { SystemLogsModule } from "./system-logs/system-logs.module";
+import { StudentAccountsModule } from "./student-accounts/student-accounts.module";
 
 @Module({
   imports: [
     HealthModule,
     SystemLogsModule,
+    StudentAccountsModule,
     RolesModule,
     ConfigModule.forRoot({
       isGlobal: true,

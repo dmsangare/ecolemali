@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/u
 import { StatusBadge, BadgeVariant } from "@/components/shared";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { StudentDetail } from "@/types/student";
+import { StudentAccountCard } from "../StudentAccountCard";
 
 interface FinanceTabProps {
   student: StudentDetail;
@@ -62,6 +63,8 @@ export function FinanceTab({ student }: FinanceTabProps) {
       : "UNPAID";
 
   return (
+    <div className="space-y-4">
+      <StudentAccountCard studentId={student.id} />
     <div className="space-y-6">
       {/* Bandeau statut global */}
       <Card
@@ -292,6 +295,7 @@ export function FinanceTab({ student }: FinanceTabProps) {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }

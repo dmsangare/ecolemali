@@ -6,6 +6,7 @@ import { CashSessionOpenForm } from "./components/CashSessionOpenForm";
 import { CashSessionHeader } from "./components/CashSessionHeader";
 import { StudentPicker } from "./components/StudentPicker";
 import { InvoicePanel } from "./components/InvoicePanel";
+import { PaymentPanel } from "./components/PaymentPanel";
 import type { Invoice, InvoiceInstallment } from "@/types/finance";
 
 interface StudentLite {
@@ -25,6 +26,8 @@ export function PointDeCaissePage() {
   const { data: session, isLoading } = useCurrentCashSession();
   const [student, setStudent] = useState<StudentLite | null>(null);
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
+  const [selectedInstallment, setSelectedInstallment] =
+    useState<InvoiceInstallment | null>(null);
 
   // 1. Chargement
   if (isLoading) {
@@ -53,6 +56,7 @@ export function PointDeCaissePage() {
             onChange={(s) => {
               setStudent(s);
               setActiveInvoice(null);
+              setSelectedInstallment(null);
             }}
           />
         </div>
@@ -80,30 +84,33 @@ export function PointDeCaissePage() {
                 student={student}
                 onSelectInvoice={setActiveInvoice}
                 onPayInstallment={(inst: InvoiceInstallment) => {
-                  // TODO 4.D : ouvrir le panneau d'encaissement
-                  console.log("Encaisser échéance", inst);
+                  setSelectedInstallment(inst);
                 }}
               />
             </div>
 
-            {/* Panneau encaissement (placeholder 4.D) */}
+            {/* Panneau encaissement */}
             <div>
-              <Card>
-                <CardContent className="py-16 text-center text-muted-foreground">
-                  <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">
-                    Panneau d'encaissement
-                  </p>
-                  <p className="text-xs mt-1">
-                    {activeInvoice
-                      ? `Facture ${activeInvoice.number} sélectionnée`
-                      : "Sélectionnez un élève"}
-                  </p>
-                  <p className="text-xs mt-1 text-muted-foreground/60">
-                    (à venir en 4.D)
-                  </p>
-                </CardContent>
-              </Card>
+              {activeInvoice ? (
+                <PaymentPanel
+                  invoice={activeInvoice}
+                  studentId={student.id}
+                  installment={selectedInstallment}
+                  onPaymentSuccess={() => {
+                    setSelectedInstallment(null);
+                  }}
+                  onClearInstallment={() => setSelectedInstallment(null)}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-16 text-center text-muted-foreground">
+                    <Wallet className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm font-medium">
+                      Sélectionnez une facture
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         )}

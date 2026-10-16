@@ -107,6 +107,8 @@ export interface CreatePaymentInput {
   amount: number;
   method: PaymentMethod;
   reference?: string;
+  /** Optionnel : rattache le paiement a une echeance precise (sinon FIFO) */
+  installmentId?: string;
 }
 
 // ============================================================

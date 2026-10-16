@@ -7,6 +7,7 @@ import {
   UseGuards,
   BadRequestException,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { VerificationService } from "./verification.service";
 import { SignDocumentSchema, RevokeDocumentSchema } from "./dto";
@@ -24,12 +25,14 @@ export class VerificationPublicController {
   constructor(private readonly service: VerificationService) {}
 
   @Get(":shortCode")
+  @Throttle({ verify: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: "Verifier un document par short code (public)" })
   async verifyByShortCode(@Param("shortCode") shortCode: string) {
     return this.service.findPublicByShortCode(shortCode);
   }
 
   @Get(":shortCode/:token")
+  @Throttle({ verify: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: "Verifier un document avec signature (public)" })
   async verifyWithToken(
     @Param("shortCode") shortCode: string,

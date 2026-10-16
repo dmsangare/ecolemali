@@ -289,6 +289,16 @@ export function AppRoutes() {
             }
           />
 
+          {/* Redirections temporaires (seront remplacees par les pages a onglets - Etape 6) */}
+          <Route
+            path="/finance/facturation"
+            element={<Navigate to="/invoices" replace />}
+          />
+          <Route
+            path="/finance/recouvrement"
+            element={<Navigate to="/reminders" replace />}
+          />
+
           <Route
             path="/fee-types"
             element={

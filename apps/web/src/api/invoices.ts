@@ -38,8 +38,8 @@ export const invoicesApi = {
     return data.data || data;
   },
 
-  async cancel(id: string, reason: string): Promise<any> {
-    const { data } = await api.post(`/invoices/${id}/cancel`, { reason });
+  async cancel(id: string, dto: { reason: string }): Promise<any> {
+    const { data } = await api.post(`/invoices/${id}/cancel`, dto);
     return data.data || data;
   },
 

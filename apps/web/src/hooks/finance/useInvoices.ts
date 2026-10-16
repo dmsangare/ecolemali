@@ -29,6 +29,15 @@ export function useInvoiceInstallments(invoiceId: string | undefined) {
   });
 }
 
+export function usePendingInstallments(
+  filters: { status?: string; fromDate?: string; toDate?: string } = {},
+) {
+  return useQuery({
+    queryKey: [KEY, "pending-installments", filters],
+    queryFn: () => invoicesApi.getPendingInstallments(filters),
+  });
+}
+
 export function useFinanceDashboard(academicYearId?: string) {
   return useQuery({
     queryKey: [KEY, "dashboard", academicYearId],

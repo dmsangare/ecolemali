@@ -1,6 +1,29 @@
 ﻿import { api } from "@/lib/axios";
 import type { Invoice, FinanceDashboard, InvoiceInstallment } from "@/types/finance";
 
+export interface PendingInstallment {
+  id: string;
+  invoiceId: string;
+  label: string;
+  amount: number;
+  paidAmount: number;
+  dueDate: string | null;
+  status: string;
+  orderIndex: number;
+  invoice: {
+    id: string;
+    number: string;
+    status: string;
+    balance: number;
+    student: {
+      id: string;
+      matricule: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+}
+
 export interface InvoiceListFilters {
   page?: number;
   limit?: number;
@@ -69,6 +92,17 @@ export const invoicesApi = {
 
   async getInstallments(invoiceId: string): Promise<InvoiceInstallment[]> {
     const { data } = await api.get(`/invoices/${invoiceId}/installments`);
+    return data.data || data;
+  },
+
+  async getPendingInstallments(filters: {
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+  } = {}): Promise<PendingInstallment[]> {
+    const { data } = await api.get("/installments/pending", {
+      params: filters,
+    });
     return data.data || data;
   },
 };

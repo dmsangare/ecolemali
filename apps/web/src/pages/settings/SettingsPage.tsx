@@ -10,6 +10,7 @@
   HardDrive,
   Trophy,
   Hash,
+  FileText,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SchoolTab } from "./SchoolTab";
@@ -22,6 +23,7 @@ import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
 import { HonorRollTab } from "./HonorRollTab";
 import { NumberingTab } from "./NumberingTab";
+import { AuditLogsTab } from "./AuditLogsTab";
 
 export function SettingsPage() {
   return (
@@ -75,6 +77,10 @@ export function SettingsPage() {
             <HardDrive className="h-4 w-4" />
             Sauvegardes
           </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Journal d'audit
+          </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
             Systeme
@@ -115,6 +121,10 @@ export function SettingsPage() {
 
         <TabsContent value="backups">
           <BackupsTab />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditLogsTab />
         </TabsContent>
 
         <TabsContent value="system">

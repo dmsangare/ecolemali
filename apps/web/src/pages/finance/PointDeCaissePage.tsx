@@ -7,6 +7,7 @@ import { CashSessionHeader } from "./components/CashSessionHeader";
 import { StudentPicker } from "./components/StudentPicker";
 import { InvoicePanel } from "./components/InvoicePanel";
 import { PaymentPanel } from "./components/PaymentPanel";
+import { TodaySummary } from "./components/TodaySummary";
 import type { Invoice, InvoiceInstallment } from "@/types/finance";
 
 interface StudentLite {
@@ -115,6 +116,9 @@ export function PointDeCaissePage() {
           </div>
         )}
       </div>
+
+      {/* Recap du jour */}
+      <TodaySummary />
     </div>
   );
 }

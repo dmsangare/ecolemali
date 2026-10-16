@@ -106,3 +106,6 @@ coverage/
 
 # Backups locaux
 *.bak
+*.bak
+*.bak-*
+*.bak.*

@@ -44,6 +44,10 @@ import {
   ImportSituationPage,
   FinanceDashboardPage,
   PointDeCaissePage,
+  FacturationPage,
+  EncaissementPage,
+  RecouvrementPage,
+  ConfigurationFinancePage,
 } from "@/pages/finance";
 import { ExamsListPage, ExamDetailPage } from "@/pages/exams";
 import { ReportsPage } from "@/pages/reports";
@@ -289,15 +293,42 @@ export function AppRoutes() {
             }
           />
 
-          {/* Redirections temporaires (seront remplacees par les pages a onglets - Etape 6) */}
           <Route
             path="/finance/facturation"
-            element={<Navigate to="/invoices" replace />}
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <FacturationPage />
+              </ProtectedRoute>
+            }
           />
+
+          <Route
+            path="/finance/encaissement"
+            element={
+              <ProtectedRoute requiredPermission="payment:view">
+                <EncaissementPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/finance/recouvrement"
-            element={<Navigate to="/reminders" replace />}
+            element={
+              <ProtectedRoute requiredPermission="invoice:view">
+                <RecouvrementPage />
+              </ProtectedRoute>
+            }
           />
+
+          <Route
+            path="/finance/configuration"
+            element={
+              <ProtectedRoute requiredPermission="fee:view">
+                <ConfigurationFinancePage />
+              </ProtectedRoute>
+            }
+          />
+
 
           <Route
             path="/fee-types"

@@ -10,3 +10,7 @@ export { RemindersListPage } from "./RemindersListPage";
 export { ImportSituationPage } from "./ImportSituationPage";
 export { FinanceDashboardPage } from "./FinanceDashboardPage";
 export { PointDeCaissePage } from "./PointDeCaissePage";
+export { FacturationPage } from "./FacturationPage";
+export { EncaissementPage } from "./EncaissementPage";
+export { RecouvrementPage } from "./RecouvrementPage";
+export { ConfigurationFinancePage } from "./ConfigurationFinancePage";

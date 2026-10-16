@@ -77,13 +77,11 @@ const SECTIONS: NavSection[] = [
     title: "Finances",
     items: [
       { label: "Tableau de bord", to: "/finance/dashboard", icon: PieChart, permission: "invoice:view" },
-      { label: "Types de frais", to: "/fee-types", icon: Tag, permission: "fee:view" },
-      { label: "Grille tarifaire", to: "/fee-structures", icon: Coins, permission: "fee:view" },
-      { label: "Factures", to: "/invoices", icon: Receipt, permission: "invoice:view" },
+      { label: "Facturation", to: "/finance/facturation", icon: Receipt, permission: "invoice:view" },
+      { label: "Encaissement", to: "/finance/encaissement", icon: Wallet, permission: "payment:view" },
+      { label: "Recouvrement", to: "/finance/recouvrement", icon: AlertTriangle, permission: "invoice:view" },
       { label: "Depenses", to: "/expenses", icon: TrendingDown, permission: "expense:view" },
-      { label: "Relances", to: "/reminders", icon: AlertTriangle, permission: "invoice:view" },
-      { label: "Paiements", to: "/payments", icon: Wallet, permission: "payment:view" },
-      { label: "Caisse", to: "/cash-sessions", icon: Wallet, permission: "cash:view" },
+      { label: "Configuration", to: "/finance/configuration", icon: Settings, permission: "fee:view" },
     ],
   },
     {

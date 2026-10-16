@@ -6,3 +6,4 @@ export * from "./avatar";
 export * from "./separator";
 export * from "./dropdown-menu";
 export * from "./tabs";
+export * from "./select";

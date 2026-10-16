@@ -89,6 +89,60 @@ export class InstallmentsService {
     });
   }
 
+  /**
+   * Liste toutes les echeances non soldees de l'ecole (PENDING, PARTIAL, OVERDUE).
+   * Triees par date d'echeance croissante (les plus anciennes en premier).
+   * Utile pour la vue "Echeances a recouvrer" du module Recouvrement.
+   */
+  async findAllPending(params: {
+    schoolId: string | null;
+    status?: string;
+    fromDate?: Date;
+    toDate?: Date;
+  }) {
+    const { schoolId, status, fromDate, toDate } = params;
+
+    const where: any = {
+      status: status ? status : { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+    };
+
+    if (schoolId) {
+      where.invoice = { schoolId, status: { not: "CANCELLED" } };
+    } else {
+      where.invoice = { status: { not: "CANCELLED" } };
+    }
+
+    if (fromDate || toDate) {
+      where.dueDate = {};
+      if (fromDate) where.dueDate.gte = fromDate;
+      if (toDate) where.dueDate.lte = toDate;
+    }
+
+    return this.prisma.invoiceInstallment.findMany({
+      where,
+      orderBy: [{ dueDate: "asc" }, { orderIndex: "asc" }],
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            number: true,
+            status: true,
+            balance: true,
+            student: {
+              select: {
+                id: true,
+                matricule: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      take: 500,
+    });
+  }
+
   async findOne(installmentId: string) {
     const installment = await this.prisma.invoiceInstallment.findUnique({
       where: { id: installmentId },

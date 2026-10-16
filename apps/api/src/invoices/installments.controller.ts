@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, HttpCode, HttpStatus,
-  UseGuards,
+  UseGuards, Req,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { InstallmentsService } from "./installments.service";
@@ -27,6 +27,29 @@ export class InstallmentsController {
     @CurrentUser() _user: CurrentUserPayload,
   ) {
     return this.service.findAllByInvoice(invoiceId);
+  }
+
+  // ============================================================
+  // LISTE GLOBALE DES ECHEANCES NON SOLDEES (Recouvrement)
+  // ============================================================
+
+  @Get("installments/pending")
+  @RequirePermissions("invoice:view")
+  @ApiOperation({
+    summary: "Liste toutes les echeances non soldees de l'ecole",
+  })
+  async findAllPending(
+    @CurrentUser() user: CurrentUserPayload,
+    @Req() req: any,
+  ) {
+    const query = req.query || {};
+    const schoolId = user.roles.includes("SUPER_ADMIN") ? null : user.schoolId;
+    return this.service.findAllPending({
+      schoolId,
+      status: query.status,
+      fromDate: query.fromDate ? new Date(query.fromDate) : undefined,
+      toDate: query.toDate ? new Date(query.toDate) : undefined,
+    });
   }
 
   // ============================================================

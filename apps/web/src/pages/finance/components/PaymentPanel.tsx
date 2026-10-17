@@ -78,6 +78,7 @@ export function PaymentPanel({
 }: Props) {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("CASH");
+  const [allowOverpayment, setAllowOverpayment] = useState(false);
   const [reference, setReference] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -125,7 +126,9 @@ export function PaymentPanel({
   const isOverBalance = amountNum > invoiceBalance + 0.001;
   const needsReference = method !== "CASH";
   const isValid =
-    amountNum > 0 && !isOverBalance && (!needsReference || reference.trim().length >= 3);
+    amountNum > 0 &&
+    (!isOverBalance || allowOverpayment) &&
+    (!needsReference || reference.trim().length >= 3);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +142,7 @@ export function PaymentPanel({
         method,
         reference: needsReference ? reference.trim() : undefined,
         installmentId: installment?.id,
+        allowOverpayment,
       });
 
       setSuccessMessage(
@@ -146,6 +150,7 @@ export function PaymentPanel({
       );
       setAmount("");
       setReference("");
+      setAllowOverpayment(false);
       onPaymentSuccess();
 
       // Recuperer les infos du recu
@@ -276,9 +281,38 @@ export function PaymentPanel({
             )}
 
             {isOverBalance && (
-              <div className="flex items-center gap-2 text-xs text-red-600">
-                <AlertCircle className="h-3.5 w-3.5" />
-                Le montant dépasse le solde restant
+              <div className="space-y-2 pt-1">
+                {!allowOverpayment ? (
+                  <div className="flex items-center gap-2 text-xs text-red-600">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Le montant dépasse le solde restant ({formatFCFA(invoiceBalance)})
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>
+                      Trop-perçu de <strong>{formatFCFA(amountNum - invoiceBalance)}</strong> —
+                      sera crédité au compte élève.
+                    </span>
+                  </div>
+                )}
+
+                <label className="flex items-start gap-2 cursor-pointer text-xs p-2 rounded-md border border-dashed hover:bg-accent/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={allowOverpayment}
+                    onChange={(e) => setAllowOverpayment(e.target.checked)}
+                    disabled={createMutation.isPending}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="flex-1">
+                    <span className="font-medium">Autoriser le trop-perçu</span>
+                    <span className="block text-muted-foreground mt-0.5">
+                      Le surplus sera crédité au compte de l'élève et utilisable
+                      pour ses prochaines factures.
+                    </span>
+                  </span>
+                </label>
               </div>
             )}
           </div>

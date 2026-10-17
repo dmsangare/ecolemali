@@ -45,7 +45,7 @@ export function LoginPage() {
           <img
             src="/login-left.jpg"
             alt="École SIS-MALI"
-            className="absolute inset-0 w-full h-full object-cover object-left"
+            className="absolute inset-0 w-full h-full object-cover object-top"
           />
           {/* Voile sombre pour s'assurer que le texte (s'il y en a) soit lisible, mais ici l'image gère le texte */}
           <div className="absolute inset-0 bg-blue-900/10" />

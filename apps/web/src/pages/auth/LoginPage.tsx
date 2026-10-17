@@ -1,208 +1,202 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useLocation } from "react-router-dom";
-import { z } from "zod";
-import { toast } from "sonner";
-import { Loader2, Lock, User, School, ShieldCheck } from "lucide-react";
-
-import { useAuth } from "@/contexts/AuthContext";
-import { getErrorMessage } from "@/lib/axios";
+import { useState, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts";
+import { Button, Input } from "@/components/ui";
 import {
-  Button,
-  Input,
-  Label,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui";
-import { CreditsBox } from "@/components/shared";
-
-const LoginSchema = z.object({
-  identifier: z.string().min(3, "Email ou telephone requis"),
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caracteres"),
-});
-
-type LoginForm = z.infer<typeof LoginSchema>;
+  User, Lock, Eye, EyeOff, ArrowRight, ShieldCheck,
+  Users, FileText, Calendar, Wallet, BarChart3, Code, Phone, Mail
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function LoginPage() {
-  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth(); // Assure-toi que ton AuthContext expose bien 'login'
 
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(LoginSchema),
-    defaultValues: {
-      identifier: "",
-      password: "",
-    },
-  });
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-  const onSubmit = async (data: LoginForm) => {
-    setIsSubmitting(true);
     try {
-      await login(data);
-      toast.success("Connexion reussie");
-      navigate(from, { replace: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error));
+      // Remplacer par l'appel réel à ton AuthContext / API
+      await login({ identifier: email, password });
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Identifiants incorrects. Veuillez réessayer.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-primary/5 via-background to-primary/10">
-      {/* Colonne gauche : Formulaire de connexion */}
-      <div className="flex flex-1 items-center justify-center p-4 py-8">
-        <div className="w-full max-w-md space-y-6">
-          {/* Logo + titre */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-3xl shadow-lg">
-              S
-            </div>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold tracking-tight">SIS-MALI</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Systeme d Information Scolaire pour le Mali
-              </p>
-            </div>
-          </div>
-
-          {/* Carte login */}
-          <Card className="shadow-lg border-primary/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                Connexion
-              </CardTitle>
-              <CardDescription>
-                Accedez a votre espace de gestion scolaire
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="identifier">Email ou telephone</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="identifier"
-                      type="text"
-                      placeholder="admin@aiglons.ml"
-                      className="pl-9"
-                      autoComplete="username"
-                      autoFocus
-                      {...register("identifier")}
-                    />
-                  </div>
-                  {errors.identifier && (
-                    <p className="text-xs text-destructive">
-                      {errors.identifier.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="pl-9"
-                      autoComplete="current-password"
-                      {...register("password")}
-                    />
-                  </div>
-                  {errors.password && (
-                    <p className="text-xs text-destructive">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  size="lg"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Connexion...
-                    </>
-                  ) : (
-                    <>
-                      <School className="h-4 w-4" />
-                      Se connecter
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Version */}
-          <p className="text-center text-xs text-muted-foreground">
-            SIS-MALI v1.0 • Developpement local
-          </p>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+      {/* Contenu principal */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        {/* COLONNE GAUCHE - IMAGE (Masquée sur mobile) */}
+        <div className="hidden lg:flex lg:w-[35%] relative bg-blue-900">
+          <img
+            src="/login-left.jpg"
+            alt="École SIS-MALI"
+            className="absolute inset-0 w-full h-full object-cover object-left"
+          />
+          {/* Voile sombre pour s'assurer que le texte (s'il y en a) soit lisible, mais ici l'image gère le texte */}
+          <div className="absolute inset-0 bg-blue-900/10" />
         </div>
-      </div>
 
-      {/* Colonne droite : Credits (desktop uniquement) */}
-      <div className="hidden lg:flex lg:w-96 xl:w-[420px] flex-col justify-center items-center p-8 bg-muted/20 border-l">
-        <div className="w-full max-w-sm space-y-6">
-          {/* Presentation rapide */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-              <School className="h-6 w-6 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold">Bienvenue sur SIS-MALI</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              La solution complete de gestion scolaire pour les ecoles
-              fondamentales et lycees du Mali.
-            </p>
-          </div>
-
-          {/* Fonctionnalites cles */}
-          <div className="space-y-2">
-            {[
-              "Gestion des eleves et inscriptions",
-              "Notes, bulletins et conseils de classe",
-              "Emploi du temps et presences",
-              "Facturation, paiements et caisse",
-              "Rapports et statistiques",
-            ].map((feature) => (
-              <div key={feature} className="flex items-center gap-2 text-sm">
-                <div className="flex h-1.5 w-1.5 rounded-full bg-primary" />
-                <span className="text-muted-foreground">{feature}</span>
+        {/* COLONNE CENTRE - FORMULAIRE */}
+        <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 z-10 bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.05)]">
+          <div className="w-full max-w-md space-y-8">
+            
+            {/* Logo & Titre */}
+            <div className="text-center space-y-4">
+              <img
+                src="/login-logo.png"
+                alt="SIS-MALI"
+                className="h-20 mx-auto object-contain"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  Connexion à votre espace
+                </h1>
+                <p className="text-sm text-slate-500 mt-2">
+                  Veuillez vous connecter pour accéder à votre compte
+                </p>
               </div>
-            ))}
+            </div>
+
+            {/* Erreur */}
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm text-center border border-red-100">
+                {error}
+              </div>
+            )}
+
+            {/* Formulaire */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <User className="h-4 w-4 text-slate-400" />
+                  Email ou téléphone
+                </label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@sis-mali.local"
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
+                  />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+
+              {/* Mot de passe */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-slate-400" />
+                  Mot de passe
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-blue-500"
+                  />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions (Se souvenir + Mot de passe oublié) */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Se souvenir de moi
+                </label>
+                <a href="#" className="text-blue-600 hover:underline font-medium">
+                  Mot de passe oublié ?
+                </a>
+              </div>
+
+              {/* Bouton de connexion */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base"
+              >
+                {isLoading ? (
+                  "Connexion en cours..."
+                ) : (
+                  <>
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Se connecter
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Footer sécurité */}
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
+              <ShieldCheck className="h-4 w-4 text-green-500" />
+              Accès sécurisé • Données protégées • Utilisation en intranet
+            </div>
           </div>
+        </div>
 
-          {/* Credits */}
-          <CreditsBox />
+        {/* COLONNE DROITE - IMAGE (Masquée sur mobile) */}
+        <div className="hidden lg:flex lg:w-[35%] relative bg-blue-50">
+          <img
+            src="/login-right.jpg"
+            alt="Bienvenue sur SIS-MALI"
+            className="absolute inset-0 w-full h-full object-cover object-right"
+          />
         </div>
       </div>
 
-      {/* Credits (mobile en bas) */}
-      <div className="lg:hidden border-t bg-muted/20">
-        <div className="p-4 max-w-md mx-auto">
-          <CreditsBox variant="compact" />
+      {/* FOOTER GLOBAL */}
+      <footer className="bg-[#0B4E9B] text-white py-3 px-6 flex flex-col sm:flex-row items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <img src="/login-logo.png" alt="Logo" className="h-5 brightness-0 invert" />
+          <span className="font-semibold">SIS-MALI</span>
+          <span className="text-blue-200">|</span>
+          <span className="text-blue-100">Système d'Information Scolaire pour le Mali</span>
         </div>
-      </div>
+        <div className="flex gap-4 mt-2 sm:mt-0 text-blue-100">
+          <span>Écoles</span>
+          <span>•</span>
+          <span>Élèves</span>
+          <span>•</span>
+          <span>Enseignants</span>
+          <span>•</span>
+          <span>Parents</span>
+          <span>•</span>
+          <span>Administration</span>
+        </div>
+      </footer>
     </div>
   );
 }

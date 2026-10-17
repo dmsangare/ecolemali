@@ -63,9 +63,8 @@ export function FinanceTab({ student }: FinanceTabProps) {
       : "UNPAID";
 
   return (
-    <div className="space-y-4">
-      <StudentAccountCard studentId={student.id} />
     <div className="space-y-6">
+      <StudentAccountCard studentId={student.id} />
       {/* Bandeau statut global */}
       <Card
         className={
@@ -295,7 +294,6 @@ export function FinanceTab({ student }: FinanceTabProps) {
           </div>
         </CardContent>
       </Card>
-    </div>
     </div>
   );
 }

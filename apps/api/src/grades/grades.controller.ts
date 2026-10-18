@@ -43,26 +43,26 @@ export class GradesController {
   @RequirePermissions("grade:create")
   @ApiOperation({ summary: "Saisie en masse des notes" })
   async bulkEntry(
-    @CurrentUser("id") userId: string,
+    @CurrentUser() user: any,
     @Body(new ZodValidationPipe(GradesBulkSchema)) dto: any,
   ) {
-    return this.service.bulkEntry(dto, userId);
+    return this.service.bulkEntry(dto, user);
   }
 
   @Patch(":id")
   @RequirePermissions("grade:update")
   async update(
     @Param("id") id: string,
-    @CurrentUser("id") userId: string,
+    @CurrentUser() user: any,
     @Body(new ZodValidationPipe(GradeUpdateSchema)) dto: any,
   ) {
-    return this.service.update(id, dto, userId);
+    return this.service.update(id, dto, user);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("grade:delete")
-  async remove(@Param("id") id: string) {
-    await this.service.remove(id);
+  async remove(@Param("id") id: string, @CurrentUser() user: any) {
+    await this.service.remove(id, user);
   }
 }

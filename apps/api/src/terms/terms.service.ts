@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { TermCreateDto, TermUpdateDto } from "./dto";
 import { CurrentUserPayload } from "../common/decorators";
@@ -65,6 +65,10 @@ export class TermsService {
       select: { schoolId: true },
     });
     assertSchoolAccess(user, year?.schoolId, "Annee scolaire introuvable");
+
+    // Verifier les dates (fin > debut + pas de chevauchement)
+    await this.validateTermDates(dto.academicYearId, dto.startDate, dto.endDate);
+
     return this.prisma.term.create({
       data: {
         ...dto,
@@ -75,7 +79,13 @@ export class TermsService {
   }
 
   async update(id: string, dto: TermUpdateDto, user: CurrentUserPayload) {
-    await this.findOne(id, user);
+    const existing = await this.findOne(id, user);
+    const startDate = dto.startDate ?? existing.startDate;
+    const endDate = dto.endDate ?? existing.endDate;
+
+    // Verifier les dates
+    await this.validateTermDates(existing.academicYearId, startDate, endDate, id);
+
     const data: any = { ...dto };
     if (dto.startDate) data.startDate = new Date(dto.startDate);
     if (dto.endDate) data.endDate = new Date(dto.endDate);
@@ -167,5 +177,40 @@ export class TermsService {
   async remove(id: string, user: CurrentUserPayload) {
     await this.findOne(id, user);
     return this.prisma.term.delete({ where: { id } });
+  }
+
+  /**
+   * Verifie que les dates du trimestre sont coherentes et ne chevauchent pas.
+   */
+  private async validateTermDates(
+    academicYearId: string,
+    startDate: string | Date,
+    endDate: string | Date,
+    excludeTermId?: string,
+  ) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // 1. Fin apres debut
+    if (end <= start) {
+      throw new BadRequestException("La date de fin doit etre apres la date de debut");
+    }
+
+    // 2. Chevauchement avec un autre trimestre de la meme annee
+    const overlapping = await this.prisma.term.findFirst({
+      where: {
+        academicYearId,
+        id: excludeTermId ? { not: excludeTermId } : undefined,
+        AND: [
+          { startDate: { lte: end } },
+          { endDate: { gte: start } },
+        ],
+      },
+    });
+    if (overlapping) {
+      throw new BadRequestException(
+        `Cette periode chevauche le trimestre "${overlapping.name}"`,
+      );
+    }
   }
 }

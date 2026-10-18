@@ -144,6 +144,28 @@ export class ReportCardsService {
       throw new BadRequestException("Aucun eleve inscrit trouve");
     }
 
+    // Verifier si des bulletins valides/publies existent deja pour ces eleves
+    const existingLocked = await this.prisma.reportCard.findMany({
+      where: {
+        studentId: { in: allEnrollments.map((e) => e.studentId) },
+        termId: dto.termId,
+        status: { in: ["VALIDATED", "PUBLISHED"] },
+      },
+      select: { studentId: true, status: true },
+    });
+
+    if (existingLocked.length > 0) {
+      const lockedNames = existingLocked
+        .map((r) => {
+          const enr = allEnrollments.find((e) => e.studentId === r.studentId);
+          return enr ? `${enr.student.firstName} ${enr.student.lastName} (${r.status})` : r.studentId;
+        })
+        .join(", ");
+      throw new BadRequestException(
+        `Impossible de regenerer : ${existingLocked.length} bulletin(s) deja valide(s)/publie(s) existent (${lockedNames}). Depubliez-les ou supprimez-les d'abord.`,
+      );
+    }
+
     // Regles par cycle : bareme (/10 ou /20) et type de periode (mois ou trimestre)
     const term = await this.prisma.term.findUnique({ where: { id: dto.termId } });
     if (!term) throw new NotFoundException("Periode introuvable");
@@ -382,6 +404,17 @@ export class ReportCardsService {
   }
 
   async remove(id: string) {
+    const existing = await this.prisma.reportCard.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundException("Bulletin introuvable");
+    if (existing.status === "PUBLISHED" || existing.status === "VALIDATED") {
+      throw new BadRequestException(
+        "Impossible de supprimer un bulletin valide ou publie.",
+      );
+    }
+
     const report = await this.findOne(id);
     if (report.status === "PUBLISHED") {
       throw new BadRequestException("Impossible de supprimer un bulletin publie");

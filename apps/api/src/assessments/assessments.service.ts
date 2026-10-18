@@ -97,6 +97,23 @@ export class AssessmentsService {
   }
 
   async update(id: string, dto: AssessmentUpdateDto) {
+    const existing = await this.prisma.assessment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundException("Evaluation introuvable");
+
+    // Si l'evaluation est validee ou verrouillee, on ne peut plus modifier les champs critiques
+    if (existing.status === "VALIDATED" || existing.status === "LOCKED") {
+      const criticalFields = ["classId", "termId", "subjectId", "schoolId", "maxScore", "academicYearId"];
+      const hasCritical = criticalFields.some((f) => (dto as any)[f] !== undefined);
+      if (hasCritical) {
+        throw new BadRequestException(
+          "Cette evaluation est validee. Les champs structurels (classe, periode, matiere, barème) ne peuvent plus etre modifies.",
+        );
+      }
+    }
+
     const assessment = await this.findOne(id);
     if (assessment.status === "LOCKED") {
       throw new BadRequestException("Impossible de modifier une evaluation verrouillee");
@@ -107,6 +124,17 @@ export class AssessmentsService {
   }
 
   async remove(id: string) {
+    const existing = await this.prisma.assessment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundException("Evaluation introuvable");
+    if (existing.status === "VALIDATED" || existing.status === "LOCKED") {
+      throw new BadRequestException(
+        "Impossible de supprimer une evaluation validee ou verrouillee. Reouvrez-la d'abord.",
+      );
+    }
+
     const assessment = await this.findOne(id);
     if (assessment.status === "LOCKED" || assessment.status === "VALIDATED") {
       throw new BadRequestException("Impossible de supprimer une evaluation validee ou verrouillee");
@@ -191,6 +219,15 @@ export class AssessmentsService {
   }
 
   async reopen(id: string) {
+    const existing = await this.prisma.assessment.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundException("Evaluation introuvable");
+    if (existing.status !== "VALIDATED" && existing.status !== "LOCKED" && existing.status !== "SUBMITTED") {
+      throw new BadRequestException("Cette evaluation n'est pas validée, elle n'a pas besoin d'être réouverte.");
+    }
+
     const assessment = await this.findOne(id);
     if (assessment.status === "OPEN" || assessment.status === "DRAFT") {
       return assessment; // deja modifiable

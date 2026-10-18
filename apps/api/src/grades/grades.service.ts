@@ -57,7 +57,9 @@ export class GradesService {
     };
   }
 
-  async bulkEntry(dto: GradesBulkDto, enteredBy: string) {
+  async bulkEntry(dto: GradesBulkDto, user: { id: string; roles: string[] }) {
+    await this.assertCanGrade(dto.assessmentId, user);
+    const enteredBy = user.id;
     const assessment = await this.prisma.assessment.findUnique({
       where: { id: dto.assessmentId },
     });
@@ -107,7 +109,15 @@ export class GradesService {
     return { updated: results.length, grades: results };
   }
 
-  async update(id: string, dto: GradeUpdateDto, updatedBy: string) {
+  async update(id: string, dto: GradeUpdateDto, user: { id: string; roles: string[] }) {
+    // Verifier le droit sur l'evaluation de cette note
+    const gradeRef = await this.prisma.grade.findUnique({
+      where: { id },
+      select: { assessmentId: true },
+    });
+    if (!gradeRef) throw new NotFoundException("Note introuvable");
+    await this.assertCanGrade(gradeRef.assessmentId, user);
+    const updatedBy = user.id;
     const grade = await this.prisma.grade.findUnique({
       where: { id },
       include: { assessment: true },
@@ -185,10 +195,73 @@ export class GradesService {
     };
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: { id: string; roles: string[] }) {
+    const gradeRef = await this.prisma.grade.findUnique({
+      where: { id },
+      select: { assessmentId: true },
+    });
+    if (!gradeRef) throw new NotFoundException("Note introuvable");
+    await this.assertCanGrade(gradeRef.assessmentId, user);
     const grade = await this.prisma.grade.findUnique({ where: { id } });
     if (!grade) throw new NotFoundException("Note introuvable");
     if (grade.locked) throw new BadRequestException("Note verrouillee");
     return this.prisma.grade.delete({ where: { id } });
+  }
+
+  /**
+   * Verifie que l'utilisateur a le droit de noter cette evaluation.
+   * - SUPER_ADMIN, DIRECTOR, SECRETARY : toujours autorises
+   * - TEACHER : doit avoir une assignation (TeacherAssignment) sur la classe/matiere
+   * - Autres : refuses
+   */
+  private async assertCanGrade(assessmentId: string, user: { id: string; roles: string[] }) {
+    // Verifier que l'evaluation n'est pas deja validee ou verrouillee
+    const assessmentStatus = await this.prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { status: true },
+    });
+    if (!assessmentStatus) throw new NotFoundException("Evaluation introuvable");
+    if (assessmentStatus.status === "VALIDATED" || assessmentStatus.status === "LOCKED") {
+      throw new BadRequestException(
+        "Cette evaluation est validee/verrouillee. Les notes ne peuvent plus etre modifiees.",
+      );
+    }
+
+    // Les roles privilegies passent toujours
+    const privileged = ["SUPER_ADMIN", "DIRECTOR", "SECRETARY"];
+    if (user.roles.some((r) => privileged.includes(r))) return;
+
+    // Pour les enseignants : verifier l'assignation
+    if (!user.roles.includes("TEACHER")) {
+      throw new BadRequestException("Vous n'avez pas le droit de noter");
+    }
+
+    const assessment = await this.prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { classId: true, subjectId: true, academicYearId: true },
+    });
+    if (!assessment) throw new NotFoundException("Evaluation introuvable");
+
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    if (!teacher) {
+      throw new BadRequestException("Aucun profil enseignant associe a votre compte");
+    }
+
+    const assignment = await this.prisma.teacherAssignment.findFirst({
+      where: {
+        teacherId: teacher.id,
+        classId: assessment.classId,
+        subjectId: assessment.subjectId,
+        academicYearId: assessment.academicYearId,
+      },
+    });
+    if (!assignment) {
+      throw new BadRequestException(
+        "Vous n'etes pas assigne a cette classe/matiere pour cette annee",
+      );
+    }
   }
 }

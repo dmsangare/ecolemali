@@ -117,7 +117,7 @@ export function Sidebar() {
   })).filter((section) => section.items.length > 0);
 
   return (
-    <aside className="hidden md:flex w-64 flex-col border-r bg-card h-screen sticky top-0">
+    <aside className="flex w-64 flex-col border-r bg-card h-screen">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
         {hasLogo ? (

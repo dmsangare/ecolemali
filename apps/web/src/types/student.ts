@@ -146,7 +146,7 @@ export interface StudentStats {
 }
 
 /**
- * Detail complet d'un eleve avec toutes ses relations.
+ * Detail complet d'un élève avec toutes ses relations.
  */
 export interface StudentDetail extends Student {
   guardians: StudentGuardianRelation[];

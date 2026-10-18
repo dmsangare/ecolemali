@@ -34,7 +34,7 @@ export function AssignStudentsModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const createMutation = useCreateEnrollment();
 
-  // Charger tous les eleves actifs de l'ecole
+  // Charger tous les élèves actifs de l'ecole
   const { data: allStudents, isLoading } = useQuery({
     queryKey: ["students", "list", "assign"],
     queryFn: async () => {
@@ -44,7 +44,7 @@ export function AssignStudentsModal({
     staleTime: 30_000,
   });
 
-  // Filtrer : eleves non deja inscrits dans cette classe
+  // Filtrer : élèves non deja inscrits dans cette classe
   const available = useMemo(() => {
     if (!allStudents) return [];
     return allStudents.filter((s) => !enrolledStudentIds.includes(s.id));
@@ -75,7 +75,7 @@ export function AssignStudentsModal({
     if (selected.size === 0) return;
 
     try {
-      // Inscrire chaque eleve selectionne
+      // Inscrire chaque élève selectionne
       for (const studentId of selected) {
         await createMutation.mutateAsync({
           studentId,
@@ -108,7 +108,7 @@ export function AssignStudentsModal({
               Affecter des eleves
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Selectionnez les eleves a inscrire dans cette classe
+              Selectionnez les élèves a inscrire dans cette classe
             </p>
           </div>
           <Button
@@ -127,7 +127,7 @@ export function AssignStudentsModal({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher un eleve (nom, matricule)..."
+              placeholder="Rechercher un élève (nom, matricule)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -171,8 +171,8 @@ export function AssignStudentsModal({
             <div className="text-center py-12 text-muted-foreground">
               <p className="font-medium">
                 {available.length === 0
-                  ? "Tous les eleves sont deja inscrits dans cette classe"
-                  : "Aucun eleve ne correspond a la recherche"}
+                  ? "Tous les élèves sont deja inscrits dans cette classe"
+                  : "Aucun élève ne correspond a la recherche"}
               </p>
             </div>
           ) : (

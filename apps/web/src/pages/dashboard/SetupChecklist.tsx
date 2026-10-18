@@ -159,14 +159,14 @@ export function SetupChecklist() {
       id: "academic-year",
       label: "Annee scolaire 2026-2027",
       done: !!academicYears && academicYears.length > 0,
-      actionLabel: "Creer",
+      actionLabel: "Créer",
       actionTo: "/settings",
     },
     {
       id: "terms",
       label: "Trimestres / semestres",
       done: !!terms && terms.length > 0,
-      actionLabel: "Creer",
+      actionLabel: "Créer",
       actionTo: "/settings",
     },
     {

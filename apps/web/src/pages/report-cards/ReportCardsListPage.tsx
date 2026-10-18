@@ -166,7 +166,7 @@ export function ReportCardsListPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un eleve (nom, matricule)..."
+            placeholder="Rechercher un élève (nom, matricule)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -206,7 +206,7 @@ export function ReportCardsListPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40">
                   <tr>
-                    <th className="text-left p-3 font-medium">Eleve</th>
+                    <th className="text-left p-3 font-medium">Élève</th>
                     <th className="text-left p-3 font-medium">Classe</th>
                     <th className="text-left p-3 font-medium">Trimestre</th>
                     <th className="text-center p-3 font-medium">Moyenne</th>

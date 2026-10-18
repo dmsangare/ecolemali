@@ -25,7 +25,7 @@ const EXAM_LABELS: Record<StateExamType, string> = {
   BAC: "BAC",
 };
 
-// Niveaux standard du systeme educatif malien
+// Niveaux standard du système educatif malien
 const MALI_STANDARD_LEVELS: Omit<CreateLevelInput, "schoolId">[] = [
   { name: "1ere Annee", code: "1A", cycle: "PREMIER_CYCLE", orderIndex: 1 },
   { name: "2eme Annee", code: "2A", cycle: "PREMIER_CYCLE", orderIndex: 2 },
@@ -108,7 +108,7 @@ export function LevelsListPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gerez les niveaux d'enseignement de votre etablissement
-            (1ere annee a la 12eme annee, ou personnalise).
+            (1ere année a la 12eme annee, ou personnalise).
           </p>
         </div>
         {canCreate && (
@@ -146,7 +146,7 @@ export function LevelsListPage() {
                 <>
                   <Button onClick={handleOpenCreate} variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
-                    Creer manuellement
+                    Créer manuellement
                   </Button>
                   <PrefillButton />
                 </>
@@ -208,7 +208,7 @@ function PrefillButton() {
     if (
       !confirm(
         `Creer les ${MALI_STANDARD_LEVELS.length} niveaux standard du Mali ?\n\n` +
-          `(1ere annee a la 12eme annee, avec CEP/DEF/BAC)`,
+          `(1ere année a la 12eme annee, avec CEP/DEF/BAC)`,
       )
     ) {
       return;

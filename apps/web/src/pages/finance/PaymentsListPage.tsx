@@ -283,7 +283,7 @@ export function PaymentsListPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                title="Telecharger le recu PDF"
+                                title="Telecharger le reçu PDF"
                                 onClick={() =>
                                   handleDownloadPdf(
                                     p.receipt!.id,

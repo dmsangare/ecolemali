@@ -49,18 +49,18 @@ import type { Role, Permission, RoleDetail } from "@/api/roles";
 // Libelles francais pour les modules
 // ============================================================
 const MODULE_LABELS: Record<string, string> = {
-  school: "Etablissement",
+  school: "Établissement",
   academic_year: "Annee scolaire",
   level: "Niveaux",
   class: "Classes",
-  student: "Eleves",
+  student: "Élèves",
   parent: "Parents",
   enrollment: "Inscriptions",
   teacher: "Enseignants",
-  subject: "Matieres",
+  subject: "Matières",
   assignment: "Affectations",
   timetable: "Emploi du temps",
-  attendance: "Presences",
+  attendance: "Présences",
   assessment: "Evaluations",
   grade: "Notes",
   report_card: "Bulletins",
@@ -76,13 +76,13 @@ const MODULE_LABELS: Record<string, string> = {
   role: "Roles",
   audit: "Audit",
   backup: "Sauvegardes",
-  settings: "Parametres",
+  settings: "Paramètres",
 };
 
 // Libelles francais pour les actions
 const ACTION_LABELS: Record<string, string> = {
   view: "Voir",
-  create: "Creer",
+  create: "Créer",
   update: "Modifier",
   delete: "Supprimer",
   validate: "Valider",
@@ -293,7 +293,7 @@ export function RolesTab() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {roles?.length || 0} roles systeme et personnalises
+            {roles?.length || 0} roles système et personnalises
           </h3>
         </div>
 
@@ -325,7 +325,7 @@ export function RolesTab() {
                     {role.isSystem && (
                       <span
                         className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground inline-flex items-center gap-1"
-                        title="Role systeme - ne peut pas etre supprime"
+                        title="Role système - ne peut pas etre supprime"
                       >
                         <Lock className="h-2.5 w-2.5" />
                         Systeme
@@ -431,12 +431,12 @@ export function RolesTab() {
               </div>
             </div>
 
-            {/* Role systeme - note */}
+            {/* Role système - note */}
             {roleDetail?.isSystem && (
               <div className="mt-3 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-xs text-yellow-800 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>
-                  Role systeme : le code et le nom ne peuvent pas etre
+                  Role système : le code et le nom ne peuvent pas etre
                   modifies. Les permissions sont verrouillees pour SUPER_ADMIN.
                 </span>
               </div>
@@ -719,7 +719,7 @@ function CreateRoleModal({ onClose }: { onClose: () => void }) {
               {createRoleMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Creer le role
+              Créer le role
             </Button>
           </div>
         </form>

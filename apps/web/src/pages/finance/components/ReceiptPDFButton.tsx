@@ -15,7 +15,7 @@ export function ReceiptPDFButton({ receiptId, receiptNumber, disabled }: Props) 
 
   const handleDownload = async () => {
     if (!receiptId) {
-      toast.error("Aucun recu associe a ce paiement");
+      toast.error("Aucun reçu associe a ce paiement");
       return;
     }
     setLoading(true);
@@ -55,7 +55,7 @@ export function ReceiptPDFButton({ receiptId, receiptNumber, disabled }: Props) 
       ) : (
         <>
           <Download className="h-4 w-4 mr-2" />
-          Telecharger le recu PDF
+          Telecharger le reçu PDF
         </>
       )}
     </Button>

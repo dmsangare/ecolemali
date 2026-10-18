@@ -56,7 +56,7 @@ export function TeacherDashboard() {
           Bonjour, {data.teacher.firstName} {data.teacher.lastName}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Voici un apercu de vos classes et activites
+          Voici un aperçu de vos classes et activites
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export function TeacherDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Eleves total
+              Élèves total
             </CardTitle>
             <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
@@ -118,7 +118,7 @@ export function TeacherDashboard() {
             <div className="text-left">
               <div className="font-semibold">Faire l'appel</div>
               <div className="text-xs text-muted-foreground">
-                Presences du jour
+                Présences du jour
               </div>
             </div>
           </Link>
@@ -209,7 +209,7 @@ export function TeacherDashboard() {
         </Card>
       </div>
 
-      {/* Top eleves */}
+      {/* Top élèves */}
       <TopStudentsPodium />
     </div>
   );

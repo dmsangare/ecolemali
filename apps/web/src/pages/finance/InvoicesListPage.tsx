@@ -51,7 +51,7 @@ export function InvoicesListPage() {
     staleTime: 10 * 60_000,
   });
 
-  // Annee courante par defaut
+  // Année courante par defaut
   if (academicYears && !academicYearId) {
     const cur = academicYears.find((y) => y.isCurrent) || academicYears[0];
     if (cur) setAcademicYearId(cur.id);

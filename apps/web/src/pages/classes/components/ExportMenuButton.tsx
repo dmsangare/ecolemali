@@ -33,7 +33,7 @@ export function ExportMenuButton({ classId, className }: ExportMenuButtonProps) 
         responseType: "blob",
       });
 
-      // Creer un lien de telechargement
+      // Créer un lien de telechargement
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;

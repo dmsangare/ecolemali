@@ -127,7 +127,7 @@ export function DocumentsTab({ studentId }: DocumentsTabProps) {
             <EmptyState
               icon={<FileText className="h-8 w-8 text-muted-foreground/50" />}
               title="Aucun document"
-              description="Les documents de l eleve apparaitront ici une fois ajoutes."
+              description="Les documents de l élève apparaitront ici une fois ajoutes."
               className="h-40"
             />
           ) : (

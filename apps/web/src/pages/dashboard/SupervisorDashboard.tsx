@@ -61,7 +61,7 @@ export function SupervisorDashboard() {
               {absentsCount}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Eleves absents
+              Élèves absents
             </p>
           </CardContent>
         </Card>
@@ -95,14 +95,14 @@ export function SupervisorDashboard() {
         <CardContent>
           {absents.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Aucun absent enregistre aujourd'hui
+              Aucun absent enregistré aujourd'hui
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40">
                   <tr className="text-left text-xs font-medium text-muted-foreground uppercase">
-                    <th className="px-3 py-2">Eleve</th>
+                    <th className="px-3 py-2">Élève</th>
                     <th className="px-3 py-2">Matricule</th>
                     <th className="px-3 py-2">Classe</th>
                     <th className="px-3 py-2">Heure</th>
@@ -132,7 +132,7 @@ export function SupervisorDashboard() {
         </CardContent>
       </Card>
 
-      {/* Top eleves */}
+      {/* Top élèves */}
       <TopStudentsPodium />
     </div>
   );

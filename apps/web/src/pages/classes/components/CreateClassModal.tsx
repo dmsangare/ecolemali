@@ -192,7 +192,7 @@ export function CreateClassModal({
             <div>
               <h2 className="text-lg font-semibold">Nouvelle classe</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Creez une classe pour l annee scolaire en cours
+                Creez une classe pour l année scolaire en cours
               </p>
             </div>
             <Button
@@ -212,7 +212,7 @@ export function CreateClassModal({
             <div>
               <Label htmlFor="academicYear" className="flex items-center gap-2">
                 <Calendar className="h-3.5 w-3.5" />
-                Annee scolaire
+                Année scolaire
               </Label>
               {yearsLoading ? (
                 <div className="h-10 rounded-md bg-muted animate-pulse mt-1" />
@@ -474,7 +474,7 @@ export function CreateClassModal({
               {createMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Creer la classe
+              Créer la classe
             </Button>
           </div>
         </form>

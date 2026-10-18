@@ -139,7 +139,7 @@ export function AdminDashboard() {
 
       <SetupChecklist />
 
-      {/* Cloture de l'annee */}
+      {/* Clôture de l'annee */}
       <ClosingYearCard />
 
       {/* En-tête */}

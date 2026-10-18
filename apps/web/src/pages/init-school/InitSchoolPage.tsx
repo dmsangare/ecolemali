@@ -62,7 +62,7 @@ export function InitSchoolPage() {
             <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold">Etablissement cree !</h2>
+            <h2 className="text-xl font-semibold">Établissement cree !</h2>
             <p className="text-sm text-muted-foreground">
               Redirection vers votre tableau de bord...
             </p>
@@ -215,7 +215,7 @@ export function InitSchoolPage() {
               ) : (
                 <>
                   <School className="h-4 w-4 mr-2" />
-                  Creer mon etablissement
+                  Créer mon etablissement
                 </>
               )}
             </Button>

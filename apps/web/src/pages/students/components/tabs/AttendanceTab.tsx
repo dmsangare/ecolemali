@@ -77,7 +77,7 @@ export function AttendanceTab({ studentId }: AttendanceTabProps) {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <p className="text-xs text-muted-foreground">Presences</p>
+              <p className="text-xs text-muted-foreground">Présences</p>
             </div>
             <p className="text-2xl font-bold">{stats.present}</p>
           </CardContent>

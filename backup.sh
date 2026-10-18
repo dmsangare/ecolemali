@@ -29,6 +29,10 @@ error() {
   local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [BACKUP-ERROR] $1"
   echo -e "\033[0;31m$msg\033[0m" >&2
   echo "$msg" >> "$LOG_FILE"
+  # Envoyer un mail si configuré
+  if [ -n "${BACKUP_ALERT_EMAIL:-}" ]; then
+    echo "$msg" | mail -s "SIS-MALI: Echec de sauvegarde" "$BACKUP_ALERT_EMAIL"
+  fi
 }
 
 # --- Charger uniquement les vars necessaires (au lieu de "source .env" fragile) ---

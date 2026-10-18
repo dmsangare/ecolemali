@@ -107,7 +107,7 @@ export interface CreatePaymentInput {
   amount: number;
   method: PaymentMethod;
   reference?: string;
-  /** Optionnel : rattache le paiement a une echeance precise (sinon FIFO) */
+  /** Optionnel : rattache le paiement a une échéance precise (sinon FIFO) */
   installmentId?: string;
   /** Autoriser un paiement > solde du (surplus -> credit eleve) */
   allowOverpayment?: boolean;

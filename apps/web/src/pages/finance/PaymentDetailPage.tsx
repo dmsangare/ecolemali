@@ -55,7 +55,7 @@ export function PaymentDetailPage() {
 
   const handleDownloadPdf = async () => {
     if (!payment?.id || !payment.receiptNumber) {
-      alert("Aucun recu associe a ce paiement");
+      alert("Aucun reçu associe a ce paiement");
       return;
     }
     setDownloading(true);
@@ -65,7 +65,7 @@ export function PaymentDetailPage() {
       // Il faut recuperer le receiptId depuis le payment
       const receiptId = (payment as any).receipt?.id || (payment as any).receiptId;
       if (!receiptId) {
-        alert("Identifiant de recu introuvable");
+        alert("Identifiant de reçu introuvable");
         return;
       }
       const response = await api.get(`/receipts/${receiptId}/pdf`, {

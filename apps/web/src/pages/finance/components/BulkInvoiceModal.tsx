@@ -96,7 +96,7 @@ export function BulkInvoiceModal({ onClose }: Props) {
             <div>
               <h2 className="text-lg font-semibold">Facturer en masse</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Generez les factures de plusieurs eleves en un clic
+                Generez les factures de plusieurs élèves en un clic
               </p>
             </div>
           </div>
@@ -111,11 +111,11 @@ export function BulkInvoiceModal({ onClose }: Props) {
             <ResultPanel result={result} onClose={onClose} onReset={reset} />
           ) : (
             <>
-              {/* Annee */}
+              {/* Année */}
               <div className="rounded-md border bg-muted/30 p-3 text-sm">
-                <span className="text-muted-foreground">Annee scolaire : </span>
+                <span className="text-muted-foreground">Année scolaire : </span>
                 <span className="font-medium">
-                  {activeYear ? `${activeYear.label} (en cours)` : "Aucune annee active"}
+                  {activeYear ? `${activeYear.label} (en cours)` : "Aucune année active"}
                 </span>
               </div>
 
@@ -185,7 +185,7 @@ export function BulkInvoiceModal({ onClose }: Props) {
               {/* Preview */}
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-4 space-y-2">
-                  <p className="text-sm font-medium">Apercu</p>
+                  <p className="text-sm font-medium">Aperçu</p>
                   {preview.isPending ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -206,7 +206,7 @@ export function BulkInvoiceModal({ onClose }: Props) {
                       )}
                       {preview.data.toCreate === 0 && (
                         <p className="text-xs text-amber-700">
-                          Tous les eleves sont deja factures.
+                          Tous les élèves sont deja factures.
                         </p>
                       )}
                     </div>
@@ -223,7 +223,7 @@ export function BulkInvoiceModal({ onClose }: Props) {
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
                   Les montants proviennent de la grille tarifaire du niveau de chaque eleve.
-                  Les eleves deja factures sont ignores automatiquement.
+                  Les élèves deja factures sont ignores automatiquement.
                 </div>
               </div>
 

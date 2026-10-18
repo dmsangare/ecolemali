@@ -156,7 +156,7 @@ export function GenerateIdCardsModal({
           {/* APERCU (generique) */}
           <div className="rounded-md border p-4 bg-muted/30">
             <p className="text-xs text-muted-foreground mb-3 text-center">
-              Apercu (carte generique)
+              Aperçu (carte generique)
             </p>
             <div className="mx-auto w-64 h-40 rounded border-2 border-primary overflow-hidden bg-white shadow-sm">
               <div className="bg-primary text-white px-3 py-1.5 flex items-center gap-2">

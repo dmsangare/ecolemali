@@ -11,7 +11,7 @@ const KEY_AY = "academic-years";
 const KEY_INV = "invoices";
 
 /**
- * Recupere l'apercu de la cloture financiere pour une annee.
+ * Recupere l'apercu de la clôture financiere pour une annee.
  */
 export function useFinanceClosurePreview(yearId: string | undefined) {
   return useQuery({
@@ -23,7 +23,7 @@ export function useFinanceClosurePreview(yearId: string | undefined) {
 }
 
 /**
- * Execute la cloture financiere (report des impayes/credits).
+ * Execute la clôture financiere (report des impayes/credits).
  */
 export function useExecuteFinanceClosure() {
   const qc = useQueryClient();

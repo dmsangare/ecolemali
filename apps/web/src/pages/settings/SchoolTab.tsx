@@ -57,7 +57,7 @@ export function SchoolTab() {
       return;
     }
 
-    // Apercu local immediat
+    // Aperçu local immediat
     const reader = new FileReader();
     reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -138,7 +138,7 @@ export function SchoolTab() {
   const onSubmit = async (data: any) => {
     if (!school) {
       alert(
-        "Aucune ecole configuree. Veuillez d'abord creer votre etablissement."
+        "Aucune ecole configuree. Veuillez d'abord créer votre etablissement."
       );
       return;
     }
@@ -165,7 +165,7 @@ export function SchoolTab() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-6">
-            {/* Apercu */}
+            {/* Aperçu */}
             <div className="h-28 w-28 rounded-lg border-2 border-dashed border-input bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
               {logoPreview || school?.logoUrl ? (
                 <img

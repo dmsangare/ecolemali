@@ -150,7 +150,7 @@ export function CreatePaymentModal({
               <div>
                 <h2 className="text-lg font-semibold">Encaisser un paiement</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Selectionnez un eleve puis sa facture
+                  Selectionnez un élève puis sa facture
                 </p>
               </div>
             </div>
@@ -212,7 +212,7 @@ export function CreatePaymentModal({
                                   {inv.number}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  Total : {formatFCFA(inv.totalAmount)} · Paye : {formatFCFA(inv.paidAmount)}
+                                  Total : {formatFCFA(inv.totalAmount)} · Payé : {formatFCFA(inv.paidAmount)}
                                 </p>
                               </div>
                             </div>
@@ -330,7 +330,7 @@ export function CreatePaymentModal({
                 <div className="rounded-lg bg-green-50/50 border border-green-200 p-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-xs text-muted-foreground">Eleve</p>
+                      <p className="text-xs text-muted-foreground">Élève</p>
                       <p className="font-medium">
                         {student?.lastName} {student?.firstName}
                       </p>

@@ -41,9 +41,9 @@ export function StudentDetailPage() {
       <div className="p-6">
         <Card className="border-destructive">
           <CardContent className="pt-6 text-center space-y-4">
-            <p className="text-destructive font-medium">Eleve introuvable</p>
+            <p className="text-destructive font-medium">Élève introuvable</p>
             <p className="text-sm text-muted-foreground">
-              Cet eleve n existe pas ou a ete supprime.
+              Cet élève n existe pas ou a ete supprime.
             </p>
             <Button variant="outline" onClick={() => navigate("/students")}>
               Retour a la liste
@@ -69,7 +69,7 @@ export function StudentDetailPage() {
             </TabsTrigger>
             <TabsTrigger value="school" className="flex items-center gap-2 whitespace-nowrap">
               <GraduationCap className="h-4 w-4" />
-              <span className="hidden sm:inline">Scolarite</span>
+              <span className="hidden sm:inline">Scolarité</span>
             </TabsTrigger>
             <TabsTrigger value="family" className="flex items-center gap-2 whitespace-nowrap">
               <Users className="h-4 w-4" />
@@ -87,7 +87,7 @@ export function StudentDetailPage() {
             )}
             <TabsTrigger value="discipline" className="flex items-center gap-2 whitespace-nowrap">
               <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Sante</span>
+              <span className="hidden sm:inline">Santé</span>
             </TabsTrigger>
             <TabsTrigger value="attendance" className="flex items-center gap-2 whitespace-nowrap">
               <Calendar className="h-4 w-4" />

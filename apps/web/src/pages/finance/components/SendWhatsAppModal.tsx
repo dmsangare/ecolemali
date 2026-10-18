@@ -202,7 +202,7 @@ export function SendWhatsAppModal({
             <div>
               <h2 className="text-lg font-semibold">Envoyer par WhatsApp</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Recu de {formatFCFA(paymentAmount)} pour {student.firstName}{" "}
+                Reçu de {formatFCFA(paymentAmount)} pour {student.firstName}{" "}
                 {student.lastName}
               </p>
             </div>

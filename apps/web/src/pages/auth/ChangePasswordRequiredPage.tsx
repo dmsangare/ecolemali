@@ -44,7 +44,7 @@ export function ChangePasswordRequiredPage() {
     setLoading(true);
     try {
       await authApi.changePassword({ currentPassword, newPassword, confirmPassword });
-      toast.success("Mot de passe modifie avec succes");
+      toast.success("Mot de passe modifié avec succes");
       // Rafraichir le user pour recuperer mustChangePassword = false
       await refreshUser();
       navigate("/dashboard");

@@ -111,7 +111,7 @@ export function TopStudentsPodium() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-4">
-            Les meilleurs eleves apparaitront ici apres la publication des
+            Les meilleurs élèves apparaitront ici apres la publication des
             bulletins.
           </p>
         </CardContent>

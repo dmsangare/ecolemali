@@ -101,7 +101,7 @@ export function InvoicePanel({
 
   return (
     <div className="space-y-3">
-      {/* En-tete eleve + facture */}
+      {/* En-tete élève + facture */}
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-3">

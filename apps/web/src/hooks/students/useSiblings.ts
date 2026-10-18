@@ -17,7 +17,7 @@ export interface Sibling {
 
 /**
  * Hook qui cherche les freres/soeurs d'un eleve
- * (autres eleves partageant au moins un tuteur).
+ * (autres élèves partageant au moins un tuteur).
  */
 export function useSiblings(studentId: string | undefined) {
   return useQuery({

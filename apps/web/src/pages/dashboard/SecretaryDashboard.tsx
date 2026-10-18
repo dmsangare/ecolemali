@@ -54,7 +54,7 @@ export function SecretaryDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total eleves actifs
+              Total élèves actifs
             </CardTitle>
             <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
@@ -73,9 +73,9 @@ export function SecretaryDashboard() {
           <Link to="/students/new">
             <UserPlus className="h-5 w-5 mr-3" />
             <div className="text-left">
-              <div className="font-semibold">Nouvel eleve</div>
+              <div className="font-semibold">Nouvel élève</div>
               <div className="text-xs text-muted-foreground">
-                Creer une inscription
+                Créer une inscription
               </div>
             </div>
           </Link>
@@ -84,7 +84,7 @@ export function SecretaryDashboard() {
           <Link to="/students">
             <Users className="h-5 w-5 mr-3" />
             <div className="text-left">
-              <div className="font-semibold">Liste des eleves</div>
+              <div className="font-semibold">Liste des élèves</div>
               <div className="text-xs text-muted-foreground">
                 Consulter / modifier
               </div>
@@ -104,18 +104,18 @@ export function SecretaryDashboard() {
         </Button>
       </div>
 
-      {/* Derniers eleves */}
+      {/* Derniers élèves */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
-            Derniers eleves inscrits
+            Derniers élèves inscrits
           </CardTitle>
         </CardHeader>
         <CardContent>
           {recentStudents.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Aucun eleve enregistre
+              Aucun élève enregistre
             </p>
           ) : (
             <div className="space-y-2">
@@ -142,7 +142,7 @@ export function SecretaryDashboard() {
         </CardContent>
       </Card>
 
-      {/* Top eleves */}
+      {/* Top élèves */}
       <TopStudentsPodium />
     </div>
   );

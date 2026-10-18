@@ -183,7 +183,7 @@ export function StudentFormPage() {
     if (!school.cycle) errs.cycle = "Le cycle est requis";
     if (!school.levelId) errs.levelId = "Le niveau est requis";
     if (!school.classId) errs.classId = "La classe est requise";
-    if (!school.academicYearId) errs.academicYearId = "L annee scolaire est requise";
+    if (!school.academicYearId) errs.academicYearId = "L année scolaire est requise";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -365,7 +365,7 @@ export function StudentFormPage() {
     },
     {
       id: "school",
-      title: "Scolarite",
+      title: "Scolarité",
       description: "Classe, niveau",
       icon: <GraduationCap className="h-4 w-4" />,
       content: (

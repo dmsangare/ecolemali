@@ -97,7 +97,7 @@ export function StudentsListPage() {
   return (
     <div className="p-6 space-y-6">
       <PageHeader
-        title="Eleves"
+        title="Élèves"
         description={`${meta?.total || 0} eleve(s) enregistre(s)`}
         icon={<Users className="h-5 w-5" />}
         actions={
@@ -150,7 +150,7 @@ export function StudentsListPage() {
             value={stats.ancienCount}
             icon={<FileText className="h-5 w-5" />}
             variant="info"
-            description="Deja la l annee derniere"
+            description="Deja la l année derniere"
           />
           <StatsCard
             title="Redoublants"
@@ -187,10 +187,10 @@ export function StudentsListPage() {
             emptyState={
               <EmptyState
                 icon={<Users className="h-8 w-8 text-muted-foreground/50" />}
-                title={hasFilters ? "Aucun resultat" : "Aucun eleve"}
+                title={hasFilters ? "Aucun resultat" : "Aucun élève"}
                 description={
                   hasFilters
-                    ? "Aucun eleve ne correspond a vos criteres de recherche."
+                    ? "Aucun élève ne correspond a vos criteres de recherche."
                     : "Commencez par ajouter votre premier eleve."
                 }
                 action={

@@ -164,7 +164,7 @@ export function HonorRollPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tableau d'honneur</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Les trois meilleurs eleves de chaque cycle, d'apres les bulletins publies.
+            Les trois meilleurs élèves de chaque cycle, d'apres les bulletins publies.
           </p>
         </div>
         <div className="flex gap-2">
@@ -195,7 +195,7 @@ export function HonorRollPage() {
             {school?.logoUrl && (
               <img src={school.logoUrl} alt="" className="mx-auto mb-2 h-16 w-16 object-contain" />
             )}
-            <p className="text-lg font-bold uppercase tracking-wide">{school?.name || "Etablissement"}</p>
+            <p className="text-lg font-bold uppercase tracking-wide">{school?.name || "Établissement"}</p>
             {school?.motto && <p className="text-xs italic text-gray-600">{school.motto}</p>}
             <div className="mx-auto my-4 h-px w-40 bg-gray-300" />
             <div className="flex items-center justify-center gap-2" style={{ color: "#b8860b" }}>
@@ -221,7 +221,7 @@ export function HonorRollPage() {
               ))}
               <footer className="mt-10 flex items-end justify-between text-sm text-gray-700">
                 <p className="max-w-md italic">
-                  Felicitations a nos meilleurs eleves et a leurs familles. Que cet exemple en inspire beaucoup d'autres.
+                  Felicitations a nos meilleurs élèves et a leurs familles. Que cet exemple en inspire beaucoup d'autres.
                 </p>
                 <div className="text-center">
                   <p>La Direction</p>

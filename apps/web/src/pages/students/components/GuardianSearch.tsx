@@ -113,7 +113,7 @@ export function GuardianSearch({
               >
                 <UserPlus className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  Creer un nouveau {label.toLowerCase()}
+                  Créer un nouveau {label.toLowerCase()}
                 </span>
               </button>
             </>
@@ -129,7 +129,7 @@ export function GuardianSearch({
                 onClick={onCreateNew}
               >
                 <UserPlus className="h-4 w-4" />
-                Creer un nouveau {label.toLowerCase()}
+                Créer un nouveau {label.toLowerCase()}
               </Button>
             </div>
           )}
@@ -145,7 +145,7 @@ export function GuardianSearch({
           className="w-full"
         >
           <UserPlus className="h-4 w-4" />
-          Creer un nouveau {label.toLowerCase()}
+          Créer un nouveau {label.toLowerCase()}
         </Button>
       )}
     </div>

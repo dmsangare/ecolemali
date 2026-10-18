@@ -69,9 +69,9 @@ export function RemoveStudentModal({
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold">Retirer l eleve</h2>
+              <h2 className="text-lg font-semibold">Retirer l élève</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Cette action retirera l eleve de la classe.
+                Cette action retirera l élève de la classe.
               </p>
             </div>
             <Button
@@ -87,7 +87,7 @@ export function RemoveStudentModal({
 
           {/* NOM ELEVE */}
           <div className="bg-muted/50 rounded-md p-3 border">
-            <p className="text-xs text-muted-foreground mb-0.5">Eleve</p>
+            <p className="text-xs text-muted-foreground mb-0.5">Élève</p>
             <p className="font-medium">{studentName}</p>
           </div>
 
@@ -105,7 +105,7 @@ export function RemoveStudentModal({
 
           {/* INFO */}
           <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2">
-            💡 L eleve ne sera pas supprime. Vous pourrez le reaffecter a
+            💡 L élève ne sera pas supprime. Vous pourrez le reaffecter a
             une autre classe.
           </div>
         </div>

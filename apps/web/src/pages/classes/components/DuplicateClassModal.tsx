@@ -151,7 +151,7 @@ export function DuplicateClassModal({
             {codeExists && (
               <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded p-2">
                 ⚠️ Le code <strong>{code}</strong> existe deja pour cette
-                annee scolaire.
+                année scolaire.
               </div>
             )}
 
@@ -207,7 +207,7 @@ export function DuplicateClassModal({
             <div className="flex items-start gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2">
               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <span>
-                Les <strong>eleves ne seront pas copies</strong>. La nouvelle
+                Les <strong>élèves ne seront pas copies</strong>. La nouvelle
                 classe sera vide.
               </span>
             </div>

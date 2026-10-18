@@ -81,7 +81,7 @@ export function ClosingYearCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Calendar className="h-5 w-5 text-primary" />
-          Cloture de l'annee {summary.year.label}
+          Clôture de l'annee {summary.year.label}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Verifiez l'etat de l'annee avant de la cloturer
@@ -130,7 +130,7 @@ export function ClosingYearCard() {
               ))}
             </div>
             <p className="text-xs text-orange-600 italic">
-              Ces avertissements n'empechent pas la cloture mais il est recommande de les traiter.
+              Ces avertissements n'empechent pas la clôture mais il est recommande de les traiter.
             </p>
           </div>
         )}
@@ -140,7 +140,7 @@ export function ClosingYearCard() {
           <div className="rounded-lg border border-green-300 bg-green-100 p-4 flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-700" />
             <div>
-              <p className="font-medium text-green-800">Annee prete a etre cloturee</p>
+              <p className="font-medium text-green-800">Année prete a etre cloturee</p>
               <p className="text-xs text-green-700">Toutes les verifications sont passees.</p>
             </div>
           </div>

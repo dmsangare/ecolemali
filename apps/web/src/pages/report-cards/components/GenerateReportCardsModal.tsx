@@ -52,7 +52,7 @@ export function GenerateReportCardsModal({ onClose }: Props) {
     staleTime: 10 * 60_000,
   });
 
-  // Annee courante
+  // Année courante
   useEffect(() => {
     if (academicYears && !academicYearId) {
       const current = academicYears.find((y: any) => y.isCurrent) || academicYears[0];

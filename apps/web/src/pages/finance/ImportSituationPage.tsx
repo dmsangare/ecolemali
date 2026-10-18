@@ -52,7 +52,7 @@ export function ImportSituationPage() {
   const [result, setResult] = useState<ConfirmResult | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Annee scolaire : on charge la liste et on prend la courante
+  // Année scolaire : on charge la liste et on prend la courante
   const { data: academicYears } = useQuery({
     queryKey: ["academic-years", "list"],
     queryFn: async () => {
@@ -73,7 +73,7 @@ export function ImportSituationPage() {
   // ============================================================
   const handleDownloadTemplate = async () => {
     if (!academicYearId) {
-      toast.error("Selectionnez une annee scolaire");
+      toast.error("Selectionnez une année scolaire");
       return;
     }
     setDownloading(true);
@@ -112,7 +112,7 @@ export function ImportSituationPage() {
         return;
       }
       if (!academicYearId) {
-        toast.error("Selectionnez d'abord une annee scolaire");
+        toast.error("Selectionnez d'abord une année scolaire");
         return;
       }
 
@@ -216,7 +216,7 @@ export function ImportSituationPage() {
         </div>
       </div>
 
-      {/* Etape 1 : Annee + template */}
+      {/* Etape 1 : Année + template */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export function ImportSituationPage() {
           <div className="flex items-end gap-3 flex-wrap">
             <div className="flex-1 min-w-[200px]">
               <label className="text-xs text-muted-foreground block mb-1">
-                Annee scolaire
+                Année scolaire
               </label>
               <select
                 value={academicYearId}
@@ -260,12 +260,12 @@ export function ImportSituationPage() {
           <div className="text-xs text-muted-foreground bg-muted/50 rounded p-3 space-y-1">
             <p>Le template contient 3 onglets :</p>
             <ul className="list-disc list-inside ml-2 space-y-0.5">
-              <li><strong>SITUATION</strong> : 1 ligne par eleve (pre-remplie)</li>
+              <li><strong>SITUATION</strong> : 1 ligne par élève (pre-remplie)</li>
               <li><strong>INSTRUCTIONS</strong> : mode d'emploi detaille</li>
               <li><strong>EXEMPLE</strong> : 3 lignes de demonstration</li>
             </ul>
             <p className="mt-2">
-              Les eleves ayant deja une facture seront ignores automatiquement.
+              Les élèves ayant deja une facture seront ignores automatiquement.
             </p>
           </div>
         </CardContent>

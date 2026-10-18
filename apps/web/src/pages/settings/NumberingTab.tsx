@@ -77,7 +77,7 @@ export function NumberingTab() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-medium text-sm text-blue-900">Numerotation</p>
+              <p className="font-medium text-sm text-blue-900">Numérotation</p>
               <p className="text-xs text-blue-700 mt-0.5">
                 Personnalisez les prefixes des numeros de factures et de recus.
                 Format : <strong>PREFIXE-ANNEE-NUMERO</strong> (ex. FAC-2026-000123).

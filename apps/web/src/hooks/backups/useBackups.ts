@@ -67,7 +67,7 @@ export function useCreateBackup() {
 }
 
 /**
- * Supprime une sauvegarde.
+ * Supprimé une sauvegarde.
  */
 export function useDeleteBackup() {
   const qc = useQueryClient();

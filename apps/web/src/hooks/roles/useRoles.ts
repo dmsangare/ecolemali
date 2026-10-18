@@ -42,7 +42,7 @@ export function useRole(id: string | null) {
 }
 
 /**
- * Creer un role.
+ * Créer un role.
  */
 export function useCreateRole() {
   const qc = useQueryClient();

@@ -109,7 +109,7 @@ export function CycleSection({
               className={cn(colors.button)}
             >
               <Plus className="h-4 w-4 mr-1.5" />
-              Creer une classe
+              Créer une classe
             </Button>
           </CardContent>
         </Card>

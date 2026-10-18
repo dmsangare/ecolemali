@@ -11,7 +11,7 @@ const KEY = "year-rollover";
 const KEY_AY = "academic-years";
 
 /**
- * Mutation pour obtenir un apercu du passage (aucune ecriture).
+ * Mutation pour obtenir un aperçu du passage (aucune ecriture).
  * On utilise useMutation (pas useQuery) car c'est un POST avec body.
  */
 export function useYearRolloverPreview() {
@@ -32,7 +32,7 @@ export function useYearRolloverExecute() {
       yearRolloverApi.execute(input),
     onSuccess: (result) => {
       toast.success(
-        `Annee ${result.newYearLabel} creee (${result.enrollmentsCreated} eleves inscrits)`,
+        `Annee ${result.newYearLabel} creee (${result.enrollmentsCreated} élèves inscrits)`,
       );
       // Rafraichir les listes d'annees + classes + eleves
       qc.invalidateQueries({ queryKey: [KEY_AY] });

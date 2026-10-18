@@ -136,7 +136,7 @@ export function ClassesListPage() {
           <div>
             <p className="font-medium">Aucune classe pour le moment</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Commencez par creer votre premiere classe
+              Commencez par créer votre premiere classe
             </p>
           </div>
           {canCreate && (

@@ -81,7 +81,7 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/honor-roll" element={<HonorRollPage />} />
 
-          {/* Eleves */}
+          {/* Élèves */}
           <Route
             path="/students"
             element={
@@ -176,7 +176,7 @@ export function AppRoutes() {
             }
           />
 
-          {/* Matieres */}
+          {/* Matières */}
           <Route
             path="/subjects"
             element={
@@ -212,7 +212,7 @@ export function AppRoutes() {
             }
           />
 
-          {/* Presences */}
+          {/* Présences */}
           <Route
             path="/attendance"
             element={
@@ -450,7 +450,7 @@ export function AppRoutes() {
             }
           />
 
-          {/* Parametres */}
+          {/* Paramètres */}
           <Route
             path="/settings"
             element={

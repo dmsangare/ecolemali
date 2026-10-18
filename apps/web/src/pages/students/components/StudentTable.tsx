@@ -112,7 +112,7 @@ export function StudentTable({
     },
     {
       key: "lastName",
-      header: "Eleve",
+      header: "Élève",
       sortable: true,
       cell: (student) => (
         <div className="flex flex-col">

@@ -55,7 +55,7 @@ export function UsersTab() {
           <p className="text-xs text-muted-foreground mt-0.5">
             {school?.sigle
               ? `Domaine email : @${school.sigle.toLowerCase()}.ml`
-              : "Definissez un sigle dans l onglet Etablissement pour les emails"}
+              : "Definissez un sigle dans l onglet Établissement pour les emails"}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -469,7 +469,7 @@ function CreateUserModal({
                 ) : (
                   <>
                     <Plus className="h-4 w-4" />
-                    Creer l utilisateur
+                    Créer l utilisateur
                   </>
                 )}
               </Button>

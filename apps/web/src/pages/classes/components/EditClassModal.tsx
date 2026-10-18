@@ -29,7 +29,7 @@ export function EditClassModal({ classItem, onClose }: EditClassModalProps) {
   const isFirstCycle = cycle === "PREMIER_CYCLE";
   const teacherRequired = isFirstCycle;
 
-  // Auto-generation code depuis nom (sauf si l'utilisateur a modifie manuellement)
+  // Auto-generation code depuis nom (sauf si l'utilisateur a modifié manuellement)
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(true);
 
   useEffect(() => {

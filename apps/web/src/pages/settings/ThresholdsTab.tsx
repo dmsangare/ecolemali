@@ -166,7 +166,7 @@ export function ThresholdsTab() {
       {/* APERCU */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Apercu</CardTitle>
+          <CardTitle className="text-base">Aperçu</CardTitle>
           <p className="text-sm text-muted-foreground">
             Voici comment les appreciations seront attribuees.
           </p>

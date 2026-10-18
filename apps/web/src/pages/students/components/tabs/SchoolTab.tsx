@@ -207,7 +207,7 @@ function InfoItem({
  * Timeline du parcours scolaire.
  */
 function ParcoursTimeline({ pathways }: { pathways: StudentPathway[] }) {
-  // Trier par annee (plus recent en premier)
+  // Trier par année (plus recent en premier)
   const sorted = [...pathways].sort((a, b) =>
     (b.academicYear?.label || "").localeCompare(a.academicYear?.label || ""),
   );

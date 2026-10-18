@@ -34,7 +34,7 @@ Tel : {schoolPhone}`,
 const VARIABLES_INFO = [
   { var: "{parentName}", desc: "Nom du parent/tuteur" },
   { var: "{studentName}", desc: "Nom complet de l'eleve" },
-  { var: "{balance}", desc: "Solde impaye (ex: 110 000 FCFA)" },
+  { var: "{balance}", desc: "Solde impayé (ex: 110 000 FCFA)" },
   { var: "{schoolName}", desc: "Nom de l'ecole" },
   { var: "{schoolPhone}", desc: "Telephone de l'ecole" },
   { var: "{schoolAddress}", desc: "Adresse de l'ecole" },

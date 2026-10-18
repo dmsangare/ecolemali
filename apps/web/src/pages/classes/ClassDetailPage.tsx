@@ -52,8 +52,8 @@ export function ClassDetailPage() {
 
   const tabs: { key: TabKey; label: string; emoji: string }[] = [
     { key: "info", label: "Infos", emoji: "📋" },
-    { key: "students", label: "Eleves", emoji: "👥" },
-    { key: "subjects", label: "Matieres", emoji: "📚" },
+    { key: "students", label: "Élèves", emoji: "👥" },
+    { key: "subjects", label: "Matières", emoji: "📚" },
     { key: "teachers", label: "Profs", emoji: "👨‍🏫" },
     { key: "timetable", label: "EDT", emoji: "📅" },
   ];

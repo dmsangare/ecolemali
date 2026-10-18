@@ -27,7 +27,7 @@ type Step = 1 | 2 | 3 | 4;
 const STEPS: Array<{ n: Step; label: string; icon: any }> = [
   { n: 1, label: "Nouvelle annee", icon: Calendar },
   { n: 2, label: "Structure", icon: GraduationCap },
-  { n: 3, label: "Eleves", icon: Users },
+  { n: 3, label: "Élèves", icon: Users },
   { n: 4, label: "Confirmation", icon: CheckCircle2 },
 ];
 
@@ -53,7 +53,7 @@ function suggestDates(label: string): { start: string; end: string } {
 }
 
 export function YearRolloverPage() {
-  // Etat global du wizard
+  // État global du wizard
   const [step, setStep] = useState<Step>(1);
   const [previewResult, setPreviewResult] =
     useState<PreviewYearRolloverResult | null>(null);
@@ -241,7 +241,7 @@ export function YearRolloverPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Creez l'annee scolaire suivante en recopiant la structure et en
-          inscrivant les eleves selon leurs resultats annuels.
+          inscrivant les élèves selon leurs resultats annuels.
         </p>
       </div>
 
@@ -422,7 +422,7 @@ function Step1Config(p: Step1Props) {
 
         {/* ANNEE SOURCE */}
         <div>
-          <Label htmlFor="fromYear">Annee source *</Label>
+          <Label htmlFor="fromYear">Année source *</Label>
           <select
             id="fromYear"
             value={p.fromYearId}
@@ -442,7 +442,7 @@ function Step1Config(p: Step1Props) {
 
         {/* LIBELLE NOUVELLE ANNEE */}
         <div>
-          <Label htmlFor="newLabel">Libelle de la nouvelle annee *</Label>
+          <Label htmlFor="newLabel">Libelle de la nouvelle année *</Label>
           <Input
             id="newLabel"
             value={p.newLabel}
@@ -481,7 +481,7 @@ function Step1Config(p: Step1Props) {
 
         {/* PERIODES A CLONER */}
         <div>
-          <Label>Periodes a creer *</Label>
+          <Label>Periodes a créer *</Label>
           <div className="mt-2 space-y-2">
             <label className="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/30">
               <input

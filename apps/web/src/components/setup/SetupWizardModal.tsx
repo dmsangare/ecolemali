@@ -65,14 +65,14 @@ export function SetupWizardModal({ onClose }: Props) {
                 <h3 className="font-semibold mb-2">Bienvenue dans votre configuration</h3>
                 <p className="text-sm text-muted-foreground">
                   Nous allons vous aider a configurer les elements essentiels de votre
-                  etablissement. Vous pourrez modifier ces parametres a tout moment.
+                  etablissement. Vous pourrez modifier ces paramètres a tout moment.
                 </p>
               </div>
 
               {status && (
                 <Card>
                   <CardContent className="p-4 space-y-3">
-                    <p className="font-medium text-sm">Etat actuel</p>
+                    <p className="font-medium text-sm">État actuel</p>
                     <div className="space-y-2">
                       {Object.entries(status.steps).map(([key, done]) => {
                         const LABELS: Record<string, string> = {
@@ -81,9 +81,9 @@ export function SetupWizardModal({ onClose }: Props) {
                           periods: "Periodes (trimestres / mois)",
                           levels: "Niveaux",
                           classes: "Classes",
-                          subjects: "Matieres",
+                          subjects: "Matières",
                           users: "Utilisateurs",
-                          students: "Eleves",
+                          students: "Élèves",
                         };
                         return (
                           <div key={key} className="flex items-center gap-2 text-sm">
@@ -105,9 +105,9 @@ export function SetupWizardModal({ onClose }: Props) {
 
               {status && !status.academicYear && (
                 <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm">
-                  <p className="font-medium text-orange-800">Annee scolaire manquante</p>
+                  <p className="font-medium text-orange-800">Année scolaire manquante</p>
                   <p className="text-orange-700 mt-1">
-                    Veuillez d'abord creer une annee scolaire dans les parametres.
+                    Veuillez d'abord créer une année scolaire dans les parametres.
                   </p>
                 </div>
               )}
@@ -200,7 +200,7 @@ export function SetupWizardModal({ onClose }: Props) {
               ) : (
                 <CheckCircle2 className="h-4 w-4 mr-2" />
               )}
-              Creer les periodes
+              Créer les periodes
             </Button>
           )}
         </div>

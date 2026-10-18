@@ -176,7 +176,7 @@ export function CreateAssessmentModal({ onClose }: Props) {
             <div>
               <Label className="flex items-center gap-2">
                 <Calendar className="h-3.5 w-3.5" />
-                Annee scolaire
+                Année scolaire
               </Label>
               <select
                 value={academicYearId}
@@ -371,7 +371,7 @@ export function CreateAssessmentModal({ onClose }: Props) {
               {createMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Creer l evaluation
+              Créer l evaluation
             </Button>
           </div>
         </form>

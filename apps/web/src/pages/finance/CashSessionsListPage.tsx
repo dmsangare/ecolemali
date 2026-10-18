@@ -159,7 +159,7 @@ export function CashSessionsListPage() {
               </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-gray-500 uppercase">Depenses</p>
+              <p className="text-xs text-gray-500 uppercase">Dépenses</p>
               <p className="text-xl font-bold text-red-600">
                 -{formatCurrency(totalExpenses)}
               </p>
@@ -245,7 +245,7 @@ export function CashSessionsListPage() {
             ) : (sessionDetail.payments?.length ?? 0) === 0 &&
               (sessionDetail.expenses?.length ?? 0) === 0 ? (
               <div className="text-center text-gray-500 py-6 text-sm">
-                Aucun mouvement enregistre pour cette session.
+                Aucun mouvement enregistré pour cette session.
               </div>
             ) : (
               <table className="w-full text-sm">
@@ -339,7 +339,7 @@ export function CashSessionsListPage() {
           <table className="w-full text-sm">
             <thead className="text-left text-gray-500 border-b">
               <tr>
-                <th className="pb-2">Date cloture</th>
+                <th className="pb-2">Date clôture</th>
                 <th className="pb-2">Caissier</th>
                 <th className="pb-2 text-right">Fond</th>
                 <th className="pb-2 text-right">Theorique</th>

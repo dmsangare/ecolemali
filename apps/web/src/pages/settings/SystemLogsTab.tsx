@@ -47,7 +47,7 @@ export function SystemLogsTab() {
               <Bug className="h-5 w-5 text-destructive" />
             </div>
             <div>
-              <h3 className="font-semibold">Journal systeme</h3>
+              <h3 className="font-semibold">Journal système</h3>
               <p className="text-xs text-muted-foreground">
                 {total} erreur(s) serveur enregistree(s) — erreurs 5xx
               </p>
@@ -97,7 +97,7 @@ export function SystemLogsTab() {
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
               <AlertOctagon className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              Aucune erreur systeme enregistree
+              Aucune erreur système enregistree
               <p className="text-xs mt-1">Les erreurs 5xx apparaitront ici automatiquement.</p>
             </div>
           ) : (

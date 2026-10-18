@@ -77,7 +77,7 @@ export const backupsApi = {
   },
 
   /**
-   * Supprime une sauvegarde (record + fichiers).
+   * Supprimé une sauvegarde (record + fichiers).
    */
   async remove(id: string): Promise<void> {
     await api.delete(`/backups/${id}`);

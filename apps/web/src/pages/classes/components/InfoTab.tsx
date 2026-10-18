@@ -12,7 +12,7 @@ export function InfoTab({ classId }: { classId: string }) {
     <div className="space-y-6">
       {/* STATS CARDS */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Eleves" value={stats.total} icon="👥" />
+        <StatCard label="Élèves" value={stats.total} icon="👥" />
         <StatCard label="Garcons" value={stats.boys} icon="👦" />
         <StatCard label="Filles" value={stats.girls} icon="👧" />
         <StatCard

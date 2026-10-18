@@ -80,10 +80,10 @@ export function FinanceClosureModal({ year, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-green-900">
-                Cloture financiere effectuee
+                Clôture financiere effectuee
               </h2>
               <p className="text-sm text-green-700 mt-1">
-                Annee <strong>{year.label}</strong>
+                Année <strong>{year.label}</strong>
                 {result.nextYearLabel && (
                   <> reportée sur <strong>{result.nextYearLabel}</strong></>
                 )}
@@ -157,10 +157,10 @@ export function FinanceClosureModal({ year, onClose }: Props) {
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
-              Cloture financiere
+              Clôture financiere
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Annee <strong>{year.label}</strong>
+              Année <strong>{year.label}</strong>
             </p>
           </div>
           <Button

@@ -103,7 +103,7 @@ export function ImportStudentsPage() {
       .map((r) => r.data);
 
     if (students.length === 0) {
-      toast.error("Aucun eleve valide a importer");
+      toast.error("Aucun élève valide a importer");
       return;
     }
 
@@ -141,7 +141,7 @@ export function ImportStudentsPage() {
         </button>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <FileSpreadsheet className="h-6 w-6" />
-          Importer des eleves depuis Excel
+          Importer des élèves depuis Excel
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Importez votre liste d'eleves existante en 3 etapes
@@ -253,7 +253,7 @@ export function ImportStudentsPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div>
-              <p className="font-medium">Etape 3 — Verifier l'apercu</p>
+              <p className="font-medium">Etape 3 — Vérifier l'apercu</p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Verifiez les donnees avant de valider l'import
               </p>
@@ -299,7 +299,7 @@ export function ImportStudentsPage() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="font-medium text-sm flex items-center gap-2">
                     <Eye className="h-4 w-4" />
-                    Apercu des eleves detectes
+                    Aperçu des élèves detectes
                   </p>
                   <div className="flex items-center gap-1">
                     <Button

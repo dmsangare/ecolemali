@@ -65,7 +65,7 @@ export function StudentHeader({ student, onPrint }: StudentHeaderProps) {
       {/* Carte principale */}
       <div className="rounded-xl border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
-          {/* Infos eleve */}
+          {/* Infos élève */}
           <div className="flex items-start gap-5">
             <Avatar className="h-20 w-20">
               <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
@@ -186,7 +186,7 @@ export function StudentHeader({ student, onPrint }: StudentHeaderProps) {
             <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-900">
-                Solde impaye : {formatCurrency(unpaidAmount)}
+                Solde impayé : {formatCurrency(unpaidAmount)}
               </p>
               <p className="text-xs text-red-700 mt-0.5">
                 Consultez l onglet Finances pour le detail

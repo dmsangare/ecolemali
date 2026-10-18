@@ -126,7 +126,7 @@ export function FamilyTab({ student }: FamilyTabProps) {
                 Aucun frere ou soeur inscrit dans l etablissement
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Cette section liste les eleves partageant le meme tuteur
+                Cette section liste les élèves partageant le meme tuteur
               </p>
             </div>
           )}

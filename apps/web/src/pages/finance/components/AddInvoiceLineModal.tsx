@@ -253,7 +253,7 @@ export function AddInvoiceLineModal({
                       <AlertCircle className="h-4 w-4 text-orange-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-orange-900">
-                          Montant modifie - motif obligatoire
+                          Montant modifié - motif obligatoire
                         </p>
                         <p className="text-xs text-orange-700 mt-0.5">
                           Ecart : {formatFCFA(unitAmountNum - officialAmount)}

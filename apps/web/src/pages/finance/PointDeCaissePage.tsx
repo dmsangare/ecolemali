@@ -45,7 +45,7 @@ export function PointDeCaissePage() {
     date: string;
   } | null>(null);
 
-  // Charger le detail complet (avec guardians) quand un eleve est selectionne
+  // Charger le detail complet (avec guardians) quand un élève est selectionne
   const { data: studentDetail } = useStudentDetail(student?.id);
   const { data: school } = useSchool();
 
@@ -112,7 +112,7 @@ export function PointDeCaissePage() {
 
             {/* Panneau encaissement */}
             <div>
-              {/* Bouton Encaisser Famille (si eleve + guardian principal) */}
+              {/* Bouton Encaisser Famille (si élève + guardian principal) */}
               {student && studentDetail && (studentDetail.guardians?.length || 0) > 0 && (
                 <Button
                   type="button"

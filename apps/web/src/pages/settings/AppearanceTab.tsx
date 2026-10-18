@@ -66,9 +66,9 @@ export function AppearanceTab() {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Apercu en direct */}
+          {/* Aperçu en direct */}
           <div className="space-y-3">
-            <Label>Apercu</Label>
+            <Label>Aperçu</Label>
             <div
               className="rounded-lg border p-6 space-y-3"
               style={{ backgroundColor: `${color}10` }}

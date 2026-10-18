@@ -109,7 +109,7 @@ export function HonorRollTab() {
           </div>
 
           <div className="mt-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Apercu : les <strong>{topN}</strong> meilleures classes de chaque
+            Aperçu : les <strong>{topN}</strong> meilleures classes de chaque
             cycle seront affichees sur le tableau d'honneur.
           </div>
         </CardContent>

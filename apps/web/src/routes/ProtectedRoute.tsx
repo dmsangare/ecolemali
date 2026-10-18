@@ -39,7 +39,7 @@ export function ProtectedRoute({
   }
 
   // Premiere installation : si l'utilisateur n'a pas d'ecole,
-  // on le force a en creer une (sauf s'il est deja sur la page)
+  // on le force a en créer une (sauf s'il est deja sur la page)
   if (
     isAuthenticated &&
     !user?.schoolId &&

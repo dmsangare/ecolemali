@@ -71,8 +71,8 @@ export function AnnualResultsPage() {
     mutationFn: () => annualResultsApi.apply(classId, academicYearId),
     onSuccess: (res) => {
       toast.success(
-        `Passage enregistre pour ${res.applied} eleve(s)` +
-          (res.skipped ? ` (${res.skipped} ignore(s) : annee incomplete)` : ""),
+        `Passage enregistré pour ${res.applied} eleve(s)` +
+          (res.skipped ? ` (${res.skipped} ignore(s) : année incomplete)` : ""),
       );
       queryClient.invalidateQueries({ queryKey: ["annual-results"] });
     },
@@ -82,7 +82,7 @@ export function AnnualResultsPage() {
   const handleApply = () => {
     if (
       window.confirm(
-        "Enregistrer le passage en classe superieure pour les eleves dont toutes les periodes sont calculees ?",
+        "Enregistrer le passage en classe superieure pour les élèves dont toutes les periodes sont calculees ?",
       )
     ) {
       applyMutation.mutate();
@@ -97,7 +97,7 @@ export function AnnualResultsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Resultats annuels</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Résultats annuels</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             1er cycle : moyenne des compositions mensuelles, sur 10. 2eme cycle : moyenne des trimestres avec
             coefficients, sur 20.
@@ -127,7 +127,7 @@ export function AnnualResultsPage() {
 
       <div className="grid gap-3 md:grid-cols-3">
         <div>
-          <Label>Annee scolaire</Label>
+          <Label>Année scolaire</Label>
           <select
             value={academicYearId}
             onChange={(e) => setAcademicYearId(e.target.value)}
@@ -198,7 +198,7 @@ export function AnnualResultsPage() {
 
             {data.periods.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Aucune periode ({periodLabel}) pour cette annee : creez-les depuis « Generer les bulletins ».
+                Aucune periode ({periodLabel}) pour cette année : creez-les depuis « Generer les bulletins ».
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -206,7 +206,7 @@ export function AnnualResultsPage() {
                   <thead className="border-b bg-muted/40">
                     <tr className="text-left text-xs font-medium uppercase text-muted-foreground">
                       <th className="px-2 py-2">Rang</th>
-                      <th className="px-2 py-2">Eleve</th>
+                      <th className="px-2 py-2">Élève</th>
                       {data.periods.map((p) => (
                         <th key={p.id} className="px-2 py-2 text-center">
                           {p.name.replace("Composition mensuelle - ", "")}

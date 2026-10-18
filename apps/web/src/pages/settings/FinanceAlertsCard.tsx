@@ -50,7 +50,7 @@ export function FinanceAlertsCard() {
               Alertes impayes
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Colore automatiquement les soldes impayes des eleves dans le tableau de bord.
+              Colore automatiquement les soldes impayes des élèves dans le tableau de bord.
             </p>
           </div>
           <Button

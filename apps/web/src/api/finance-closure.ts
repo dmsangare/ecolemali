@@ -1,7 +1,7 @@
 import { api } from "@/lib/axios";
 
 // ============================================================
-// BLOC H — Client API cloture financiere annuelle
+// BLOC H — Client API clôture financiere annuelle
 // ============================================================
 
 export interface BalanceEntry {

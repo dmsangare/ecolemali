@@ -9,7 +9,7 @@ interface CreateAcademicYearModalProps {
 }
 
 /**
- * Genere un libelle "YYYY-YYYY" pour une annee scolaire.
+ * Genere un libelle "YYYY-YYYY" pour une année scolaire.
  */
 function suggestLabel(baseYear: number): string {
   const y1 = baseYear;
@@ -31,7 +31,7 @@ export function CreateAcademicYearModal({ onClose }: CreateAcademicYearModalProp
   const { data: school } = useSchool();
   const createMutation = useCreateAcademicYear();
 
-  // Annee suggeree par defaut : annee suivante de l'annee civile en cours
+  // Année suggeree par defaut : année suivante de l'annee civile en cours
   const currentYear = new Date().getFullYear();
   const defaultLabel = suggestLabel(currentYear);
   const defaultDates = suggestDates(currentYear);
@@ -91,7 +91,7 @@ export function CreateAcademicYearModal({ onClose }: CreateAcademicYearModalProp
             <div>
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                Nouvelle annee scolaire
+                Nouvelle année scolaire
               </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Elle sera creee en statut "En preparation"
@@ -173,11 +173,11 @@ export function CreateAcademicYearModal({ onClose }: CreateAcademicYearModalProp
               />
               <div className="flex-1">
                 <Label htmlFor="isCurrent" className="cursor-pointer">
-                  Marquer comme annee courante
+                  Marquer comme année courante
                 </Label>
                 <p className="text-xs text-muted-foreground mt-1">
                   L'annee courante est utilisee par defaut dans le tableau de bord et les formulaires.
-                  Si une autre annee est deja courante, elle sera automatiquement desactivee.
+                  Si une autre année est deja courante, elle sera automatiquement desactivee.
                 </p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export function CreateAcademicYearModal({ onClose }: CreateAcademicYearModalProp
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              Creer l'annee
+              Créer l'annee
             </Button>
           </div>
         </form>

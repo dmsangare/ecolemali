@@ -150,7 +150,7 @@ export function RemindersListPage() {
               <thead className="border-b bg-muted/40">
                 <tr>
                   <th className="text-left p-3 font-medium">Facture</th>
-                  <th className="text-left p-3 font-medium">Eleve</th>
+                  <th className="text-left p-3 font-medium">Élève</th>
                   <th className="text-left p-3 font-medium">Parent</th>
                   <th className="text-center p-3 font-medium">Retard</th>
                   <th className="text-right p-3 font-medium">Solde</th>

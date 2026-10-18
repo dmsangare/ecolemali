@@ -5,7 +5,7 @@ import type { StudentDetail } from "@/types/student";
 const KEY = "students";
 
 /**
- * Hook qui charge le detail complet d'un eleve avec toutes ses relations.
+ * Hook qui charge le detail complet d'un élève avec toutes ses relations.
  */
 export function useStudentDetail(id: string | undefined) {
   return useQuery({

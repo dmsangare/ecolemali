@@ -208,7 +208,7 @@ export function Step2School({ data, onChange, errors }: Step2SchoolProps) {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="academicYearId">
-              Annee scolaire <span className="text-destructive">*</span>
+              Année scolaire <span className="text-destructive">*</span>
             </Label>
             <select
               id="academicYearId"
@@ -216,7 +216,7 @@ export function Step2School({ data, onChange, errors }: Step2SchoolProps) {
               onChange={(e) => onChange({ academicYearId: e.target.value })}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
             >
-              <option value="">Choisir une annee</option>
+              <option value="">Choisir une année</option>
               {academicYears.map((y: any) => (
                 <option key={y.id} value={y.id}>
                   {y.label} {y.isCurrent ? "(En cours)" : ""}

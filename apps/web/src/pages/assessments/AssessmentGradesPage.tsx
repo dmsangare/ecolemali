@@ -244,9 +244,9 @@ export function AssessmentGradesPage() {
           {students.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Aucun eleve inscrit dans cette classe</p>
+              <p className="font-medium">Aucun élève inscrit dans cette classe</p>
               <p className="text-sm mt-1">
-                Ajoutez des eleves a la classe avant de saisir les notes
+                Ajoutez des élèves a la classe avant de saisir les notes
               </p>
             </div>
           ) : (

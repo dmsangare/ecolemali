@@ -13,11 +13,11 @@ interface FinanceTabProps {
 }
 
 const INVOICE_STATUS_LABELS: Record<string, string> = {
-  UNPAID: "Impaye",
+  UNPAID: "Impayé",
   PARTIAL: "Partiel",
-  PAID: "Paye",
+  PAID: "Payé",
   OVERDUE: "En retard",
-  CANCELLED: "Annule",
+  CANCELLED: "Annulé",
 };
 
 const INVOICE_STATUS_VARIANTS: Record<string, BadgeVariant> = {
@@ -125,7 +125,7 @@ export function FinanceTab({ student }: FinanceTabProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground">Total paye</p>
+              <p className="text-xs text-muted-foreground">Total payé</p>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-600">
@@ -181,7 +181,7 @@ export function FinanceTab({ student }: FinanceTabProps) {
                     <th className="px-4 py-3">Numero</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3 text-right">Montant</th>
-                    <th className="px-4 py-3 text-right">Paye</th>
+                    <th className="px-4 py-3 text-right">Payé</th>
                     <th className="px-4 py-3 text-right">Solde</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3 text-right">Actions</th>

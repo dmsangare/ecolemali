@@ -49,7 +49,7 @@ export function IdentityTab({ student }: IdentityTabProps) {
           />
           <InfoItem
             label="Lieu de naissance"
-            value={student.birthPlace || "Non renseigne"}
+            value={student.birthPlace || "Non renseigné"}
             icon={<MapPin className="h-3 w-3" />}
           />
           <InfoItem
@@ -71,7 +71,7 @@ export function IdentityTab({ student }: IdentityTabProps) {
         <CardContent className="grid gap-6 md:grid-cols-2">
           <InfoItem
             label="Telephone"
-            value={student.phone || "Non renseigne"}
+            value={student.phone || "Non renseigné"}
             icon={<Phone className="h-3 w-3" />}
           />
           <InfoItem

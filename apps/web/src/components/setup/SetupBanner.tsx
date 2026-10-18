@@ -30,9 +30,9 @@ export function SetupBanner() {
     periods: "Periodes (trimestres / mois)",
     levels: "Niveaux",
     classes: "Classes",
-    subjects: "Matieres",
+    subjects: "Matières",
     users: "Utilisateurs",
-    students: "Eleves",
+    students: "Élèves",
   };
 
   const missingSteps = Object.entries(status.steps)

@@ -60,9 +60,9 @@ export function StudentsTab({ classId }: { classId: string }) {
             <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-3">
               <Users className="h-7 w-7 text-muted-foreground" />
             </div>
-            <p className="font-medium">Aucun eleve inscrit dans cette classe</p>
+            <p className="font-medium">Aucun élève inscrit dans cette classe</p>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Commencez par affecter des eleves a cette classe
+              Commencez par affecter des élèves a cette classe
             </p>
             {canUpdate && (
               <Button onClick={() => setAssignOpen(true)} size="sm">

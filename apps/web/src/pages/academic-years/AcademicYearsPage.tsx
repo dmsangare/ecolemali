@@ -80,7 +80,7 @@ export function AcademicYearsPage() {
             Annees scolaires
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Activez la nouvelle annee a la rentree, cloturez l'ancienne en fin d'annee.
+            Activez la nouvelle année a la rentree, cloturez l'ancienne en fin d'annee.
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
@@ -94,9 +94,9 @@ export function AcademicYearsPage() {
         <CardContent className="p-4 flex items-start gap-3">
           <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700">
-            Seule une annee peut etre <strong>active</strong> a la fois. Quand vous activez une
+            Seule une année peut etre <strong>active</strong> a la fois. Quand vous activez une
             nouvelle annee, l'ancienne passe en <strong>Cloturee</strong> automatiquement dans votre workflow.
-            Verifiez le <strong>resume avant cloture</strong> pour voir les blocages eventuels.
+            Verifiez le <strong>resume avant clôture</strong> pour voir les blocages eventuels.
           </p>
         </CardContent>
       </Card>
@@ -105,7 +105,7 @@ export function AcademicYearsPage() {
       {sortedYears.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            Aucune annee scolaire. Cliquez sur "Nouvelle annee" pour commencer.
+            Aucune année scolaire. Cliquez sur "Nouvelle annee" pour commencer.
           </CardContent>
         </Card>
       ) : (
@@ -204,7 +204,7 @@ function YearCard({
               </span>
               {year.isCurrent && (
                 <span className="text-xs text-green-700 font-medium">
-                  · Annee courante
+                  · Année courante
                 </span>
               )}
             </div>
@@ -238,7 +238,7 @@ function YearCard({
                 onClick={onFinanceClose}
               >
                 <Wallet className="h-4 w-4 mr-1" />
-                Cloture finance
+                Clôture finance
               </Button>
             )}
             {canClose && (
@@ -355,7 +355,7 @@ function ConfirmActionModal({
             </div>
             <div>
               <h2 className="text-lg font-semibold">
-                {isClose ? "Cloturer" : "Archiver"} cette annee ?
+                {isClose ? "Cloturer" : "Archiver"} cette année ?
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 {isClose

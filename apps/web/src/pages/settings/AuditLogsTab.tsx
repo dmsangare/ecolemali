@@ -12,21 +12,21 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   UPDATE: { label: "Modification", color: "bg-blue-500/10 text-blue-700" },
   DELETE: { label: "Suppression", color: "bg-red-500/10 text-red-700" },
   LOGIN: { label: "Connexion", color: "bg-purple-500/10 text-purple-700" },
-  LOGOUT: { label: "Deconnexion", color: "bg-gray-500/10 text-gray-700" },
+  LOGOUT: { label: "Déconnexion", color: "bg-gray-500/10 text-gray-700" },
   CANCEL: { label: "Annulation", color: "bg-orange-500/10 text-orange-700" },
   VALIDATE: { label: "Validation", color: "bg-cyan-500/10 text-cyan-700" },
 };
 
 const MODULE_LABELS: Record<string, string> = {
-  student: "Eleves",
+  student: "Élèves",
   invoice: "Factures",
   payment: "Paiements",
   user: "Utilisateurs",
   role: "Roles",
   school: "Ecole",
-  settings: "Parametres",
+  settings: "Paramètres",
   enrollment: "Inscriptions",
-  attendance: "Presences",
+  attendance: "Présences",
   grade: "Notes",
 };
 
@@ -181,7 +181,7 @@ export function AuditLogsTab() {
 
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">
-                          {entry.user ? `${entry.user.firstName} ${entry.user.lastName}` : "Systeme"}
+                          {entry.user ? `${entry.user.firstName} ${entry.user.lastName}` : "Système"}
                           <span className="text-xs text-muted-foreground ml-2">({entry.user?.email || "n/a"})</span>
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">

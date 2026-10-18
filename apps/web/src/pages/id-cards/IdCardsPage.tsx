@@ -108,7 +108,7 @@ export function IdCardsPage() {
             Cartes scolaires
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Generez les cartes d'identite des eleves avec QR code anti-fraude.
+            Generez les cartes d'identite des élèves avec QR code anti-fraude.
           </p>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function IdCardsPage() {
             <div className="relative sm:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un eleve (nom, matricule)..."
+                placeholder="Rechercher un élève (nom, matricule)..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -189,7 +189,7 @@ export function IdCardsPage() {
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            Aucun eleve trouve.
+            Aucun élève trouve.
           </CardContent>
         </Card>
       ) : (
@@ -208,7 +208,7 @@ export function IdCardsPage() {
                         )}
                       </button>
                     </th>
-                    <th className="text-left p-3 font-medium">Eleve</th>
+                    <th className="text-left p-3 font-medium">Élève</th>
                     <th className="text-left p-3 font-medium">Matricule</th>
                     <th className="text-left p-3 font-medium">Classe</th>
                     <th className="text-left p-3 font-medium">Carte generee</th>

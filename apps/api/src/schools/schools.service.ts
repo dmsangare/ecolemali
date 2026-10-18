@@ -129,7 +129,7 @@ export class SchoolsService {
     await fs.writeFile(filepath, file.buffer);
 
     // URL publique
-    const logoUrl = `/uploads/logos/${filename}`;
+    const logoUrl = `/api/v1/files/uploads/logos/${filename}`;
 
     // Mettre a jour l'ecole
     return this.prisma.school.update({
@@ -176,7 +176,7 @@ export class SchoolsService {
 
     await fs.writeFile(filepath, file.buffer);
 
-    const url = `/uploads/${subdir}/${filename}`;
+    const url = `/api/v1/files/uploads/${subdir}/${filename}`;
 
     return this.prisma.school.update({
       where: { id },

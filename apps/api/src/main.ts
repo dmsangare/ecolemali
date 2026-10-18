@@ -9,7 +9,23 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters';
 
+function validateEnv() {
+  const logger = new Logger('EnvCheck');
+  const required = ["DATABASE_URL", "JWT_SECRET", "JWT_REFRESH_SECRET"];
+
+  for (const key of required) {
+    const value = process.env[key];
+    if (!value || value.trim() === "" || value === "CHANGE_ME" || value.startsWith("CHANGE_ME")) {
+      logger.error(`Variable d'environnement manquante ou invalide : ${key}`);
+      logger.error("Verifiez votre fichier .env avant de demarrer l'application.");
+      process.exit(1);
+    }
+  }
+  logger.log("Variables d'environnement OK");
+}
+
 async function bootstrap() {
+  validateEnv();
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
@@ -26,13 +42,9 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
-  // Servir les fichiers uploades (logos, documents)
-  const storageRoot = config.get<string>('storage.root', './storage');
-  app.useStaticAssets(join(process.cwd(), storageRoot, 'uploads'), {
-    prefix: '/uploads/',
-  });
-
-  app.setGlobalPrefix('api/v1', { exclude: ['uploads'] });
+  // Les fichiers /uploads/ et /documents/ sont servis via des routes API protegees.
+  // Plus de useStaticAssets pour eviter l'acces non authentifie.
+  app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -123,7 +123,7 @@ export class DocumentsService {
         templateId: dto.templateId,
         studentId: dto.studentId || null,
         reference: context.reference,
-        fileUrl: `/documents/generated/${fileName}`,
+        fileUrl: `/api/v1/files/documents/${fileName}`,
         generatedBy,
       },
       include: {

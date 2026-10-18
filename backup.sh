@@ -52,6 +52,7 @@ read_env_var() {
 
 PG_USER="$(read_env_var POSTGRES_USER sis_user)"
 PG_DB="$(read_env_var POSTGRES_DB sis_mali)"
+PG_PASSWORD="$(read_env_var POSTGRES_PASSWORD '')"
 
 log "===== Demarrage backup ($DATE) ====="
 
@@ -61,7 +62,7 @@ log "===== Demarrage backup ($DATE) ====="
 DB_FILE="$BACKUP_DIR/db_$DATE.sql.gz"
 log "Dump PostgreSQL -> $DB_FILE"
 
-if docker compose -f docker-compose.prod.yml exec -T postgres \
+if docker compose -f docker-compose.prod.yml exec -T -e PGPASSWORD="$PG_PASSWORD" postgres \
     pg_dump -U "$PG_USER" "$PG_DB" | gzip > "$DB_FILE"; then
 
   # Verification integrite gzip

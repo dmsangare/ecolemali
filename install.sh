@@ -132,6 +132,15 @@ if [ -f .installed ]; then
 else
   # Premiere installation → BDD vierge + seed (Super Admin uniquement)
   log "Premiere installation detectee → initialisation BDD vierge…"
+  # SECURITE : refuser le reset si la base contient deja des utilisateurs
+  DB_EXISTS=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U "${POSTGRES_USER:-sis_user}" -d "${POSTGRES_DB:-sis_mali}" -tAc "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users');" 2>/dev/null || echo "f")
+  if [ "$DB_EXISTS" = "t" ]; then
+    USER_COUNT=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U "${POSTGRES_USER:-sis_user}" -d "${POSTGRES_DB:-sis_mali}" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+    if [ "$USER_COUNT" -gt 0 ]; then
+      error "Base de donnees non vide detectee ($USER_COUNT utilisateurs). Le reset est bloque pour eviter la perte de donnees. Supprimez manuellement le fichier .installed si vous etes sur de vous."
+    fi
+  fi
+
   docker compose -f docker-compose.prod.yml exec -T api npx prisma migrate reset --force --skip-seed || {
     warn "Echec du reset — verifie les logs : docker compose -f docker-compose.prod.yml logs api"
     exit 1

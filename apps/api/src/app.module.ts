@@ -56,10 +56,12 @@ import { AuditInterceptor, TransformInterceptor } from "./common/interceptors";
 import { HealthModule } from "./health/health.module";
 import { SystemLogsModule } from "./system-logs/system-logs.module";
 import { StudentAccountsModule } from "./student-accounts/student-accounts.module";
+import { FilesModule } from "./files/files.module";
 
 @Module({
   imports: [
     HealthModule,
+    FilesModule,
     SystemLogsModule,
     StudentAccountsModule,
     RolesModule,

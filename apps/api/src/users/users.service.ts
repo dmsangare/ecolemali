@@ -9,7 +9,7 @@ import { assertSchoolAccess, isSuperAdmin } from "../common/utils";
  * et lors d'une reinitialisation. L'utilisateur DOIT le changer a sa
  * premiere connexion (mustChangePassword = true).
  */
-export const DEFAULT_PROVISIONAL_PASSWORD = "SisMali@Temp!";
+// La constante est supprimée, on utilise generateTempPassword()
 
 
 @Injectable()
@@ -102,7 +102,7 @@ export class UsersService {
 
     const provisionalPassword = dto.password && dto.password.trim().length > 0
       ? dto.password
-      : DEFAULT_PROVISIONAL_PASSWORD;
+      : this.generateTempPassword();
     const passwordHash = await bcrypt.hash(provisionalPassword, 12);
 
     // Verifier que les roles existent et que l'appelant a le droit de les attribuer
@@ -230,7 +230,7 @@ export class UsersService {
 
   async resetPassword(id: string, caller: CurrentUserPayload) {
     await this.getTargetOrFail(id, caller);
-    const provisionalPassword = DEFAULT_PROVISIONAL_PASSWORD;
+    const provisionalPassword = this.generateTempPassword();
     const passwordHash = await bcrypt.hash(provisionalPassword, 12);
     const updated = await this.prisma.user.update({
       where: { id },

@@ -58,7 +58,7 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Pedagogie",
+    title: "Pédagogie",
     items: [
       { label: "Emploi du temps", to: "/timetable", icon: Calendar, permission: "timetable:view" },
       { label: "Présences", to: "/attendance", icon: ClipboardCheck, permission: "attendance:view" },

@@ -30,8 +30,10 @@ error() {
   echo -e "\033[0;31m$msg\033[0m" >&2
   echo "$msg" >> "$LOG_FILE"
   # Envoyer un mail si configuré
-  if [ -n "${BACKUP_ALERT_EMAIL:-}" ]; then
-    echo "$msg" | mail -s "SIS-MALI: Echec de sauvegarde" "$BACKUP_ALERT_EMAIL"
+  if [ -n "${BACKUP_ALERT_WEBHOOK:-}" ]; then
+    curl -s -X POST -H "Content-Type: application/json" \
+      -d "{\"text\":\"⚠️ SIS-MALI Backup: $1\"}" \
+      "$BACKUP_ALERT_WEBHOOK" > /dev/null 2>&1 || true
   fi
 }
 

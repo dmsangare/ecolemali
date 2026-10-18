@@ -58,7 +58,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           size="icon"
           className="relative"
           title="Notifications"
-        >
+         onClick={() => navigate("/notifications")}>
           <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
         </Button>

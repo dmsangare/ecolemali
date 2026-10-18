@@ -207,7 +207,7 @@ function CreateUserModal({
   const [lastName, setLastName] = useState("");
   const [emailLocal, setEmailLocal] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("SisMali@Temp!");
+  const [password, setPassword] = useState("généré automatiquement");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [selectedGuardianId, setSelectedGuardianId] = useState("");
@@ -236,7 +236,7 @@ function CreateUserModal({
       alert("Email et au moins un role sont requis");
       return;
     }
-    // Le password est optionnel : si laisse vide, le backend utilise SisMali@Temp!
+    // Le password est optionnel : si laisse vide, le backend utilise généré automatiquement
     const result = await createMutation.mutateAsync({
       email: fullEmail,
       phone: phone || undefined,
@@ -249,7 +249,7 @@ function CreateUserModal({
     } as any);
     setCreatedResult({
       email: fullEmail,
-      password: (result as any)?.provisionalPassword ?? "SisMali@Temp!",
+      password: (result as any)?.provisionalPassword ?? "généré automatiquement",
     });
   };
 
@@ -378,10 +378,10 @@ function CreateUserModal({
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="SisMali@Temp!"
+                placeholder="Généré automatiquement"
               />
               <p className="text-xs text-muted-foreground">
-                Laissez <strong>SisMali@Temp!</strong> ou modifiez. L'utilisateur devra le changer a sa premiere connexion.
+                Laissez <strong>généré automatiquement</strong> ou modifiez. L'utilisateur devra le changer a sa premiere connexion.
               </p>
             </div>
 
@@ -559,7 +559,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
     try {
       const { usersApi } = await import("@/api/users");
       const result = await usersApi.resetPassword(user.id);
-      setResetResult((result as any)?.provisionalPassword ?? "SisMali@Temp!");
+      setResetResult((result as any)?.provisionalPassword ?? "généré automatiquement");
     } catch (err: any) {
       alert(err?.response?.data?.message || "Erreur reset password");
     } finally {
@@ -767,7 +767,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
               {showResetPwd && (
                 <div className="border rounded-md p-3 bg-amber-50/30 space-y-2">
                   <p className="text-xs text-amber-800">
-                    Le mot de passe actuel sera remplace par <strong>SisMali@Temp!</strong>. L utilisateur devra le changer a sa prochaine connexion.
+                    Le mot de passe actuel sera remplace par <strong>généré automatiquement</strong>. L utilisateur devra le changer a sa prochaine connexion.
                   </p>
                   <div className="flex gap-2">
                     <Button

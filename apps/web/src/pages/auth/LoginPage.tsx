@@ -43,7 +43,7 @@ export function LoginPage() {
         {/* COLONNE GAUCHE - IMAGE (Masquée sur mobile) */}
         <div className="hidden lg:flex lg:w-[35%] relative bg-blue-900">
           <img
-            src="/login-left.jpg"
+            src="/login-left.webp"
             alt="École SIS-MALI"
             className="absolute inset-0 w-full h-full object-cover object-top"
           />
@@ -58,7 +58,7 @@ export function LoginPage() {
             {/* Logo & Titre */}
             <div className="text-center space-y-4">
               <img
-                src="/login-logo.png"
+                src="/login-logo.webp"
                 alt="SIS-MALI"
                 className="h-20 mx-auto object-contain"
               />
@@ -170,7 +170,7 @@ export function LoginPage() {
         {/* COLONNE DROITE - IMAGE (Masquée sur mobile) */}
         <div className="hidden lg:flex lg:w-[35%] relative bg-blue-50">
           <img
-            src="/login-right.jpg"
+            src="/login-right.webp"
             alt="Bienvenue sur SIS-MALI"
             className="absolute inset-0 w-full h-full object-cover object-right"
           />
@@ -180,7 +180,7 @@ export function LoginPage() {
       {/* FOOTER GLOBAL */}
       <footer className="bg-[#0B4E9B] text-white py-3 px-6 flex flex-col sm:flex-row items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <img src="/login-logo.png" alt="Logo" className="h-5 brightness-0 invert" />
+          <img src="/login-logo.webp" alt="Logo" className="h-5 brightness-0 invert" />
           <span className="font-semibold">SIS-MALI</span>
           <span className="text-blue-200">|</span>
           <span className="text-blue-100">Système d'Information Scolaire pour le Mali</span>

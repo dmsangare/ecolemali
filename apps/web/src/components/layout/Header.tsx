@@ -60,7 +60,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           title="Notifications"
          onClick={() => navigate("/notifications")}>
           <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+          
         </Button>
 
         {/* Menu utilisateur */}
@@ -77,7 +77,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   {user?.firstName} {user?.lastName}
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-tight">
-                  {user?.roles?.[0]?.replace("_", " ")}
+                  {user?.roles?.[0] ? (user.roles[0] === "SECRETARY" ? "Secrétaire" : user.roles[0] === "ACCOUNTANT" ? "Comptable" : user.roles[0] === "TEACHER" ? "Enseignant" : user.roles[0] === "DIRECTOR" ? "Directeur" : user.roles[0]) : ""}
                 </span>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />

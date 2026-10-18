@@ -132,7 +132,7 @@ export function AdminReportDetailPage() {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
 
-  // Transmission
+  // Dépôt
   const [transmitOpen, setTransmitOpen] = useState(false);
   const [tRecipient, setTRecipient] = useState("");
   const [tRecipientRole, setTRecipientRole] = useState("");
@@ -336,7 +336,7 @@ export function AdminReportDetailPage() {
         {canManage && report.status === "VALIDE" && (
           <Button onClick={() => setTransmitOpen(true)}>
             <Truck className="h-4 w-4 mr-2" />
-            Transmettre
+            Enregistrer le dépôt
           </Button>
         )}
 
@@ -359,7 +359,7 @@ export function AdminReportDetailPage() {
         )}
       </div>
 
-      {/* Tabs : Données / Versions / Transmissions / Journal */}
+      {/* Tabs : Données / Versions / Dépôts / Journal */}
       <Tabs defaultValue="data" className="w-full">
         <TabsList>
           <TabsTrigger value="data">
@@ -372,7 +372,7 @@ export function AdminReportDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="transmissions">
             <SendIcon className="h-4 w-4 mr-2" />
-            Transmissions ({report.transmissions?.length ?? 0})
+            Dépôts ({report.transmissions?.length ?? 0})
           </TabsTrigger>
           <TabsTrigger value="audit">
             <ScrollText className="h-4 w-4 mr-2" />
@@ -435,7 +435,7 @@ export function AdminReportDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* --- Onglet Transmissions --- */}
+        {/* --- Onglet Dépôts --- */}
         <TabsContent value="transmissions">
           <Card>
             <CardHeader>
@@ -609,11 +609,11 @@ export function AdminReportDetailPage() {
         </div>
       </Modal>
 
-      {/* --- Modal Transmettre --- */}
+      {/* --- Modal Enregistrer le dépôt --- */}
       <Modal
         open={transmitOpen}
         onClose={() => setTransmitOpen(false)}
-        title="Transmettre le rapport"
+        title="Enregistrer le dépôt le rapport"
         description="Enregistrez l'envoi au destinataire. Un numéro de bordereau sera généré automatiquement."
         size="md"
         footer={

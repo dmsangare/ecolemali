@@ -46,7 +46,7 @@ export function QuickActionFab() {
   if (actions.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+    <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2">
       {/* Actions (apparaissent si open) */}
       {open && (
         <div className="flex flex-col items-end gap-2 mb-2">

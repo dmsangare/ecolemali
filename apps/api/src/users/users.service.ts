@@ -257,12 +257,13 @@ export class UsersService {
    * Genere un mot de passe temporaire aleatoire (13 caracteres).
    */
   private generateTempPassword(): string {
+    const { randomInt } = require("crypto");
     const letters = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ";
     const digits = "23456789";
     let pwd = "";
-    for (let i = 0; i < 4; i++) pwd += letters.charAt(Math.floor(Math.random() * letters.length));
-    for (let i = 0; i < 4; i++) pwd += digits.charAt(Math.floor(Math.random() * digits.length));
-    for (let i = 0; i < 4; i++) pwd += letters.charAt(Math.floor(Math.random() * letters.length));
+    for (let i = 0; i < 4; i++) pwd += letters.charAt(randomInt(letters.length));
+    for (let i = 0; i < 4; i++) pwd += digits.charAt(randomInt(digits.length));
+    for (let i = 0; i < 4; i++) pwd += letters.charAt(randomInt(letters.length));
     return pwd + "!";
   }
 }

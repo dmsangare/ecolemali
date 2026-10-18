@@ -1,5 +1,16 @@
 import * as puppeteer from "puppeteer-core";
 
+function escapeHtml(str: string | null | undefined): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+
 interface ReportCardItem {
   subjectName: string;
   coefficient: number;
@@ -36,6 +47,7 @@ interface ReportCardPDFData {
   totalWeighted: number;
   generalAverage: number | null;
   rank: number | null;
+  scale: number;
   absencesCount: number;
   latesCount: number;
 
@@ -121,7 +133,7 @@ function buildHTML(data: ReportCardPDFData): string {
 
       return `
         <tr>
-          <td style="text-align:left;padding-left:6px;">${item.subjectName}</td>
+          <td style="text-align:left;padding-left:6px;">${escapeHtml(item.subjectName)}</td>
           <td style="text-align:center;font-weight:600;">${item.coefficient}</td>
           <td style="text-align:center;font-weight:600;color:${color};">${moy}</td>
           <td style="text-align:center;">${weighted}</td>
@@ -288,14 +300,25 @@ function buildHTML(data: ReportCardPDFData): string {
     padding-top: 6px;
     border-top: 1px solid #E5E7EB;
   }
-</style>
+.official-header { text-align: center; margin-bottom: 20px; font-size: 11px; }
+    .republic { font-weight: bold; font-size: 13px; }
+    .devise { font-style: italic; font-size: 10px; margin-bottom: 6px; }
+    .ministry { font-weight: bold; margin-top: 8px; }
+    .academy { margin-bottom: 10px; }
+    .school-name { font-size: 15px; font-weight: bold; margin-top: 10px; margin-bottom: 4px; }
+    </style>
 </head>
 <body>
 
 <div class="header">
   ${logoHTML}
   <div class="header-info">
-    <div class="school-name">${data.schoolName}</div>
+    <div class="official-header">
+      <div class="republic">RÉPUBLIQUE DU MALI</div>
+      <div class="devise">Un Peuple – Un But – Une Foi</div>
+      <div class="ministry">MINISTÈRE DE L'ÉDUCATION NATIONALE</div>
+      <div class="academy">ACADÉMIE D'ENSEIGNEMENT DE BAMAKO</div>
+      <div class="school-name">${data.schoolName}</div>
     ${data.schoolAddress ? `<div class="school-info">${data.schoolAddress}</div>` : ""}
     ${data.schoolPhone ? `<div class="school-info">Tel: ${data.schoolPhone}</div>` : ""}
     ${data.schoolMotto ? `<div class="school-motto">"${data.schoolMotto}"</div>` : ""}
@@ -304,18 +327,18 @@ function buildHTML(data: ReportCardPDFData): string {
 
 <div class="title-block">
   <div class="title">BULLETIN DE NOTES</div>
-  <div class="subtitle">${data.termName} — Année scolaire ${data.academicYear}</div>
+  <div class="subtitle">${escapeHtml(data.termName)} — Année scolaire ${escapeHtml(data.academicYear)}</div>
 </div>
 
 <div class="student-box">
   <div class="student-grid">
     <div class="student-row">
       <span class="student-label">Élève :</span>
-      <span class="student-value">${data.studentName}</span>
+      <span class="student-value">${escapeHtml(data.studentName)}</span>
     </div>
     <div class="student-row">
       <span class="student-label">Classe :</span>
-      <span class="student-value">${data.className}</span>
+      <span class="student-value">${escapeHtml(data.className)}</span>
     </div>
     <div class="student-row">
       <span class="student-label">Matricule :</span>
@@ -363,7 +386,7 @@ function buildHTML(data: ReportCardPDFData): string {
 <div class="average-box">
   <div>
     <div class="average-label">Moyenne générale</div>
-    <div class="average-value">${data.generalAverage !== null ? data.generalAverage.toFixed(2) : "—"} / 20</div>
+    <div class="average-value">${data.generalAverage !== null ? data.generalAverage.toFixed(2) : "—"} / ${data.scale || 20}</div>
     <div class="average-appr">${generalAppr}</div>
   </div>
   <div style="text-align:right;">

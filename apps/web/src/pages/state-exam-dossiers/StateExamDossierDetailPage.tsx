@@ -237,7 +237,7 @@ export function StateExamDossierDetailPage() {
           {dossier.status === "VALIDE_ETABLISSEMENT" && (
             <Button onClick={() => transmitMut.mutate()} disabled={transmitMut.isPending}>
               <Send className="h-4 w-4 mr-2" />
-              Transmettre au CAP
+              Enregistrer le dépôt au CAP
             </Button>
           )}
           {dossier.status === "TRANSMIS" && (

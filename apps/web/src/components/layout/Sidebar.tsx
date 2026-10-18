@@ -48,23 +48,23 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Scolarite",
+    title: "Scolarité",
     items: [
-      { label: "Eleves", to: "/students", icon: Users, permission: "student:view" },
+      { label: "Élèves", to: "/students", icon: Users, permission: "student:view" },
       { label: "Niveaux", to: "/levels", icon: Layers, permission: "level:view" },
       { label: "Classes", to: "/classes", icon: School, permission: "class:view" },
       { label: "Enseignants", to: "/teachers", icon: UsersRound, permission: "teacher:view" },
-      { label: "Matieres", to: "/subjects", icon: BookOpen, permission: "subject:view" },
+      { label: "Matières", to: "/subjects", icon: BookOpen, permission: "subject:view" },
     ],
   },
   {
     title: "Pedagogie",
     items: [
       { label: "Emploi du temps", to: "/timetable", icon: Calendar, permission: "timetable:view" },
-      { label: "Presences", to: "/attendance", icon: ClipboardCheck, permission: "attendance:view" },
+      { label: "Présences", to: "/attendance", icon: ClipboardCheck, permission: "attendance:view" },
       { label: "Notes", to: "/assessments", icon: FileText, permission: "grade:view" },
       { label: "Bulletins", to: "/report-cards", icon: Award, permission: "report_card:view" },
-      { label: "Resultats annuels", to: "/annual-results", icon: TrendingUp, permission: "report_card:view" },
+      { label: "Résultats annuels", to: "/annual-results", icon: TrendingUp, permission: "report_card:view" },
     ],
   },
   {
@@ -80,7 +80,7 @@ const SECTIONS: NavSection[] = [
       { label: "Facturation", to: "/finance/facturation", icon: Receipt, permission: "invoice:view" },
       { label: "Encaissement", to: "/finance/encaissement", icon: Wallet, permission: "payment:view" },
       { label: "Recouvrement", to: "/finance/recouvrement", icon: AlertTriangle, permission: "invoice:view" },
-      { label: "Depenses", to: "/expenses", icon: TrendingDown, permission: "expense:view" },
+      { label: "Dépenses", to: "/expenses", icon: TrendingDown, permission: "expense:view" },
       { label: "Configuration", to: "/finance/configuration", icon: Settings, permission: "fee:view" },
     ],
   },
@@ -91,14 +91,14 @@ const SECTIONS: NavSection[] = [
       ],
     },
     {
-    title: "Systeme",
+    title: "Système",
     items: [
-      { label: "Annees scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
-      { label: "Passage d'annee", to: "/year-rollover", icon: GraduationCap, permission: "academic_year:create" },
-      { label: "Examens d'Etat", to: "/state-exams", icon: Award, permission: "academic_year:view" },
+      { label: "Années scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
+      { label: "Passage d'année", to: "/year-rollover", icon: GraduationCap, permission: "academic_year:create" },
+      { label: "Examens d'État", to: "/state-exams", icon: Award, permission: "academic_year:view" },
       { label: "Rapports administratifs", to: "/admin-reports", icon: FileText, permission: "report_card:view" },
       { label: "Rapports", to: "/reports", icon: BarChart3, permission: "report:view" },
-      { label: "Parametres", to: "/settings", icon: Settings, permission: "settings:view" },
+      { label: "Paramètres", to: "/settings", icon: Settings, permission: "settings:view" },
     ],
   },
 ];

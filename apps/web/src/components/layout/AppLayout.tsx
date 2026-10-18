@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui";
+import { QuickActionFab } from "./QuickActionFab";
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,6 +44,9 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* FAB actions rapides */}
+      <QuickActionFab />
     </div>
   );
 }

@@ -252,4 +252,17 @@ export class UsersService {
       select: { id: true, code: true, name: true, description: true },
     });
   }
+
+  /**
+   * Genere un mot de passe temporaire aleatoire (13 caracteres).
+   */
+  private generateTempPassword(): string {
+    const letters = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ";
+    const digits = "23456789";
+    let pwd = "";
+    for (let i = 0; i < 4; i++) pwd += letters.charAt(Math.floor(Math.random() * letters.length));
+    for (let i = 0; i < 4; i++) pwd += digits.charAt(Math.floor(Math.random() * digits.length));
+    for (let i = 0; i < 4; i++) pwd += letters.charAt(Math.floor(Math.random() * letters.length));
+    return pwd + "!";
+  }
 }

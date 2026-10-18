@@ -39,7 +39,7 @@ export class VerificationService {
 
   constructor(private readonly prisma: PrismaService) {
     // Cle derivee du JWT_SECRET pour ne pas exposer la cle principale.
-    const base = process.env.JWT_SECRET || "sis-mali-fallback-secret";
+    const base = process.env.JWT_SECRET || (() => { throw new Error("JWT_SECRET manquant"); })();
     this.secret = `verification:${base}`;
   }
 

@@ -386,6 +386,7 @@ model School {
   studentAccounts      StudentAccount[]
 
   @@map("schools")
+  bulletinConfig      BulletinConfig?
 }
 
 model AcademicYear {
@@ -1946,4 +1947,31 @@ model InvoiceInstallment {
   @@index([status])
   @@index([dueDate])
   @@map("invoice_installments")
+}
+
+// ============================================================
+// CONFIGURATION DU BULLETIN (par école)
+// ============================================================
+model BulletinConfig {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @unique @map("school_id") @db.Uuid
+  academy   String?  @db.VarChar(150)
+  cap       String?  @db.VarChar(150)
+  header1   String?  @db.VarChar(100)
+  header2   String?  @db.VarChar(150)
+
+  periods         Json    @default("[]")
+  periodType      String  @default("TRIMESTRE") @map("period_type") @db.VarChar(20)
+  subjects        Json    @default("[]")
+  assessmentTypes Json    @default("[]") @map("assessment_types")
+  calculationMode String  @default("WEIGHTED") @map("calculation_mode") @db.VarChar(20)
+  useCoefficients Boolean @default(true) @map("use_coefficients")
+  showQrCode      Boolean @default(true) @map("show_qr_code")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("bulletin_configs")
 }

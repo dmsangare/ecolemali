@@ -24,6 +24,7 @@ import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
 import { HonorRollTab } from "./HonorRollTab";
 import { NumberingTab } from "./NumberingTab";
+import { BulletinConfigTab } from "./BulletinConfigTab";
 import { AuditLogsTab } from "./AuditLogsTab";
 import { SystemLogsTab } from "./SystemLogsTab";
 
@@ -87,6 +88,10 @@ export function SettingsPage() {
             <Bug className="h-4 w-4" />
             Journal systeme
           </TabsTrigger>
+          <TabsTrigger value="bulletin" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Bulletin
+          </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Cog className="h-4 w-4" />
             Systeme
@@ -135,6 +140,10 @@ export function SettingsPage() {
 
         <TabsContent value="systemLogs">
           <SystemLogsTab />
+        </TabsContent>
+
+        <TabsContent value="bulletin">
+          <BulletinConfigTab />
         </TabsContent>
 
         <TabsContent value="system">

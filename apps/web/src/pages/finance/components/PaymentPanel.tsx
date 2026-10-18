@@ -143,6 +143,7 @@ export function PaymentPanel({
         reference: needsReference ? reference.trim() : undefined,
         installmentId: installment?.id,
         allowOverpayment,
+        idempotencyKey,
       });
 
       setSuccessMessage(

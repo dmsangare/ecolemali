@@ -133,15 +133,56 @@ export class PaymentsService {
 
   async create(dto: PaymentCreateInput) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Verifier la facture
-      const invoice = await tx.invoice.findUnique({
-        where: { id: dto.invoiceId },
-      });
+      // 0. Idempotence : si la cle existe deja, renvoyer le paiement existant
+      const idempotencyKey = (dto as any).idempotencyKey;
+      if (idempotencyKey) {
+        const existing = await tx.payment.findFirst({
+          where: { schoolId: dto.schoolId, idempotencyKey },
+          include: { receipt: true },
+        });
+        if (existing) {
+          this.logger.warn(
+            `Paiement idempotent hit: key=${idempotencyKey} -> payment=${existing.id}`,
+          );
+          return existing;
+        }
+      }
 
-      if (!invoice) throw new NotFoundException("Facture introuvable");
-      if (invoice.status === "CANCELLED") {
+      // 1. Verifier la facture avec VERROU (empeche double-clic / concurrence)
+      //    On utilise $queryRaw pour un vrai SELECT ... FOR UPDATE
+      const lockedInvoices = await tx.$queryRaw<Array<{ id: string; school_id: string; balance: string; paid_amount: string; total_amount: string; status: string }>>`
+        SELECT id, school_id, balance, paid_amount, total_amount, status
+        FROM invoices
+        WHERE id = ${dto.invoiceId}::uuid
+        FOR UPDATE
+      `;
+
+      if (!lockedInvoices || lockedInvoices.length === 0) {
+        throw new NotFoundException("Facture introuvable");
+      }
+
+      const invoiceRow = lockedInvoices[0];
+
+      // 2. Isolation multi-tenant : la facture doit appartenir a la meme ecole
+      if (invoiceRow.school_id !== dto.schoolId) {
+        throw new BadRequestException(
+          "Cette facture n'appartient pas a votre etablissement",
+        );
+      }
+
+      if (invoiceRow.status === "CANCELLED") {
         throw new BadRequestException("Impossible de payer une facture annulee");
       }
+
+      // 3. Reconstruire l'objet invoice avec les valeurs a jour
+      const invoice = {
+        id: invoiceRow.id,
+        schoolId: invoiceRow.school_id,
+        balance: invoiceRow.balance,
+        paidAmount: invoiceRow.paid_amount,
+        totalAmount: invoiceRow.total_amount,
+        status: invoiceRow.status,
+      } as any;
 
       const currentBalance = Number(invoice.balance);
       const allowOverpayment = (dto as any).allowOverpayment === true;
@@ -209,6 +250,7 @@ export class PaymentsService {
           cashierId: dto.cashierId,
           cashSessionId: openSession?.id ?? null,
           installmentId: targetInstallmentId,
+          idempotencyKey: idempotencyKey || null,
         },
       });
 

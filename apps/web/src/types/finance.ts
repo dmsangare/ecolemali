@@ -111,6 +111,8 @@ export interface CreatePaymentInput {
   installmentId?: string;
   /** Autoriser un paiement > solde du (surplus -> credit eleve) */
   allowOverpayment?: boolean;
+  /** Cle d'idempotence (anti double-clic) */
+  idempotencyKey?: string;
 }
 
 // ============================================================

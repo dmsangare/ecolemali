@@ -597,6 +597,9 @@ export const PaymentCreateSchema = z.object({
 
   /** Autoriser un paiement > solde du (surplus va en credit eleve) */
   allowOverpayment: z.boolean().optional().default(false),
+
+  /** Cle d'idempotence : si la meme cle est envoyee 2 fois, on ne cree qu'un paiement */
+  idempotencyKey: z.string().max(80).optional(),
 });
 
 export const PaymentCancelSchema = z.object({

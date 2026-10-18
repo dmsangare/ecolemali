@@ -4,9 +4,10 @@ import { ReportCardsService } from "./report-cards.service";
 import { AnnualResultsController } from "./annual-results.controller";
 import { AnnualResultsService } from "./annual-results.service";
 import { DashboardModule } from "../dashboard/dashboard.module";
+import { VerificationModule } from "../verification/verification.module";
 
 @Module({
-  imports: [DashboardModule],
+  imports: [DashboardModule, VerificationModule],
   controllers: [ReportCardsController, AnnualResultsController],
   providers: [ReportCardsService, AnnualResultsService],
   exports: [ReportCardsService, AnnualResultsService],

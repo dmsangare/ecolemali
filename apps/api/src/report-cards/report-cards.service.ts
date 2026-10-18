@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import QRCode from "qrcode";
 import { PrismaService } from "../prisma/prisma.service";
+import { VerificationService } from "../verification/verification.service";
 import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
 import { calculateWeightedAverage, calculateReportAverage, determineDecision } from "@sis-mali/shared";
 import { DashboardService } from "../dashboard/dashboard.service";
@@ -18,6 +20,7 @@ export class ReportCardsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly verificationService: VerificationService,
     private readonly dashboard: DashboardService,
   ) {}
 
@@ -184,21 +187,33 @@ export class ReportCardsService {
       throw new BadRequestException(describeTermMismatch(term.type, term.name));
     }
 
-    // Bareme par classe, matieres et coefficients par niveau
+    // Bareme par classe
     const scaleByClass = new Map<string, number>();
     for (const e of enrollments) {
       scaleByClass.set(e.classId, rulesForCycle(cycleByLevel.get(e.levelId)).scale);
     }
-    const levelIds = Array.from(new Set(enrollments.map((e) => e.levelId)));
-    const coefficientRows = await this.prisma.subjectCoefficient.findMany({
-      where: { levelId: { in: levelIds } },
-      include: { subject: true },
-    });
-    const subjectsByLevel = new Map<string, typeof coefficientRows>();
-    for (const row of coefficientRows) {
-      if (!subjectsByLevel.has(row.levelId)) subjectsByLevel.set(row.levelId, []);
-      subjectsByLevel.get(row.levelId)!.push(row);
-    }
+
+    // Charger la configuration du bulletin (matieres et coefficients)
+    const schoolId = enrollments[0]?.student?.schoolId;
+    const bulletinConfig = schoolId
+      ? await this.prisma.bulletinConfig.findUnique({ where: { schoolId } })
+      : null;
+    const configSubjects: Array<{ name: string; coefficient: number; order: number }> =
+      (bulletinConfig?.subjects as any[]) || [];
+
+    // Si pas de config, fallback : utiliser les matieres deja notees (SubjectCoefficient)
+    const subjectsToUse = configSubjects.length > 0
+      ? configSubjects.map((s) => ({ name: s.name, coefficient: s.coefficient }))
+      : await (async () => {
+          const coefficientRows = await this.prisma.subjectCoefficient.findMany({
+            where: { levelId: { in: Array.from(new Set(enrollments.map((e) => e.levelId))) } },
+            include: { subject: true },
+          });
+          return coefficientRows.map((r) => ({
+            name: r.subject.name,
+            coefficient: Number(r.coefficient),
+          }));
+        })();
 
     // Recuperer les evaluations du trimestre pour ces classes
     const classIds = Array.from(new Set(enrollments.map((e) => e.classId)));
@@ -241,11 +256,11 @@ export class ReportCardsService {
       const studentGrades = gradesMap.get(e.studentId) || new Map();
       const subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }> = [];
 
-      for (const sc of subjectsByLevel.get(e.levelId) ?? []) {
-        const grades = studentGrades.get(sc.subjectId) || [];
+      for (const sc of subjectsToUse) {
+        const grades = studentGrades.get(sc.name) || [];
         const average = calculateWeightedAverage(grades);
         subjectAverages.push({
-          subjectId: sc.subjectId,
+          subjectId: sc.name,
           average,
           coefficient: Number(sc.coefficient),
         });
@@ -469,6 +484,29 @@ export class ReportCardsService {
    * Prepare les donnees d'export PDF pour un bulletin.
    */
   async getExportData(id: string) {
+    // Generation du QR code de verification
+    let qrCodeDataUrl: string | null = null;
+    try {
+      const card = await this.prisma.reportCard.findUnique({
+        where: { id },
+        select: { studentId: true, termId: true, student: { select: { schoolId: true } } },
+      });
+      if (card) {
+        // Signer le bulletin (creer un VerifiableDocument)
+        const signResult = await this.verificationService.sign({
+          schoolId: card.student.schoolId,
+          type: "BULLETIN",
+          referenceId: id,
+          meta: { studentId: card.studentId, termId: card.termId },
+        });
+        // Generer l'image QR code (data URL)
+        qrCodeDataUrl = await QRCode.toDataURL(signResult.verificationUrl);
+      }
+    } catch (err) {
+      // Silencieux : le bulletin s'affiche sans QR code si erreur
+      console.warn("Erreur generation QR code:", err);
+    }
+
     const report = await this.prisma.reportCard.findUnique({
       where: { id },
       include: {

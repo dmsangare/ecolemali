@@ -54,6 +54,7 @@ interface ReportCardPDFData {
   // Décision + Appréciation
   decision: string | null;
   appreciation: string | null;
+  qrCodeDataUrl?: string | null;
 }
 
 const DECISION_LABELS: Record<string, string> = {

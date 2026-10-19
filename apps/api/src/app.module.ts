@@ -26,6 +26,7 @@ import { AttendanceModule } from "./attendance/attendance.module";
 import { AssessmentsModule } from "./assessments/assessments.module";
 import { GradesModule } from "./grades/grades.module";
 import { ReportCardsModule } from "./report-cards/report-cards.module";
+import { SubjectDomainsModule } from "./subject-domains/subject-domains.module";
 import { ExamsModule } from "./exams/exams.module";
 import { FeeTypesModule } from "./fee-types/fee-types.module";
 import { FeeStructuresModule } from "./fee-structures/fee-structures.module";
@@ -100,6 +101,7 @@ import { FilesModule } from "./files/files.module";
     AssessmentsModule,
     GradesModule,
     ReportCardsModule,
+    SubjectDomainsModule,
     ExamsModule,
     FeeTypesModule,
     FeeStructuresModule,

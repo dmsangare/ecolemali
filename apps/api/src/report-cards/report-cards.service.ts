@@ -550,6 +550,7 @@ export class ReportCardsService {
       schoolMotto: school?.motto,
       schoolLogoUrl: school?.logoUrl,
       schoolStampBase64: await fileToBase64(school?.stampUrl),
+      qrCodeDataUrl,
 
       studentName: `${report.student.lastName} ${report.student.firstName}`,
       studentMatricule: report.student.matricule,

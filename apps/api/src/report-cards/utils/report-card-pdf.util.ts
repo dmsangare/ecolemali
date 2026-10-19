@@ -293,6 +293,21 @@ function buildHTML(data: ReportCardPDFData): string {
   .signature-line { border-top: 1px solid #1F2937; margin-bottom: 3px; padding-top: 15px; }
   .signature-label { font-size: 8px; color: #6B7280; font-style: italic; }
 
+  .qr-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 8px;
+    border: 1px dashed #CBD5E1;
+    border-radius: 6px;
+    background: #F8FAFC;
+  }
+  .qr-block img { width: 90px; height: 90px; object-fit: contain; }
+  .qr-text { font-size: 8px; color: #475569; text-align: left; }
+  .qr-text strong { display: block; font-size: 9px; color: #1E40AF; margin-bottom: 2px; }
+
   .footer {
     text-align: center;
     font-size: 7.5px;
@@ -418,6 +433,16 @@ function buildHTML(data: ReportCardPDFData): string {
   <div class="section-title" style="color:#0369A1;">🎯 Décision du conseil de classe</div>
   <div class="decision-text">${decisionLabel}</div>
 </div>
+
+${data.qrCodeDataUrl ? `
+<div class="qr-block">
+  <img src="${data.qrCodeDataUrl}" alt="QR Code de vérification" />
+  <div class="qr-text">
+    <strong>Document authentifiable</strong>
+    Scannez ce QR code pour vérifier<br/>l'authenticité de ce bulletin.
+  </div>
+</div>
+` : ""}
 
 <div class="signature-block">
   <div class="signature-item">

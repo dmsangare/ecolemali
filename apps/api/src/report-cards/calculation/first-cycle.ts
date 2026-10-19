@@ -14,10 +14,12 @@ export function calculateCompositionAverage(
   grades: GradeInput[],
   opts: RoundOptions = { decimals: 2, mode: "ROUND" },
 ): PartialResult {
+  const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
   const validValues = grades
     .filter((g) => !g.isAbsent && !g.isExempt)
     .map((g) => g.value);
-  return calculateAverage(validValues, opts);
+  const result = calculateAverage(validValues, opts);
+  return { ...result, excluded };
 }
 
 export interface FirstCycleAnnualResult {

@@ -13,16 +13,17 @@ describe("first cycle (1re-6e) — notes /10", () => {
       expect(r.value).toBe(10); // et NON 20
     });
 
-    it("test 7e : absences et dispensés exclus", () => {
+    it("test 7e : absences et dispensés exclus (pas comptés comme manquants)", () => {
       const r = calculateCompositionAverage([
         { value: 8 },
         { value: null, isAbsent: true },
         { value: null, isExempt: true },
         { value: 6 },
       ]);
-      expect(r.value).toBe(7); // (8+6)/2
-      expect(r.count).toBe(2);
-      expect(r.complete).toBe(false);
+      expect(r.value).toBe(7);        // (8+6)/2
+      expect(r.count).toBe(2);        // 2 notes valides
+      expect(r.excluded).toBe(2);     // 1 absent + 1 dispensé
+      expect(r.complete).toBe(true);  // pas de "manquant" (les exclus sont retirés)
     });
   });
 

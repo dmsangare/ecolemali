@@ -15,10 +15,12 @@ export function calculateSubjectAverage(
   grades: GradeInput[],
   opts: RoundOptions = { decimals: 2, mode: "ROUND" },
 ): PartialResult {
+  const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
   const validValues = grades
     .filter((g) => !g.isAbsent && !g.isExempt)
     .map((g) => g.value);
-  return calculateAverage(validValues, opts);
+  const result = calculateAverage(validValues, opts);
+  return { ...result, excluded };
 }
 
 export interface SubjectAverageInput {
@@ -35,17 +37,18 @@ export function calculateTermAverage(
     i.average !== null && !Number.isNaN(i.average),
   );
   if (valid.length === 0) {
-    return { value: null, count: 0, missing: items.length, complete: false };
+    return { value: null, count: 0, missing: items.length, excluded: 0, complete: false };
   }
   const totalWeighted = valid.reduce((s, i) => s + i.average * i.coefficient, 0);
   const totalCoefficients = valid.reduce((s, i) => s + i.coefficient, 0);
   if (totalCoefficients === 0) {
-    return { value: null, count: 0, missing: items.length, complete: false };
+    return { value: null, count: 0, missing: items.length, excluded: 0, complete: false };
   }
   return {
     value: roundScore(totalWeighted / totalCoefficients, opts),
     count: valid.length,
     missing: items.length - valid.length,
+    excluded: 0,
     complete: valid.length === items.length,
   };
 }

@@ -40,6 +40,7 @@ export interface PartialResult {
   value: number | null;
   count: number;
   missing: number;
+  excluded: number;  // absents + dispensés (exclus du calcul, pas "manquants")
   complete: boolean;
 }
 
@@ -50,13 +51,14 @@ export function calculateAverage(
 ): PartialResult {
   const valid = values.filter((v): v is number => v !== null && !Number.isNaN(v));
   if (valid.length === 0) {
-    return { value: null, count: 0, missing: values.length, complete: false };
+    return { value: null, count: 0, missing: values.length, excluded: 0, complete: false };
   }
   const sum = valid.reduce((s, v) => s + v, 0);
   return {
     value: roundScore(sum / valid.length, opts),
     count: valid.length,
     missing: values.length - valid.length,
+    excluded: 0,
     complete: valid.length === values.length,
   };
 }

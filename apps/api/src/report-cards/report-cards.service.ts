@@ -193,26 +193,17 @@ export class ReportCardsService {
       scaleByClass.set(e.classId, rulesForCycle(cycleByLevel.get(e.levelId)).scale);
     }
 
-    // Charger la configuration du bulletin (matieres et coefficients)
-    const schoolId = enrollments[0]?.student?.schoolId;
-    const bulletinConfig = schoolId
-      ? await this.prisma.bulletinConfig.findUnique({ where: { schoolId } })
-      : null;
-    const configSubjects: Array<{ name: string; coefficient: number; order: number }> =
-      (bulletinConfig?.subjects as any[]) || [];
-
-    // Si pas de config, fallback : utiliser les matieres deja notees (SubjectCoefficient)
-    const subjectsToUse = configSubjects.length > 0
-      ? configSubjects.map((s) => ({ name: s.name, coefficient: s.coefficient }))
-      : await (async () => {
-          const coefficientRows = await this.prisma.subjectCoefficient.findMany({
-            where: { levelId: { in: Array.from(new Set(enrollments.map((e) => e.levelId))) } },
-            include: { subject: true },
-          });
-          return coefficientRows.map((r) => ({
-            name: r.subject.name,
-            coefficient: Number(r.coefficient),
-          }));
+    // Matieres et coefficients : fallback SubjectCoefficient
+    // (BulletinConfig supprime — voir commit refonte bulletins v2)
+    const subjectsToUse = await (async () => {
+      const coefficientRows = await this.prisma.subjectCoefficient.findMany({
+        where: { levelId: { in: Array.from(new Set(enrollments.map((e) => e.levelId))) } },
+        include: { subject: true },
+      });
+      return coefficientRows.map((r) => ({
+        name: r.subject.name,
+        coefficient: Number(r.coefficient),
+      }));
         })();
 
     // Recuperer les evaluations du trimestre pour ces classes

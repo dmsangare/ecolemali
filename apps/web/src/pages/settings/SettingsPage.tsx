@@ -24,7 +24,6 @@ import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
 import { HonorRollTab } from "./HonorRollTab";
 import { NumberingTab } from "./NumberingTab";
-import { BulletinConfigTab } from "./BulletinConfigTab";
 import { AuditLogsTab } from "./AuditLogsTab";
 import { SystemLogsTab } from "./SystemLogsTab";
 
@@ -143,7 +142,6 @@ export function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="bulletin">
-          <BulletinConfigTab />
         </TabsContent>
 
         <TabsContent value="system">

@@ -527,6 +527,19 @@ export class ReportCardsService {
     if (report.status !== "VALIDATED" && report.status !== "PUBLISHED") {
       throw new BadRequestException("Seul un bulletin valide ou publie peut etre rouvert");
     }
+
+    // BLOC 8.5 : revoquer les VerifiableDocument associes (QR)
+    try {
+      const verifiableDocs = await this.prisma.verifiableDocument.findMany({
+        where: { referenceId: id, type: "BULLETIN", revokedAt: null },
+      });
+      for (const doc of verifiableDocs) {
+        await this.verificationService.revoke(doc.shortCode, user?.id ?? "system");
+      }
+    } catch (err) {
+      this.logger.warn(`Erreur revocation QR pour bulletin ${id}: ${err}`);
+    }
+
     return this.prisma.reportCard.update({
       where: { id },
       data: {

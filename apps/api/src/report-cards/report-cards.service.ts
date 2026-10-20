@@ -452,10 +452,24 @@ export class ReportCardsService {
     if (report.status === "PUBLISHED") {
       throw new BadRequestException("Ce bulletin est deja publie");
     }
+    // Recuperer les parametres de l'ecole pour le snapshot fige
+    const setting = await this.prisma.setting.findUnique({
+      where: { schoolId: report.student?.schoolId ?? "" },
+      select: { gradingScale: true, passMark: true, locale: true, timezone: true },
+    });
+
     const snapshot = {
       capturedAt: new Date().toISOString(),
       capturedBy: user?.id ?? "system",
       version: "1.0",
+      settings: setting
+        ? {
+            gradingScale: Number(setting.gradingScale),
+            passMark: Number(setting.passMark),
+            locale: setting.locale,
+            timezone: setting.timezone,
+          }
+        : null,
       report: {
         id: report.id,
         studentId: report.studentId,
@@ -508,11 +522,25 @@ export class ReportCardsService {
       throw new ForbiddenException("Acces interdit");
     }
 
-    // Creer le snapshot fige
+    // Recuperer les parametres de l'ecole pour le snapshot fige
+    const setting = await this.prisma.setting.findUnique({
+      where: { schoolId: report.student?.schoolId ?? "" },
+      select: { gradingScale: true, passMark: true, locale: true, timezone: true },
+    });
+
+    // Creer le snapshot fige (regles + valeurs)
     const snapshot = {
       capturedAt: new Date().toISOString(),
       capturedBy: user?.id ?? "system",
       version: "1.0",
+      settings: setting
+        ? {
+            gradingScale: Number(setting.gradingScale),
+            passMark: Number(setting.passMark),
+            locale: setting.locale,
+            timezone: setting.timezone,
+          }
+        : null,
       report: {
         id: report.id,
         studentId: report.studentId,

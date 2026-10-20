@@ -488,15 +488,23 @@ export const ReportCardGenerateSchema = z.object({
   termId: uuid,
   classId: uuid.optional(),
   studentId: uuid.optional(),
+  kind: z.enum(["COMPOSITION", "TRIMESTRIEL", "ANNUEL"]).optional().default("TRIMESTRIEL"),
 });
 
 export const ReportCardUpdateSchema = z.object({
   decision: z.nativeEnum(ReportDecision).optional(),
   appreciation: z.string().optional(),
+  conductScore: z.number().min(0).max(20).nullable().optional(),
+  conductAppreciation: z.string().optional(),
 });
 
 export type ReportCardGenerateInput = z.infer<typeof ReportCardGenerateSchema>;
 export type ReportCardUpdateInput = z.infer<typeof ReportCardUpdateSchema>;
+
+export const ReportCardReopenSchema = z.object({
+  motive: z.string().min(5, 'Motif obligatoire (min 5 caractères)').max(500),
+});
+export type ReportCardReopenInput = z.infer<typeof ReportCardReopenSchema>;
 
 // ============================================================
 // EXAM

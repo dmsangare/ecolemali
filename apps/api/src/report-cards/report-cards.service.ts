@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from "@nestjs/common";
 import QRCode from "qrcode";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { VerificationService } from "../verification/verification.service";
 import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
@@ -13,6 +14,7 @@ import {
   scaledThreshold,
 } from "./grading-rules";
 import { fileToBase64 } from "../common/utils/file-to-base64.util";
+import { CurrentUserPayload } from "../common/decorators";
 
 @Injectable()
 export class ReportCardsService {
@@ -129,7 +131,7 @@ export class ReportCardsService {
    *  - le rang dans la classe
    *  - la decision (ADMIS/REDOUBLE)
    */
-  async generate(dto: ReportCardGenerateDto) {
+  async generate(dto: ReportCardGenerateDto, user?: CurrentUserPayload) {
     // Recuperer les eleves de la classe (ou un seul)
     const whereEnrollments: any = {
       academicYearId: dto.academicYearId,
@@ -145,6 +147,14 @@ export class ReportCardsService {
 
     if (allEnrollments.length === 0) {
       throw new BadRequestException("Aucun eleve inscrit trouve");
+    }
+
+    // Isolation ecole : verifier que tous les eleves sont de l'ecole de l'utilisateur
+    if (user?.schoolId) {
+      const foreign = allEnrollments.find((e: any) => e.student?.schoolId !== user.schoolId);
+      if (foreign) {
+        throw new ForbiddenException("Un ou plusieurs eleves hors de votre ecole");
+      }
     }
 
     // Verifier si des bulletins valides/publies existent deja pour ces eleves
@@ -307,6 +317,9 @@ export class ReportCardsService {
 
       const decision = r.average !== null ? determineDecision(r.average, { ADMIS: scaledThreshold(passMark, r.scale) }) : "A_DETERMINER";
 
+      // Calcul isComplete : toutes les matieres ont une moyenne
+      const isComplete = r.subjectAverages.every((sa: any) => sa.average !== null);
+
       // Upsert le bulletin
       const report = await this.prisma.reportCard.upsert({
         where: {
@@ -320,6 +333,8 @@ export class ReportCardsService {
           absencesCount,
           latesCount,
           decision: decision as any,
+          kind: dto.kind ?? "TRIMESTRIEL",
+          isComplete,
         },
         create: {
           studentId: r.studentId,
@@ -334,6 +349,8 @@ export class ReportCardsService {
           decision: decision as any,
           scale: r.scale,
           status: "DRAFT",
+          kind: dto.kind ?? "TRIMESTRIEL",
+          isComplete,
         },
       });
 
@@ -362,8 +379,11 @@ export class ReportCardsService {
     };
   }
 
-  async update(id: string, dto: ReportCardUpdateDto) {
+  async update(id: string, dto: ReportCardUpdateDto, user?: CurrentUserPayload) {
     const report = await this.findOne(id);
+    if (user?.schoolId && report.student?.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Acces interdit");
+    }
     if (report.status === "PUBLISHED") {
       throw new BadRequestException("Impossible de modifier un bulletin publie");
     }
@@ -372,18 +392,35 @@ export class ReportCardsService {
       data: {
         ...dto,
         decision: dto.decision as any,
+        conductScore: dto.conductScore ?? undefined,
+        conductAppreciation: dto.conductAppreciation,
       },
     });
   }
 
-  async publish(id: string) {
+  async publish(id: string, user?: CurrentUserPayload) {
     const report = await this.findOne(id);
+    if (user?.schoolId && report.student?.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Acces interdit");
+    }
     if (report.status === "PUBLISHED") {
       throw new BadRequestException("Ce bulletin est deja publie");
     }
+    const snapshot = {
+      capturedAt: new Date().toISOString(),
+      capturedBy: user?.id ?? "system",
+      version: "1.0",
+      report: {
+        id: report.id,
+        studentId: report.studentId,
+        average: report.average,
+        rank: report.rank,
+        decision: report.decision,
+      },
+    };
     const published = await this.prisma.reportCard.update({
       where: { id },
-      data: { status: "PUBLISHED", publishedAt: new Date() },
+      data: { status: "PUBLISHED", publishedAt: new Date(), snapshot },
     });
     await this.refreshHonorRoll(report.student?.schoolId, report.termId);
     return published;
@@ -401,11 +438,54 @@ export class ReportCardsService {
     return { published: result.count };
   }
 
-  async validate(id: string) {
-    await this.findOne(id);
+  async reopen(id: string, motive: string, user?: CurrentUserPayload) {
+    const report = await this.findOne(id);
+    if (user?.schoolId && report.student?.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Acces interdit");
+    }
+    if (report.status !== "VALIDATED" && report.status !== "PUBLISHED") {
+      throw new BadRequestException("Seul un bulletin valide ou publie peut etre rouvert");
+    }
     return this.prisma.reportCard.update({
       where: { id },
-      data: { status: "VALIDATED" },
+      data: {
+        status: "DRAFT",
+        snapshot: Prisma.DbNull,
+        publishedAt: null,
+      },
+    });
+  }
+
+  async validate(id: string, user?: CurrentUserPayload) {
+    const report = await this.findOne(id);
+    if (user?.schoolId && report.student?.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Acces interdit");
+    }
+
+    // Creer le snapshot fige
+    const snapshot = {
+      capturedAt: new Date().toISOString(),
+      capturedBy: user?.id ?? "system",
+      version: "1.0",
+      report: {
+        id: report.id,
+        studentId: report.studentId,
+        average: report.average,
+        rank: report.rank,
+        classSize: report.classSize,
+        decision: report.decision,
+        items: (report as any).items?.map((i: any) => ({
+          subjectId: i.subjectId,
+          average: i.average,
+          coefficient: i.coefficient,
+          weighted: i.weighted,
+        })) ?? [],
+      },
+    };
+
+    return this.prisma.reportCard.update({
+      where: { id },
+      data: { status: "VALIDATED", snapshot },
     });
   }
 
@@ -474,7 +554,7 @@ export class ReportCardsService {
   /**
    * Prepare les donnees d'export PDF pour un bulletin.
    */
-  async getExportData(id: string) {
+  async getExportData(id: string, user?: CurrentUserPayload) {
     // Generation du QR code de verification
     let qrCodeDataUrl: string | null = null;
     try {

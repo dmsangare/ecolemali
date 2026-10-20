@@ -270,6 +270,7 @@ export class ReportCardsService {
       studentId: string;
       classId: string;
       scale: number;
+      cycle: string;
       average: number | null;
       subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }>;
     }> = [];
@@ -317,6 +318,7 @@ export class ReportCardsService {
         studentId: e.studentId,
         classId: e.classId,
         scale: scaleByClass.get(e.classId) ?? 20,
+        cycle: cycleByLevel.get(e.levelId) ?? "DEUXIEME_CYCLE",
         average: generalAverage,
         subjectAverages,
       });
@@ -374,6 +376,11 @@ export class ReportCardsService {
         && r.subjectAverages.every((sa: any) => sa.average !== null);
       const isComplete = hasExpectedAssessments && allSubjectsHaveAverage;
 
+      // Compter les eleves de la classe pour classSize
+      const classSize = await this.prisma.enrollment.count({
+        where: { classId: r.classId, academicYearId: dto.academicYearId, status: "VALIDATED" },
+      });
+
       // Upsert le bulletin
       const report = await this.prisma.reportCard.upsert({
         where: {
@@ -383,11 +390,11 @@ export class ReportCardsService {
           scale: r.scale,
           average: r.average,
           rank,
-          classSize: classAverages.length,
+          classSize: classSize,
           absencesCount,
           latesCount,
           decision: decision as any,
-          kind: dto.kind ?? "TRIMESTRIEL",
+          kind: dto.kind ?? (r.cycle === "PREMIER_CYCLE" ? "COMPOSITION" : "TRIMESTRIEL"),
           isComplete,
         },
         create: {
@@ -397,13 +404,13 @@ export class ReportCardsService {
           academicYearId: dto.academicYearId,
           average: r.average,
           rank,
-          classSize: classAverages.length,
+          classSize: classSize,
           absencesCount,
           latesCount,
           decision: decision as any,
           scale: r.scale,
           status: "DRAFT",
-          kind: dto.kind ?? "TRIMESTRIEL",
+          kind: dto.kind ?? (r.cycle === "PREMIER_CYCLE" ? "COMPOSITION" : "TRIMESTRIEL"),
           isComplete,
         },
       });

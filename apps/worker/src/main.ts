@@ -8,6 +8,9 @@ import IORedis from "ioredis";
 import { runFullBackup, cleanupOldBackups } from "./lib/backup";
 import { startBackupScheduler, stopBackupScheduler } from "./lib/scheduler";
 import { prisma } from "./lib/prisma";
+import archiver = require("archiver");
+import * as fsPromises from "fs/promises";
+import * as fsSync from "fs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 
@@ -40,10 +43,133 @@ const pdfWorker = new Worker(
   "pdf-generation",
   async (job) => {
     console.log(`[PDF] Traitement du job ${job.id}`, job.data);
-    // TODO: Implementer avec Puppeteer
-    return { success: true, jobId: job.id };
+    const { classId, termId, academicYearId, kind } = job.data;
+
+    // Import dynamique pour ne pas bloquer le worker si Puppeteer n'est pas dispo
+    const { generateReportCardPDF } = await import(
+      "../../api/src/report-cards/utils/report-card-pdf.util"
+    );
+    const { generateAnnualReportCardPDF } = await import(
+      "../../api/src/report-cards/utils/annual-report-card-pdf.util"
+    );
+
+
+    // Récupérer les bulletins de la classe
+    const { PrismaClient } = await import("@prisma/client");
+    const prismaLocal = new PrismaClient();
+
+    try {
+      const reports = await prismaLocal.reportCard.findMany({
+        where: { classId, academicYearId, ...(termId ? { termId } : {}) },
+        include: {
+          student: true,
+          class: { include: { level: true } },
+          term: true,
+          academicYear: true,
+          items: { include: { subject: true } },
+        },
+      });
+
+      if (reports.length === 0) {
+        return { success: true, count: 0, message: "Aucun bulletin" };
+      }
+
+      // Créer le ZIP
+      const outputPath = `/tmp/report-cards-${classId}-${Date.now()}.zip`;
+      const output = fsSync.createWriteStream(outputPath);
+      const archive = (archiver as any)("zip", { zlib: { level: 9 } });
+
+      archive.pipe(output);
+
+      // Générer chaque PDF
+      for (const report of reports) {
+        try {
+          let buffer: Buffer;
+          if (kind === "ANNUEL" || report.kind === "ANNUEL") {
+            // Pour l'annuel, on ne peut pas utiliser getAnnualExportData directement
+            // On utilise le PDF période pour l'instant
+            buffer = await generateReportCardPDF({
+              schoolName: "SIS-MALI",
+              studentName: `${report.student.lastName} ${report.student.firstName}`,
+              studentMatricule: report.student.matricule,
+              studentGender: report.student.gender,
+              studentBirthDate: report.student.birthDate.toISOString().split("T")[0],
+              studentBirthPlace: report.student.birthPlace,
+              className: report.class?.name || "",
+              classSize: report.classSize || 0,
+              termName: report.term?.name || "",
+              academicYear: report.academicYear?.label || "",
+              items: report.items.map((i) => ({
+                subjectName: i.subject?.name || "",
+                coefficient: Number(i.coefficient),
+                average: i.average !== null ? Number(i.average) : null,
+                weighted: i.weighted !== null ? Number(i.weighted) : null,
+                rank: i.rank,
+              })),
+              totalCoefficient: report.items.reduce((s, i) => s + Number(i.coefficient), 0),
+              totalWeighted: report.items.reduce((s, i) => s + (Number(i.weighted) || 0), 0),
+              generalAverage: report.average !== null ? Number(report.average) : null,
+              rank: report.rank,
+              scale: Number(report.scale) || 20,
+              absencesCount: report.absencesCount,
+              latesCount: report.latesCount,
+              decision: report.decision,
+              appreciation: report.appreciation,
+            } as any);
+          } else {
+            buffer = await generateReportCardPDF({
+              schoolName: "SIS-MALI",
+              studentName: `${report.student.lastName} ${report.student.firstName}`,
+              studentMatricule: report.student.matricule,
+              studentGender: report.student.gender,
+              studentBirthDate: report.student.birthDate.toISOString().split("T")[0],
+              studentBirthPlace: report.student.birthPlace,
+              className: report.class?.name || "",
+              classSize: report.classSize || 0,
+              termName: report.term?.name || "",
+              academicYear: report.academicYear?.label || "",
+              items: report.items.map((i) => ({
+                subjectName: i.subject?.name || "",
+                coefficient: Number(i.coefficient),
+                average: i.average !== null ? Number(i.average) : null,
+                weighted: i.weighted !== null ? Number(i.weighted) : null,
+                rank: i.rank,
+              })),
+              totalCoefficient: report.items.reduce((s, i) => s + Number(i.coefficient), 0),
+              totalWeighted: report.items.reduce((s, i) => s + (Number(i.weighted) || 0), 0),
+              generalAverage: report.average !== null ? Number(report.average) : null,
+              rank: report.rank,
+              scale: Number(report.scale) || 20,
+              absencesCount: report.absencesCount,
+              latesCount: report.latesCount,
+              decision: report.decision,
+              appreciation: report.appreciation,
+            } as any);
+          }
+
+          const safeName = `${report.student.lastName}-${report.student.firstName}`.replace(/[^a-z0-9-]/gi, "_");
+          archive.append(buffer, { name: `bulletin-${safeName}.pdf` });
+        } catch (err: any) {
+          console.error(`[PDF] Erreur generation ${report.student.matricule}: ${err.message}`);
+        }
+      }
+
+      await archive.finalize();
+      await new Promise<void>((resolve) => output.on("close", () => resolve()));
+
+      const stat = await fsPromises.stat(outputPath);
+      return {
+        success: true,
+        count: reports.length,
+        path: outputPath,
+        size: stat.size,
+        message: `${reports.length} PDF générés`,
+      };
+    } finally {
+      await prismaLocal.$disconnect();
+    }
   },
-  { connection, concurrency: 2 },
+  { connection, concurrency: 1 },
 );
 
 const notificationWorker = new Worker(

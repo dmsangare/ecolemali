@@ -1,12 +1,14 @@
 import {
   Controller, Get, Post, Patch, Delete, Body, Param, Query, Res,
-  HttpCode, HttpStatus, UseGuards,
+  HttpCode, HttpStatus, UseGuards, NotFoundException,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
 import { ReportCardsService } from "./report-cards.service";
 import { generateReportCardPDF } from "./utils/report-card-pdf.util";
 import { generateAnnualReportCardPDF } from "./utils/annual-report-card-pdf.util";
+import { Queue } from "bullmq";
+import IORedis from "ioredis";
 import { ReportCardGenerateSchema, ReportCardUpdateSchema, ReportCardReopenSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
@@ -121,6 +123,78 @@ export class ReportCardsController {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(buffer);
+  }
+
+  @Post("class/:classId/pdf")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequirePermissions("report_card:export")
+  @ApiOperation({ summary: "Générer un ZIP de tous les bulletins d'une classe (async)" })
+  async generateClassPDF(
+    @Param("classId") classId: string,
+    @Body() body: { academicYearId: string; termId?: string; kind?: string },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    // Créer un job dans la queue
+    const connection = new IORedis(process.env.REDIS_URL || "redis://redis:6379", {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+    const queue = new Queue("pdf-generation", { connection });
+
+    const job = await queue.add("class-pdf", {
+      classId,
+      academicYearId: body.academicYearId,
+      termId: body.termId,
+      kind: body.kind || "TRIMESTRIEL",
+      requestedBy: user.id,
+    });
+
+    await queue.close();
+    await connection.quit();
+
+    return {
+      jobId: job.id,
+      status: "PENDING",
+      message: "Génération en cours. Utilisez /report-cards/class-pdf/:jobId pour télécharger.",
+    };
+  }
+
+  @Get("class-pdf/:jobId")
+  @RequirePermissions("report_card:export")
+  @ApiOperation({ summary: "Télécharger le ZIP des bulletins d'une classe" })
+  async downloadClassPDF(
+    @Param("jobId") jobId: string,
+    @Res() res: Response,
+  ) {
+    const connection = new IORedis(process.env.REDIS_URL || "redis://redis:6379", {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+    const queue = new Queue("pdf-generation", { connection });
+    const job = await queue.getJob(jobId);
+
+    if (!job) {
+      await queue.close();
+      await connection.quit();
+      throw new NotFoundException("Job introuvable");
+    }
+
+    const state = await job.getState();
+    const returnValue = job.returnvalue;
+
+    await queue.close();
+    await connection.quit();
+
+    if (state === "completed" && returnValue?.path) {
+      return res.download(returnValue.path);
+    }
+
+    return res.json({
+      jobId,
+      state,
+      progress: job.progress,
+      returnValue: state === "completed" ? returnValue : undefined,
+    });
   }
 
   @Get(":id/export/pdf")

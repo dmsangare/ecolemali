@@ -345,8 +345,15 @@ export class ReportCardsService {
           })
         : "INCOMPLET";
 
-      // Calcul isComplete : toutes les matieres ont une moyenne
-      const isComplete = r.subjectAverages.every((sa: any) => sa.average !== null);
+      // Calcul isComplete :
+      // - Il faut au moins une evaluation de type COMPOSITION (ou une evaluation tout court)
+      //   attendue pour ce trimestre et cette classe
+      // - ET toutes les matieres doivent avoir une moyenne non-null
+      const assessmentsForClass = assessments.filter((a: any) => a.classId === r.classId);
+      const hasExpectedAssessments = assessmentsForClass.length > 0;
+      const allSubjectsHaveAverage = r.subjectAverages.length > 0
+        && r.subjectAverages.every((sa: any) => sa.average !== null);
+      const isComplete = hasExpectedAssessments && allSubjectsHaveAverage;
 
       // Upsert le bulletin
       const report = await this.prisma.reportCard.upsert({

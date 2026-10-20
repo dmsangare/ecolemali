@@ -359,12 +359,19 @@ export class ReportCardsService {
       ).length;
       const latesCount = attendanceStats.filter((a) => a.status === "LATE").length;
 
-      const decision = r.average !== null
+      // Mapper les decisions du moteur vers les valeurs Prisma
+      const rawDecision = r.average !== null
         ? determineDecisionEngine(r.average, true, {
             passingScore: scaledThreshold(passMark, r.scale),
             examScore: null,
           })
         : "INCOMPLET";
+
+      // Prisma ReportDecision : ADMIS | PASSE | REDOUBLE | EXCLU | A_DETERMINER
+      const decision: "ADMIS" | "REDOUBLE" | "A_DETERMINER" =
+        rawDecision === "ADMIS" ? "ADMIS"
+          : rawDecision === "REDOUBLE" ? "REDOUBLE"
+            : "A_DETERMINER";  // INCOMPLET, A_EXAMINER → A_DETERMINER
 
       // Calcul isComplete :
       // - Il faut au moins une evaluation de type COMPOSITION (ou une evaluation tout court)

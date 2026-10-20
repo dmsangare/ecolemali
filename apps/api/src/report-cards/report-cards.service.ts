@@ -167,17 +167,16 @@ export class ReportCardsService {
       select: { studentId: true, status: true },
     });
 
-    if (existingLocked.length > 0) {
-      const lockedNames = existingLocked
-        .map((r) => {
-          const enr = allEnrollments.find((e) => e.studentId === r.studentId);
-          return enr ? `${enr.student.firstName} ${enr.student.lastName} (${r.status})` : r.studentId;
-        })
-        .join(", ");
-      throw new BadRequestException(
-        `Impossible de regenerer : ${existingLocked.length} bulletin(s) deja valide(s)/publie(s) existent (${lockedNames}). Depubliez-les ou supprimez-les d'abord.`,
-      );
-    }
+    // Generation partielle : sauter les bulletins deja valides/publies
+    const lockedStudentIds = new Set(existingLocked.map((r) => r.studentId));
+    const skipped = existingLocked.map((r) => {
+      const enr = allEnrollments.find((e) => e.studentId === r.studentId);
+      return {
+        studentId: r.studentId,
+        studentName: enr ? `${enr.student.firstName} ${enr.student.lastName}` : r.studentId,
+        status: r.status,
+      };
+    });
 
     // Regles par cycle : bareme (/10 ou /20) et type de periode (mois ou trimestre)
     const term = await this.prisma.term.findUnique({ where: { id: dto.termId } });
@@ -195,10 +194,17 @@ export class ReportCardsService {
     const cycleByLevel = new Map<string, string>(levels.map((l) => [l.id, l.cycle as string]));
 
     // On ne garde que les classes dont le cycle correspond au type de periode choisi
+    // ET on exclut les eleves avec bulletin verrouille (fix7)
     const enrollments = allEnrollments.filter((e) =>
-      isTermAllowedForCycle(term.type, cycleByLevel.get(e.levelId)),
+      isTermAllowedForCycle(term.type, cycleByLevel.get(e.levelId)) &&
+      !lockedStudentIds.has(e.studentId),
     );
     if (enrollments.length === 0) {
+      if (lockedStudentIds.size > 0) {
+        throw new BadRequestException(
+          `Tous les bulletins de cette periode sont deja valides/publies (${lockedStudentIds.size} saute(s)).`,
+        );
+      }
       throw new BadRequestException(describeTermMismatch(term.type, term.name));
     }
 
@@ -413,6 +419,8 @@ export class ReportCardsService {
 
     return {
       generated: created.length,
+      skipped,
+      skippedCount: skipped.length,
       reports: created,
     };
   }

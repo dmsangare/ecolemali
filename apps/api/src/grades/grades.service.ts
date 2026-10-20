@@ -78,6 +78,14 @@ export class GradesService {
       }
     }
 
+    // Recuperer les anciennes notes AVANT le upsert (pour audit)
+    const studentIds = dto.grades.map((g) => g.studentId);
+    const existingGrades = await this.prisma.grade.findMany({
+      where: { assessmentId: dto.assessmentId, studentId: { in: studentIds } },
+      select: { id: true, studentId: true, value: true },
+    });
+    const oldByStudent = new Map(existingGrades.map((g) => [g.studentId, g]));
+
     // Upsert toutes les notes
     const results = await this.prisma.$transaction(
       dto.grades.map((g) =>
@@ -112,7 +120,30 @@ export class GradesService {
       ),
     );
 
-    return { updated: results.length, grades: results };
+    // Journal GradeAudit : si une note existait deja et que la valeur a change
+    const auditsToCreate: any[] = [];
+    for (const g of dto.grades) {
+      const old = oldByStudent.get(g.studentId);
+      if (old && old.value !== null && g.value !== null) {
+        const oldVal = Number(old.value);
+        const newVal = Number(g.value);
+        if (oldVal !== newVal) {
+          auditsToCreate.push({
+            gradeId: old.id,
+            oldValue: old.value,
+            newValue: g.value,
+            userId: user.id,
+            motive: "Modification en masse (bulkEntry)",
+          });
+        }
+      }
+    }
+
+    if (auditsToCreate.length > 0) {
+      await this.prisma.gradeAudit.createMany({ data: auditsToCreate });
+    }
+
+    return { updated: results.length, grades: results, audited: auditsToCreate.length };
   }
 
   async update(id: string, dto: GradeUpdateDto, user: { id: string; roles: string[] }) {

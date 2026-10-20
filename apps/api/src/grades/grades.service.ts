@@ -90,16 +90,22 @@ export class GradesService {
           },
           update: {
             value: g.value,
-            isAbsent: g.isAbsent,
+            status: g.status ?? "PRESENT",
+            isAbsent: g.isAbsent ?? false,
+            isExempt: g.isExempt ?? false,
             observation: g.observation,
+            comment: g.comment,
             enteredBy,
           },
           create: {
             assessmentId: dto.assessmentId,
             studentId: g.studentId,
             value: g.value,
-            isAbsent: g.isAbsent,
+            status: g.status ?? "PRESENT",
+            isAbsent: g.isAbsent ?? false,
+            isExempt: g.isExempt ?? false,
             observation: g.observation,
+            comment: g.comment,
             enteredBy,
           },
         }),
@@ -134,10 +140,31 @@ export class GradesService {
       }
     }
 
-    return this.prisma.grade.update({
+    const oldValue = grade.value;
+    const updated = await this.prisma.grade.update({
       where: { id },
       data: { ...dto, enteredBy: updatedBy },
     });
+
+    // Journal GradeAudit si value a changé
+    const valueChanged =
+      dto.value !== undefined &&
+      (oldValue === null || updated.value === null
+        ? oldValue !== updated.value
+        : Number(oldValue) !== Number(updated.value));
+    if (valueChanged) {
+      await this.prisma.gradeAudit.create({
+        data: {
+          gradeId: id,
+          oldValue: oldValue,
+          newValue: updated.value,
+          userId: user.id,
+          motive: "Modification manuelle",
+        },
+      });
+    }
+
+    return updated;
   }
 
   /**

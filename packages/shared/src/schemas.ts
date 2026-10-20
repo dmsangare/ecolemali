@@ -454,8 +454,11 @@ export type AssessmentUpdateInput = z.infer<typeof AssessmentUpdateSchema>;
 export const GradeEntrySchema = z.object({
   studentId: uuid,
   value: z.coerce.number().min(0).max(100).nullable(),
+  status: z.enum(["PRESENT", "ABSENT", "EXEMPT", "MISSING"]).default("PRESENT"),
   isAbsent: z.boolean().default(false),
+  isExempt: z.boolean().default(false),
   observation: z.string().optional(),
+  comment: z.string().optional(),
 });
 
 export const GradesBulkSchema = z.object({
@@ -465,8 +468,11 @@ export const GradesBulkSchema = z.object({
 
 export const GradeUpdateSchema = z.object({
   value: z.coerce.number().min(0).max(100).nullable().optional(),
+  status: z.enum(["PRESENT", "ABSENT", "EXEMPT", "MISSING"]).optional(),
   isAbsent: z.boolean().optional(),
+  isExempt: z.boolean().optional(),
   observation: z.string().optional(),
+  comment: z.string().optional(),
 });
 
 export type GradeEntryInput = z.infer<typeof GradeEntrySchema>;

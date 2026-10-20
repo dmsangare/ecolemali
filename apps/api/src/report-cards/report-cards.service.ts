@@ -184,6 +184,11 @@ export class ReportCardsService {
     // Regles par cycle : bareme (/10 ou /20) et type de periode (mois ou trimestre)
     const term = await this.prisma.term.findUnique({ where: { id: dto.termId } });
     if (!term) throw new NotFoundException("Periode introuvable");
+    if (term.isLocked) {
+      throw new BadRequestException(
+        "Cette periode est verrouillee. Impossible de generer les bulletins.",
+      );
+    }
 
     const levels = await this.prisma.level.findMany({
       where: { id: { in: Array.from(new Set(allEnrollments.map((e) => e.levelId))) } },

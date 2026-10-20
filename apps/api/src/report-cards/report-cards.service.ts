@@ -238,6 +238,16 @@ export class ReportCardsService {
       include: { grades: true },
     });
 
+    // Fix9 : signaler les evaluations non validees (DRAFT/OPEN/SUBMITTED)
+    const draftAssessments = await this.prisma.assessment.findMany({
+      where: {
+        termId: dto.termId,
+        classId: { in: classIds },
+        status: { in: ["DRAFT", "OPEN", "SUBMITTED"] },
+      },
+      select: { id: true, classId: true, subjectId: true, status: true },
+    });
+
     // Structure : studentId -> subjectId -> [{ value, coefficient }]
     const gradesMap = new Map<string, Map<string, Array<{ value: number; coefficient: number }>>>();
     for (const a of assessments) {
@@ -417,10 +427,21 @@ export class ReportCardsService {
 
     this.logger.log(`Generated ${created.length} report cards for term ${dto.termId}`);
 
+    // Construire les warnings pour les evaluations non validees
+    const warnings = draftAssessments.length > 0
+      ? [{
+          type: "UNVALIDATED_ASSESSMENTS",
+          message: `${draftAssessments.length} evaluation(s) non validee(s) ne sont pas incluses dans les bulletins`,
+          count: draftAssessments.length,
+          assessments: draftAssessments,
+        }]
+      : [];
+
     return {
       generated: created.length,
       skipped,
       skippedCount: skipped.length,
+      warnings,
       reports: created,
     };
   }

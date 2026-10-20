@@ -4,7 +4,9 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { VerificationService } from "../verification/verification.service";
 import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
-import { calculateWeightedAverage, calculateReportAverage, determineDecision } from "@sis-mali/shared";
+import { calculateSubjectAverage } from "./calculation/second-cycle";
+import { calculateCompositionAverage } from "./calculation/first-cycle";
+import { determineDecision as determineDecisionEngine } from "./calculation/decision";
 import { DashboardService } from "../dashboard/dashboard.service";
 import {
   isTermAllowedForCycle,
@@ -257,19 +259,40 @@ export class ReportCardsService {
       const studentGrades = gradesMap.get(e.studentId) || new Map();
       const subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }> = [];
 
+      const cycle = cycleByLevel.get(e.levelId) as string;
       for (const sc of subjectsToUse) {
         const grades = studentGrades.get(sc.name) || [];
-        const average = calculateWeightedAverage(grades);
+        // Utiliser le moteur calculation/ selon le cycle
+        const gradeInputs = grades.map((g: any) => ({
+          value: g.value,
+          isAbsent: g.isAbsent ?? false,
+          isExempt: g.isExempt ?? false,
+        }));
+        const partialResult = cycle === "PREMIER_CYCLE"
+          ? calculateCompositionAverage(gradeInputs)
+          : calculateSubjectAverage(gradeInputs);
         subjectAverages.push({
           subjectId: sc.name,
-          average,
+          average: partialResult.value,
           coefficient: Number(sc.coefficient),
         });
       }
 
-      const generalAverage = calculateReportAverage(
-        subjectAverages.map((sa) => ({ average: sa.average, coefficient: sa.coefficient })),
-      );
+      // Moyenne générale : pondérée (2e cycle) ou simple (1er cycle)
+      let generalAverage: number | null = null;
+      if (cycle === "PREMIER_CYCLE") {
+        // 1er cycle : moyenne simple des matières (pas de coefficients)
+        const valid = subjectAverages.filter(sa => sa.average !== null).map(sa => sa.average as number);
+        generalAverage = valid.length > 0
+          ? Math.round((valid.reduce((s, v) => s + v, 0) / valid.length) * 100) / 100
+          : null;
+      } else {
+        // 2e cycle : moyenne pondérée par coefficients
+        const { calculateTermAverage } = require("./calculation/second-cycle");
+        generalAverage = calculateTermAverage(
+          subjectAverages.map((sa) => ({ average: sa.average, coefficient: sa.coefficient })),
+        ).value;
+      }
 
       results.push({
         studentId: e.studentId,
@@ -315,7 +338,12 @@ export class ReportCardsService {
       ).length;
       const latesCount = attendanceStats.filter((a) => a.status === "LATE").length;
 
-      const decision = r.average !== null ? determineDecision(r.average, { ADMIS: scaledThreshold(passMark, r.scale) }) : "A_DETERMINER";
+      const decision = r.average !== null
+        ? determineDecisionEngine(r.average, true, {
+            passingScore: scaledThreshold(passMark, r.scale),
+            examScore: null,
+          })
+        : "INCOMPLET";
 
       // Calcul isComplete : toutes les matieres ont une moyenne
       const isComplete = r.subjectAverages.every((sa: any) => sa.average !== null);

@@ -674,6 +674,121 @@ export class ReportCardsService {
   }
 
   /**
+   * Prepare les donnees d'export PDF ANNUEL pour un bulletin.
+   */
+  async getAnnualExportData(id: string, user?: CurrentUserPayload) {
+    const report = await this.prisma.reportCard.findUnique({
+      where: { id },
+      include: {
+        student: true,
+        class: { include: { level: true } },
+        academicYear: true,
+      },
+    });
+    if (!report) throw new NotFoundException("Bulletin introuvable");
+    if (user?.schoolId && report.student.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Acces interdit");
+    }
+
+    const cycle = (report.class?.level?.cycle === "PREMIER_CYCLE" ? "PREMIER_CYCLE" : "DEUXIEME_CYCLE") as "PREMIER_CYCLE" | "DEUXIEME_CYCLE";
+
+    // Periodes de l'annee : MOIS (1er cycle) ou TRIMESTRE (2e cycle)
+    const terms = await this.prisma.term.findMany({
+      where: {
+        academicYearId: report.academicYearId,
+        type: cycle === "PREMIER_CYCLE" ? "MOIS" : "TRIMESTRE",
+      },
+      orderBy: { startDate: "asc" },
+    });
+
+    // Bulletins de periode de l'eleve
+    const periodReports = await this.prisma.reportCard.findMany({
+      where: {
+        studentId: report.studentId,
+        academicYearId: report.academicYearId,
+        kind: cycle === "PREMIER_CYCLE" ? "COMPOSITION" : "TRIMESTRIEL",
+        termId: { in: terms.map((t) => t.id) },
+      },
+    });
+
+    const periods = terms.map((t) => {
+      const r = periodReports.find((pr) => pr.termId === t.id);
+      return {
+        label: t.name,
+        average: r?.average !== null && r?.average !== undefined ? Number(r.average) : null,
+        rank: r?.rank ?? null,
+      };
+    });
+
+    // Moyenne annuelle
+    const validAverages = periods.map((p) => p.average).filter((a): a is number => a !== null);
+    const annualSum = validAverages.length > 0
+      ? Math.round(validAverages.reduce((s, v) => s + v, 0) * 100) / 100
+      : null;
+    const annualAverage = annualSum !== null && validAverages.length > 0
+      ? Math.round((annualSum / validAverages.length) * 100) / 100
+      : null;
+
+    // Rang annuel
+    let rank: number | null = null;
+    if (annualAverage !== null) {
+      const classmates = await this.prisma.reportCard.findMany({
+        where: { classId: report.classId, academicYearId: report.academicYearId, kind: "ANNUEL", average: { not: null } },
+        select: { average: true },
+      });
+      const all = classmates.map((c) => Number(c.average)).filter((a) => !Number.isNaN(a));
+      if (all.length > 0) rank = all.filter((a) => a > annualAverage).length + 1;
+    }
+
+    const school = await this.prisma.school.findUnique({ where: { id: report.student.schoolId } });
+
+    // QR
+    let qrCodeDataUrl: string | null = null;
+    try {
+      const signResult = await this.verificationService.sign({
+        schoolId: report.student.schoolId,
+        type: "BULLETIN",
+        referenceId: id,
+        meta: { studentId: report.studentId, academicYearId: report.academicYearId, kind: "ANNUEL" },
+      });
+      qrCodeDataUrl = await QRCode.toDataURL(signResult.verificationUrl);
+    } catch (err) {
+      this.logger.warn(`QR generation failed: ${err}`);
+    }
+
+    return {
+      schoolName: school?.name || "SIS-MALI",
+      schoolAddress: school?.address,
+      schoolPhone: school?.phone,
+      schoolMotto: school?.motto,
+      schoolLogoUrl: await fileToBase64(school?.logoUrl),
+      schoolStampBase64: await fileToBase64(school?.stampUrl),
+      schoolAcademy: school?.academy,
+      schoolCap: school?.cap,
+      qrCodeDataUrl,
+      studentName: `${report.student.lastName} ${report.student.firstName}`,
+      studentMatricule: report.student.matricule,
+      studentGender: report.student.gender,
+      studentBirthDate: report.student.birthDate.toISOString().split("T")[0],
+      studentBirthPlace: report.student.birthPlace,
+      className: report.class?.name || "",
+      classSize: report.classSize || 0,
+      academicYear: report.academicYear?.label || "",
+      cycle,
+      periods,
+      annualSum,
+      annualAverage,
+      rank,
+      decision: report.decision,
+      decisionLabel: report.decision === "ADMIS" || report.decision === "PASSE" ? "Admis en classe supérieure" : report.decision === "REDOUBLE" ? "Redouble" : "À déterminer",
+      appreciation: report.appreciation,
+      scale: Number(report.scale) || 20,
+      absencesCount: report.absencesCount,
+      latesCount: report.latesCount,
+    };
+  }
+
+  /**
    * Prepare les donnees d'export PDF pour un bulletin.
    */
   async getExportData(id: string, user?: CurrentUserPayload) {

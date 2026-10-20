@@ -6,6 +6,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
 import { ReportCardsService } from "./report-cards.service";
 import { generateReportCardPDF } from "./utils/report-card-pdf.util";
+import { generateAnnualReportCardPDF } from "./utils/annual-report-card-pdf.util";
 import { ReportCardGenerateSchema, ReportCardUpdateSchema, ReportCardReopenSchema } from "./dto";
 import { ZodValidationPipe } from "../common/pipes";
 import { RequirePermissions, CurrentUser, CurrentUserPayload } from "../common/decorators";
@@ -103,6 +104,23 @@ export class ReportCardsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.service.reopen(id, dto.motive, user);
+  }
+
+  @Get(":id/export/pdf-annual")
+  @RequirePermissions("report_card:export")
+  @ApiOperation({ summary: "Exporter le bulletin ANNUEL en PDF" })
+  async exportAnnualPDF(
+    @Param("id") id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+  ) {
+    const data = await this.service.getAnnualExportData(id, user);
+    const buffer = await generateAnnualReportCardPDF(data as any);
+    const safeName = data.studentName.replace(/[^a-z0-9]/gi, "-").toLowerCase().slice(0, 40);
+    const filename = `bulletin-annuel-${safeName}-${data.academicYear.replace(/\s+/g, "-")}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 
   @Get(":id/export/pdf")

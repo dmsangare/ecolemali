@@ -1,6 +1,6 @@
 import * as puppeteer from "puppeteer-core";
 
-function escapeHtml(str: string | null | undefined): string {
+export function escapeHtml(str: string | null | undefined): string {
   if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
@@ -10,11 +10,11 @@ function escapeHtml(str: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
-function escapeMultiline(str: string | null | undefined): string {
+export function escapeMultiline(str: string | null | undefined): string {
   return escapeHtml(str).replace(/\r?\n/g, "<br />");
 }
 
-function safeImage(src: string | null | undefined): string {
+export function safeImage(src: string | null | undefined): string {
   if (!src) return "";
   return /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(src)
     ? src
@@ -115,24 +115,24 @@ function colorFor(average: number | null, scale: number): string {
   return "#B91C1C";
 }
 
-function fmt(n: number | null | undefined): string {
+export function fmt(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
   return n.toFixed(2).replace(".", ",");
 }
 
-function ordinal(n: number | null | undefined): string {
+export function ordinal(n: number | null | undefined): string {
   if (!n) return "—";
   return n === 1 ? "1er" : `${n}e`;
 }
 
-function formatDate(d: string): string {
+export function formatDate(d: string): string {
   if (!d) return "—";
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function genderLabel(g: string | null | undefined): string {
+export function genderLabel(g: string | null | undefined): string {
   if (g === "M") return "Masculin";
   if (g === "F") return "Féminin";
   return "—";

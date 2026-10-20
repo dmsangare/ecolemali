@@ -141,6 +141,10 @@ export class ReportCardsService {
     };
     if (dto.classId) whereEnrollments.classId = dto.classId;
     if (dto.studentId) whereEnrollments.studentId = dto.studentId;
+    // Filtre ecole dans le WHERE (pas seulement apres lecture)
+    if (user?.schoolId) {
+      whereEnrollments.student = { schoolId: user.schoolId };
+    }
 
     const allEnrollments = await this.prisma.enrollment.findMany({
       where: whereEnrollments,
@@ -151,13 +155,7 @@ export class ReportCardsService {
       throw new BadRequestException("Aucun eleve inscrit trouve");
     }
 
-    // Isolation ecole : verifier que tous les eleves sont de l'ecole de l'utilisateur
-    if (user?.schoolId) {
-      const foreign = allEnrollments.find((e: any) => e.student?.schoolId !== user.schoolId);
-      if (foreign) {
-        throw new ForbiddenException("Un ou plusieurs eleves hors de votre ecole");
-      }
-    }
+    // (Isolation ecole deja faite dans le where ci-dessus)
 
     // Verifier si des bulletins valides/publies existent deja pour ces eleves
     const existingLocked = await this.prisma.reportCard.findMany({

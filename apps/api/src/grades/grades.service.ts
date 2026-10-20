@@ -3,6 +3,29 @@ import { PrismaService } from "../prisma/prisma.service";
 import { GradesBulkDto, GradeUpdateDto } from "./dto";
 import { calculateWeightedAverage } from "@sis-mali/shared";
 
+
+/**
+ * Source unique de verite : `status`.
+ * `isAbsent` et `isExempt` sont derives de `status` (retrocompat).
+ */
+function deriveStatusFlags(
+  status?: string | null,
+  isAbsent?: boolean | null,
+  isExempt?: boolean | null,
+): { status: string; isAbsent: boolean; isExempt: boolean } {
+  let finalStatus = status;
+  if (!finalStatus) {
+    if (isExempt) finalStatus = "EXEMPT";
+    else if (isAbsent) finalStatus = "ABSENT";
+    else finalStatus = "PRESENT";
+  }
+  return {
+    status: finalStatus,
+    isAbsent: finalStatus === "ABSENT",
+    isExempt: finalStatus === "EXEMPT",
+  };
+}
+
 @Injectable()
 export class GradesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -96,26 +119,32 @@ export class GradesService {
               studentId: g.studentId,
             },
           },
-          update: {
-            value: g.value,
-            status: g.status ?? "PRESENT",
-            isAbsent: g.isAbsent ?? false,
-            isExempt: g.isExempt ?? false,
-            observation: g.observation,
-            comment: g.comment,
-            enteredBy,
-          },
-          create: {
-            assessmentId: dto.assessmentId,
-            studentId: g.studentId,
-            value: g.value,
-            status: g.status ?? "PRESENT",
-            isAbsent: g.isAbsent ?? false,
-            isExempt: g.isExempt ?? false,
-            observation: g.observation,
-            comment: g.comment,
-            enteredBy,
-          },
+          update: (() => {
+            const flags = deriveStatusFlags(g.status, g.isAbsent, g.isExempt);
+            return {
+              value: g.value,
+              status: flags.status as any,
+              isAbsent: flags.isAbsent,
+              isExempt: flags.isExempt,
+              observation: g.observation,
+              comment: g.comment,
+              enteredBy,
+            };
+          })(),
+          create: (() => {
+            const flags = deriveStatusFlags(g.status, g.isAbsent, g.isExempt);
+            return {
+              assessmentId: dto.assessmentId,
+              studentId: g.studentId,
+              value: g.value,
+              status: flags.status as any,
+              isAbsent: flags.isAbsent,
+              isExempt: flags.isExempt,
+              observation: g.observation,
+              comment: g.comment,
+              enteredBy,
+            };
+          })(),
         }),
       ),
     );
@@ -172,9 +201,19 @@ export class GradesService {
     }
 
     const oldValue = grade.value;
+    // Synchroniser status / isAbsent / isExempt
+    const flags = deriveStatusFlags(dto.status, dto.isAbsent, dto.isExempt);
     const updated = await this.prisma.grade.update({
       where: { id },
-      data: { ...dto, enteredBy: updatedBy },
+      data: {
+        value: dto.value,
+        status: flags.status as any,
+        isAbsent: flags.isAbsent,
+        isExempt: flags.isExempt,
+        observation: dto.observation,
+        comment: dto.comment,
+        enteredBy: updatedBy,
+      },
     });
 
     // Journal GradeAudit si value a changé

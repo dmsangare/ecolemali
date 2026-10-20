@@ -5,8 +5,17 @@ import { calculateAverage, roundScore, PartialResult, RoundOptions } from "./com
 
 export interface GradeInput {
   value: number | null;
+  status?: string;
   isAbsent?: boolean;
   isExempt?: boolean;
+}
+
+/** Statut effectif : status prioritaire, sinon isAbsent/isExempt. */
+function effectiveStatus(g: GradeInput): string {
+  if (g.status) return g.status;
+  if (g.isExempt) return "EXEMPT";
+  if (g.isAbsent) return "ABSENT";
+  return "PRESENT";
 }
 
 /** Moyenne d'une composition = moyenne simple des notes de matières. */
@@ -16,7 +25,10 @@ export function calculateCompositionAverage(
 ): PartialResult {
   const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
   const validValues = grades
-    .filter((g) => !g.isAbsent && !g.isExempt)
+    .filter((g) => {
+      const st = effectiveStatus(g);
+      return st !== "ABSENT" && st !== "EXEMPT";
+    })
     .map((g) => g.value);
   const result = calculateAverage(validValues, opts);
   return { ...result, excluded };

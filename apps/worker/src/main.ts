@@ -55,11 +55,8 @@ const pdfWorker = new Worker(
 
 
     // Récupérer les bulletins de la classe
-    const { PrismaClient } = await import("@prisma/client");
-    const prismaLocal = new PrismaClient();
-
     try {
-      const reports = await prismaLocal.reportCard.findMany({
+      const reports = await prisma.reportCard.findMany({
         where: { classId, academicYearId, ...(termId ? { termId } : {}) },
         include: {
           student: true,
@@ -165,8 +162,9 @@ const pdfWorker = new Worker(
         size: stat.size,
         message: `${reports.length} PDF générés`,
       };
-    } finally {
-      await prismaLocal.$disconnect();
+    } catch (err: any) {
+      console.error(`[PDF] Erreur generation ZIP: ${err.message}`);
+      throw err;
     }
   },
   { connection, concurrency: 1 },

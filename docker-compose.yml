@@ -47,6 +47,7 @@ services:
       redis:
         condition: service_started
     environment:
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
       NODE_ENV: ${NODE_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:-postgresql://sis_user:SisMali_Dev_2026!Secure@postgres:5432/sis_mali?schema=public}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}

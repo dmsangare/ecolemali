@@ -499,8 +499,12 @@ export class ReportCardsService {
       version: "1.0",
       settings: setting
         ? {
-            gradingScale: Number(setting.gradingScale),
-            passMark: Number(setting.passMark),
+            // Scale effectif du bulletin (10 pour 1er cycle, 20 pour 2e cycle)
+            gradingScale: report.scale ?? Number(setting.gradingScale),
+            // Pass mark ajuste proportionnellement au scale effectif
+            passMark: report.scale
+              ? Math.round(Number(setting.passMark) * report.scale / Number(setting.gradingScale) * 100) / 100
+              : Number(setting.passMark),
             locale: setting.locale,
             timezone: setting.timezone,
           }
@@ -583,8 +587,12 @@ export class ReportCardsService {
       version: "1.0",
       settings: setting
         ? {
-            gradingScale: Number(setting.gradingScale),
-            passMark: Number(setting.passMark),
+            // Scale effectif du bulletin (10 pour 1er cycle, 20 pour 2e cycle)
+            gradingScale: report.scale ?? Number(setting.gradingScale),
+            // Pass mark ajuste proportionnellement au scale effectif
+            passMark: report.scale
+              ? Math.round(Number(setting.passMark) * report.scale / Number(setting.gradingScale) * 100) / 100
+              : Number(setting.passMark),
             locale: setting.locale,
             timezone: setting.timezone,
           }

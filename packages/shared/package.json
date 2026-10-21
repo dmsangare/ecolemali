@@ -1,7 +1,7 @@
 {
   "name": "@sis-mali/shared",
   "version": "1.0.0",
-  "description": "Types TypeScript, schémas Zod et utilitaires partagés SIS-MALI",
+  "description": "Types TypeScript, sch\u00e9mas Zod et utilitaires partag\u00e9s SIS-MALI",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

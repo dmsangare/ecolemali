@@ -70,3 +70,16 @@ docs
 .cache
 .tmp
 *.tmp
+
+# Backups locaux (ne pas copier dans le build context)
+*.bak
+*.bak-*
+*.bak2-*
+*.bak3-*
+*.safety-*
+*.safety2-*
+
+# Logs et temp
+*.log
+tmp/
+.npm/

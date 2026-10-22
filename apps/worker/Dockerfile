@@ -7,7 +7,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # 1. Build tools (couche stable)
-RUN apk add --no-cache openssl python3 make g++
+RUN apk add --no-cache openssl
 
 # 2. Config npm (couche stable)
 RUN npm config set registry https://registry.npmmirror.com && \

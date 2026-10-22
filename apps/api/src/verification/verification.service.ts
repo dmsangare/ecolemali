@@ -157,17 +157,18 @@ export class VerificationService {
   async findPublicByShortCode(shortCode: string) {
     const doc = await this.prisma.verifiableDocument.findUnique({
       where: { shortCode },
+      include: { school: { select: { name: true, address: true, phone: true } } },
     });
     if (!doc) throw new NotFoundException("Document introuvable");
     return {
-      valid: !doc.revokedAt,
-      revoked: !!doc.revokedAt,
+      id: doc.id,
+      shortCode: doc.shortCode,
       type: doc.type,
-      schoolId: doc.schoolId,
-      referenceId: doc.referenceId,
-      meta: doc.meta,
-      viewCount: doc.viewCount,
+      revokedAt: doc.revokedAt,
       createdAt: doc.createdAt,
+      viewCount: doc.viewCount,
+      meta: doc.meta,
+      school: doc.school,
     };
   }
 

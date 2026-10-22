@@ -24,11 +24,13 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/shared/package.json ./packages/shared/
-COPY tsconfig.base.json ./
 
 # 4. npm install (cache préservé si package.json n'a pas changé)
 #    → C'est la couche la plus longue (9-10 min), maintenant en cache
 RUN npm ci --no-audit --no-fund --prefer-offline
+
+# tsconfig APRÈS npm ci (il ne sert qu'au build, pas à l'install)
+COPY tsconfig.base.json ./
 
 # 5. Schéma Prisma + prisma generate (cache préservé si schema.prisma n'a pas changé)
 COPY prisma ./prisma

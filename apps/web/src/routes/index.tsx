@@ -57,6 +57,7 @@ import { AcademicYearsPage } from "@/pages/academic-years/AcademicYearsPage";
 import { YearRolloverPage } from "@/pages/year-rollover/YearRolloverPage";
 import { StateExamsPage } from "@/pages/state-exams/StateExamsPage";
 import TimetablePage from '@/pages/timetable/TimetablePage';
+import { PublicVerificationPage } from '@/pages/public/PublicVerificationPage';
 
 export function AppRoutes() {
   return (
@@ -579,6 +580,7 @@ export function AppRoutes() {
           />
       </Route>
 
+      <Route path="/v/:shortCode" element={<PublicVerificationPage />} />
       <Route path="/forbidden" element={<ForbiddenPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

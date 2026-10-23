@@ -30,6 +30,7 @@ import { LevelsListPage } from "@/pages/levels/LevelsListPage";
 import { AttendanceListPage, AttendanceDetailPage } from "@/pages/attendance";
 import { AssessmentsListPage, AssessmentGradesPage } from "@/pages/assessments";
 import { ReportCardsListPage, ReportCardDetailPage } from "@/pages/report-cards";
+import { CalculationPage } from "@/pages/report-cards/CalculationPage";
 import { AnnualResultsPage } from "@/pages/report-cards/AnnualResultsPage";
 import {
   InvoicesListPage,
@@ -461,6 +462,14 @@ export function AppRoutes() {
             }
           />
         </Route>
+          <Route
+            path="/report-cards/calculation"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <CalculationPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/id-cards"

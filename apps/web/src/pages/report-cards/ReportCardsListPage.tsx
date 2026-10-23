@@ -34,6 +34,7 @@ import {
 } from "@/types/report-cards";
 import type { ReportCard } from "@/types/report-cards";
 import { GenerateReportCardsModal } from "./components/GenerateReportCardsModal";
+import { useGenerateClassPdf, useClassPdfStatus, downloadClassPdf } from "@/hooks/report-cards/useClassPdf";
 import { PublishClassModal } from "./components/PublishClassModal";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -45,6 +46,9 @@ export function ReportCardsListPage() {
   const [search, setSearch] = useState("");
   const [generateOpen, setGenerateOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [classPdfJobId, setClassPdfJobId] = useState<string | null>(null);
+  const generateClassPdf = useGenerateClassPdf();
+  const { data: classPdfStatus } = useClassPdfStatus(classPdfJobId);
 
   const { data: classes } = useClasses();
   const { data: levels } = useLevels();
@@ -117,10 +121,31 @@ export function ReportCardsListPage() {
         </div>
         <div className="flex items-center gap-2">
           {canManage && (
-            <Button variant="outline" onClick={() => setPublishOpen(true)}>
-              <Send className="h-4 w-4 mr-2" />
-              Publier une classe
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setPublishOpen(true)}>
+                <Send className="h-4 w-4 mr-2" />
+                Publier une classe
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!classId) {
+                    alert("Sélectionnez une classe");
+                    return;
+                  }
+                  generateClassPdf.mutate(
+                    { classId, academicYearId: "" },
+                    { onSuccess: (data) => setClassPdfJobId(data.jobId) }
+                  );
+                }}
+                disabled={generateClassPdf.isPending || !!classPdfJobId}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {classPdfJobId
+                  ? `Génération… (${classPdfStatus?.progress ?? 0}%)`
+                  : "Imprimer classe (ZIP)"}
+              </Button>
+            </>
           )}
           {canManage && (
             <Button onClick={() => setGenerateOpen(true)}>

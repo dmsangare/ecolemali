@@ -15,7 +15,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
-RUN npm install --no-audit --no-fund --prefer-offline
+RUN npm ci --no-audit --no-fund --prefer-offline
 RUN rm -f packages/shared/tsconfig.tsbuildinfo \
     && npm run build --workspace=packages/shared
 RUN npm run build --workspace=apps/web

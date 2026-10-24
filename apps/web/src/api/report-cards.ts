@@ -15,6 +15,11 @@ export interface ReportCardFilters {
 }
 
 export const reportCardsApi = {
+  async clearAbsences(id: string, motive: string): Promise<any> {
+    const { data } = await api.patch(`/report-cards/${id}/clear-absences`, { motive });
+    return data;
+  },
+
   async list(filters: ReportCardFilters = {}): Promise<ReportCard[]> {
     const { data } = await api.get("/report-cards", { params: filters });
     return data.data || data;

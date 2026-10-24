@@ -51,11 +51,10 @@ export function describeTermMismatch(termType: string, termName: string): string
   );
 }
 
-/** Ramene une note obtenue sur `maxScore` au bareme du cycle (ex. 14/20 -> 7/10). */
-export function normalizeScore(value: number, maxScore: number, scale: number): number {
-  if (!(maxScore > 0)) return value;
-  return (value / maxScore) * scale;
-}
+/** Ramene une note obtenue sur `maxScore` au bareme du cycle (ex. 14/20 -> 7/10).
+ *  DEC-3 : implémentation centralisée dans ./calculation/normalize.ts.
+ *  Ce ré-export conserve la compatibilité des appelants existants. */
+export { normalizeScore } from "./calculation/normalize";
 
 /** Seuil exprime sur 20 (parametre de l'ecole) converti au bareme du cycle (10 sur 20 -> 5 sur 10). */
 export function scaledThreshold(thresholdOn20: number, scale: number): number {

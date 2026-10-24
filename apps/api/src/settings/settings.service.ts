@@ -6,6 +6,7 @@ export const DEFAULT_INVOICE_PREFIX = "FAC";
 export const DEFAULT_RECEIPT_PREFIX = "REC";
 export const DEFAULT_UNPAID_WARNING = 25000;   // FCFA - seuil d'attention
 export const DEFAULT_UNPAID_CRITICAL = 100000; // FCFA - seuil critique
+export const DEFAULT_MIN_COMPOSITIONS = 7; // minimum de compositions 1er cycle pour décision annuelle
 
 type SettingData = Record<string, any>;
 
@@ -53,6 +54,10 @@ export class SettingsService {
         warningThreshold: DEFAULT_UNPAID_WARNING,
         criticalThreshold: DEFAULT_UNPAID_CRITICAL,
         ...(data.finance ?? {}),
+      },
+      bulletinRules: {
+        minCompositions: DEFAULT_MIN_COMPOSITIONS,
+        ...(data.bulletinRules ?? {}),
       },
     };
   }

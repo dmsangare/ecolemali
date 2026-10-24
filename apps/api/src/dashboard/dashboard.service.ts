@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
+import { calculateRank } from "../report-cards/calculation/common";
 
 @Injectable()
 export class DashboardService {
@@ -74,6 +75,7 @@ export class DashboardService {
       where: {
         termId: term.id,
         status: "PUBLISHED",
+        isComplete: true,   // L8 : exclure les dossiers incomplets
         student: { schoolId },
       },
       include: {
@@ -132,7 +134,18 @@ export class DashboardService {
       if (cards.length === 0) continue;
 
       // Trier par moyenne desc ; en cas d'egalite : ordre alphabetique (resultat stable)
-      const sorted = [...cards].sort((a, b) => {
+      // Déduplication par studentId : un élève ne peut apparaître qu'une fois par période.
+      // En cas de cartes multiples (ex. import en double), on garde la meilleure moyenne.
+      const byStudent = new Map<string, typeof cards[number]>();
+      for (const rc of cards) {
+        const existing = byStudent.get(rc.studentId);
+        if (!existing || Number(rc.average) > Number(existing.average)) {
+          byStudent.set(rc.studentId, rc);
+        }
+      }
+      const deduped = Array.from(byStudent.values());
+
+      const sorted = [...deduped].sort((a, b) => {
         const diff = Number(b.average ?? 0) - Number(a.average ?? 0);
         if (diff !== 0) return diff;
         const nameA = `${a.student.lastName} ${a.student.firstName}`;
@@ -140,6 +153,7 @@ export class DashboardService {
         return nameA.localeCompare(nameB, "fr");
       });
 
+      const allAverages = sorted.map((rc) => Number(rc.average));
       const top3 = sorted.slice(0, 3);
 
       // Suppression + insertion dans UNE transaction : le classement n'est jamais a moitie vide
@@ -147,7 +161,7 @@ export class DashboardService {
         this.prisma.topStudent.deleteMany({
           where: { schoolId, cycle, periodLabel },
         }),
-        ...top3.map((rc, i) =>
+        ...top3.map((rc) =>
           this.prisma.topStudent.create({
             data: {
               schoolId,
@@ -155,7 +169,7 @@ export class DashboardService {
               periodType,
               periodLabel,
               termId: term.id,
-              rank: i + 1,
+              rank: calculateRank(Number(rc.average), allAverages),
               studentId: rc.studentId,
               classId: rc.classId,
               average: rc.average as any,
@@ -297,15 +311,48 @@ export class DashboardService {
         const t = termById.get(r.termId as string)!;
         if (t.endDate.getTime() > best.endDate.getTime()) best = t;
       }
-      podiums[cycle] = cycleRows
-        .filter((r) => r.termId === best.id)
-        .map((row) => ({
-          rank: row.rank,
-          average: Number(row.average),
-          scale: row.scale,
-          student: row.student,
-          class: row.class,
-        }));
+      // D13 : enrichir avec classSize (inscrits) et studentsCount (classés)
+      const filteredRows = cycleRows.filter((r) => r.termId === best.id);
+      const classIdsForCycle = Array.from(new Set(filteredRows.map((r) => r.classId)));
+
+      // Effectif classé : nombre de ReportCard PUBLISHED par classe pour ce term
+      const classCounts = await this.prisma.reportCard.groupBy({
+        by: ["classId"],
+        where: {
+          classId: { in: classIdsForCycle },
+          termId: best.id,
+          status: "PUBLISHED",
+          student: { schoolId },
+        },
+        _count: { _all: true },
+      });
+      const studentsCountByClass = new Map(
+        classCounts.map((c) => [c.classId, c._count._all]),
+      );
+
+      // Effectif inscrit : nombre d'Enrollment VALIDATED par classe pour ce term
+      const enrollCounts = await this.prisma.enrollment.groupBy({
+        by: ["classId"],
+        where: {
+          classId: { in: classIdsForCycle },
+          academicYearId: best.academicYearId,
+          status: "VALIDATED",
+        },
+        _count: { _all: true },
+      });
+      const classSizeByClass = new Map(
+        enrollCounts.map((c) => [c.classId, c._count._all]),
+      );
+
+      podiums[cycle] = filteredRows.map((row) => ({
+        rank: row.rank,
+        average: Number(row.average),
+        scale: row.scale,
+        student: row.student,
+        class: row.class,
+        classSize: classSizeByClass.get(row.classId) ?? null,
+        studentsCount: studentsCountByClass.get(row.classId) ?? null,
+      }));
       periods[cycle] = { termId: best.id, name: best.name, type: best.type };
       if (!latest || best.endDate.getTime() > latest.endDate.getTime()) latest = best;
     }

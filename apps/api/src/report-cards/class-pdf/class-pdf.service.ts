@@ -78,8 +78,24 @@ export class ClassPdfService {
     let processed = 0;
     for (const report of reports) {
       try {
+        // C4 : charger le nom réel de l'école
+        const school = await this.prisma.school.findUnique({
+          where: { id: report.student.schoolId },
+          select: { name: true, address: true, phone: true, motto: true, logoUrl: true, stampUrl: true, academy: true, cap: true },
+        });
+        const schoolName = school?.name ?? 'SIS-MALI';
+
         const data: any = {
-          schoolName: 'SIS-MALI',
+          // C4 : nom réel de l'école
+          schoolName,
+          schoolAddress: school?.address ?? null,
+          schoolPhone: school?.phone ?? null,
+          schoolMotto: school?.motto ?? null,
+          schoolLogoUrl: school?.logoUrl ?? null,
+          schoolStampBase64: null,
+          schoolAcademy: school?.academy ?? null,
+          schoolCap: school?.cap ?? null,
+
           studentName: `${report.student.lastName} ${report.student.firstName}`,
           studentMatricule: report.student.matricule,
           studentGender: report.student.gender,
@@ -101,9 +117,76 @@ export class ClassPdfService {
           generalAverage: report.average !== null ? Number(report.average) : null,
           rank: report.rank,
           scale: report.scale,
-          absences: report.absencesCount,
-          lates: report.latesCount,
+          // C2 : corriger les noms de champs
+          absencesCount: report.absencesCount,
+          latesCount: report.latesCount,
+          // C3 : exposer decision et appreciation
+          decision: report.decision ?? null,
+          appreciation: report.appreciation ?? null,
+
+          // C1 : champs pour le PDF annuel
+          cycle: report.class?.level?.cycle === 'PREMIER_CYCLE' ? 'PREMIER_CYCLE' : 'DEUXIEME_CYCLE',
+          terms: undefined,        // rempli ci-dessous si annuel
+          compositions: undefined, // rempli ci-dessous si annuel
+          annualSum: undefined,
+          annualAverage: undefined,
+          decisionLabel: undefined,
         };
+
+        // C1 : si annuel, charger les périodes
+        if (kind === 'ANNUEL' || report.kind === 'ANNUEL') {
+          const cycle = data.cycle;
+          const terms = await this.prisma.term.findMany({
+            where: {
+              academicYearId: report.academicYearId,
+              type: cycle === 'PREMIER_CYCLE' ? 'MOIS' : 'TRIMESTRE',
+            },
+            orderBy: { startDate: 'asc' },
+          });
+
+          const periodReports = await this.prisma.reportCard.findMany({
+            where: {
+              studentId: report.studentId,
+              academicYearId: report.academicYearId,
+              kind: cycle === 'PREMIER_CYCLE' ? 'COMPOSITION' : 'TRIMESTRIEL',
+              termId: { in: terms.map((t) => t.id) },
+            },
+            select: { termId: true, average: true, rank: true },
+          });
+
+          const validAverages: number[] = [];
+          if (cycle === 'PREMIER_CYCLE') {
+            data.compositions = terms.map((t) => {
+              const r = periodReports.find((pr) => pr.termId === t.id);
+              const avg = r?.average !== null && r?.average !== undefined ? Number(r.average) : null;
+              if (avg !== null) validAverages.push(avg);
+              return { periodName: t.name, average: avg };
+            });
+          } else {
+            data.terms = terms.map((t) => {
+              const r = periodReports.find((pr) => pr.termId === t.id);
+              const avg = r?.average !== null && r?.average !== undefined ? Number(r.average) : null;
+              if (avg !== null) validAverages.push(avg);
+              return { termName: t.name, average: avg, rank: r?.rank ?? null };
+            });
+          }
+
+          data.annualSum = validAverages.length > 0
+            ? Math.round(validAverages.reduce((s, v) => s + v, 0) * 100) / 100
+            : null;
+          data.annualAverage = validAverages.length > 0 && data.annualSum !== null
+            ? Math.round((data.annualSum / validAverages.length) * 100) / 100
+            : null;
+
+          const decisionMap: Record<string, string> = {
+            ADMIS: 'Admis en classe supérieure',
+            PASSE: 'Admis en classe supérieure',
+            REDOUBLE: 'Redouble',
+            EXCLU: 'Exclu',
+            A_DETERMINER: 'À déterminer',
+          };
+          data.decisionLabel = decisionMap[report.decision ?? 'A_DETERMINER'] ?? 'À déterminer';
+        }
         const buffer = kind === 'ANNUEL' || report.kind === 'ANNUEL'
           ? await generateAnnualReportCardPDF(data)
           : await generateReportCardPDF(data);

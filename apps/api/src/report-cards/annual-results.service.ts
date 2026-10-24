@@ -55,6 +55,8 @@ export class AnnualResultsService {
 
     const setting = await this.prisma.setting.findFirst({ where: { schoolId: cls.schoolId } });
     const passMark = setting ? Number(setting.passMark) : 10;
+    const settingData = (setting?.data as any) ?? {};
+    const minCompositions = settingData.bulletinRules?.minCompositions ?? 7;
 
     const result = computeAnnualRows({
       cycle,
@@ -71,6 +73,7 @@ export class AnnualResultsService {
       })),
       students: enrollments.map((e) => e.student),
       passMark,
+      minCompositions,
     });
 
     return {
@@ -98,33 +101,75 @@ export class AnnualResultsService {
 
     let applied = 0;
     let skipped = 0;
+    const proposals: Array<{
+      id: string;
+      studentId: string;
+      proposedDecision: AnnualDecision;
+      annualAverage: number | null;
+    }> = [];
     await this.prisma.$transaction(async (tx) => {
       for (const row of data.rows) {
         if (!row.complete || row.annualAverage === null || row.decision === "A_DETERMINER") {
           skipped += 1;
           continue;
         }
-        const payload = {
+        // D5 (γ) : on n'écrit JAMAIS de décision définitive automatiquement.
+        // On enregistre une PROPOSITION (decision=A_EXAMINER, result=null) qui devra
+        // être validée par un humain via PATCH /annual-decisions/:id/validate.
+        const proposalPayload = {
           levelId: data.class.levelId,
           classId: data.class.id,
-          result: (row.decision === "REDOUBLE" ? "REPEATED" : "PASSED") as "PASSED" | "REPEATED",
-          decision: `${DECISION_LABEL[row.decision]} - moy. ${row.annualAverage.toFixed(2)}/${data.scale}`,
+          result: null,
+          decision: "A_EXAMINER",
         };
         const existing = await tx.studentPathway.findFirst({
           where: { studentId: row.student.id, academicYearId: params.academicYearId },
           select: { id: true },
         });
+
+        let pathwayId: string;
         if (existing) {
-          await tx.studentPathway.update({ where: { id: existing.id }, data: payload });
+          await tx.studentPathway.update({ where: { id: existing.id }, data: proposalPayload });
+          pathwayId = existing.id;
         } else {
-          await tx.studentPathway.create({
-            data: { studentId: row.student.id, academicYearId: params.academicYearId, ...payload },
+          const created = await tx.studentPathway.create({
+            data: { studentId: row.student.id, academicYearId: params.academicYearId, ...proposalPayload },
           });
+          pathwayId = created.id;
         }
+
+        // D5 (γ) : trace de la proposition dans AuditLog, même transaction.
+        // Le schéma AuditLog exige objectId de type UUID — c'est le cas de StudentPathway.id.
+        await tx.auditLog.create({
+          data: {
+            userId: user.id,
+            schoolId: user.schoolId ?? null,
+            action: "ANNUAL_RESULT_PROPOSED",
+            module: "annual-results",
+            objectType: "StudentPathway",
+            objectId: pathwayId,
+            newValue: {
+              proposedDecision: row.decision,
+              annualAverage: row.annualAverage,
+              scale: data.scale,
+              threshold: data.admisThreshold,
+              classId: data.class.id,
+              academicYearId: params.academicYearId,
+              studentId: row.student.id,
+            } as any,
+          },
+        });
+
         applied += 1;
+        proposals.push({
+          id: pathwayId,
+          studentId: row.student.id,
+          proposedDecision: row.decision,
+          annualAverage: row.annualAverage,
+        });
       }
     });
 
-    return { applied, skipped };
+    return { applied, skipped, proposals };
   }
 }

@@ -20,6 +20,8 @@ import {
   useUpdateReportCard,
   useValidateReportCard,
   usePublishReportCard,
+  useClearAbsences,
+  useRegenerateReportCard,
 } from "@/hooks/report-cards";
 import {
   STATUS_LABELS,
@@ -37,10 +39,14 @@ export function ReportCardDetailPage() {
   const updateMutation = useUpdateReportCard();
   const validateMutation = useValidateReportCard();
   const publishMutation = usePublishReportCard();
+  const clearAbsencesMutation = useClearAbsences();
+  const regenerateMutation = useRegenerateReportCard();
 
   const [decision, setDecision] = useState<ReportDecision>("A_DETERMINER");
   const [appreciation, setAppreciation] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearMotive, setClearMotive] = useState("");
 
   useEffect(() => {
     if (report) {
@@ -84,6 +90,9 @@ export function ReportCardDetailPage() {
   const scale = report.scale ?? 20;
   const autoAppr = getAppreciation(avg, scale);
   const apprColor = getAppreciationColor(avg, scale);
+
+  // DEC-6 : détection du blocage par absence
+  const isBlockedByAbsence = !report.isComplete && report.decision === "A_DETERMINER";
 
   const handleSave = async () => {
     if (!id) return;
@@ -176,6 +185,74 @@ export function ReportCardDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* DEC-6 : Bandeau absence */}
+      {isBlockedByAbsence && (
+        <Card className="border-red-300 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-red-900">
+                  Bulletin bloqué : absence à une composition
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  L'élève a été absent à une composition et n'a pas de dérogation.
+                  Le bulletin ne peut pas être validé tant que l'absence n'est pas traitée.
+                </p>
+                {isEditable && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 border-red-300 text-red-700 hover:bg-red-100"
+                    onClick={() => setShowClearModal(true)}
+                  >
+                    Marquer l'absence comme traitée
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* DEC-9 : Bandeau bulletin obsolète */}
+      {report.isStale && !isBlockedByAbsence && (
+        <Card className="border-orange-300 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-orange-900">
+                  Bulletin obsolète
+                </p>
+                <p className="text-sm text-orange-700 mt-1">
+                  Les notes ont été modifiées depuis la dernière génération.
+                  Régénérez le bulletin pour mettre à jour la moyenne et le rang.
+                </p>
+                {isEditable && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 border-orange-300 text-orange-700 hover:bg-orange-100"
+                    onClick={() =>
+                      regenerateMutation.mutate({
+                        studentId: report.studentId,
+                        termId: report.termId,
+                        classId: report.classId,
+                        academicYearId: report.academicYearId,
+                      })
+                    }
+                    disabled={regenerateMutation.isPending}
+                  >
+                    {regenerateMutation.isPending ? "Régénération…" : "Régénérer le bulletin"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -399,7 +476,50 @@ export function ReportCardDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    
+      {/* DEC-6 : Modale de dérogation */}
+      {showClearModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-2">Marquer l'absence comme traitée</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Cette action créera une dérogation qui permettra de valider le bulletin.
+              Elle sera tracée (auteur, date, motif).
+            </p>
+            <label className="block text-sm font-medium mb-1">
+              Motif (5 à 500 caractères)
+            </label>
+            <textarea
+              value={clearMotive}
+              onChange={(e) => setClearMotive(e.target.value)}
+              className="w-full border rounded-md p-2 text-sm mb-4"
+              rows={3}
+              placeholder="Ex. : Certificat médical fourni, absence justifiée a posteriori"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setShowClearModal(false); setClearMotive(""); }}
+                disabled={clearAbsencesMutation.isPending}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!id || clearMotive.trim().length < 5) return;
+                  await clearAbsencesMutation.mutateAsync({ id, motive: clearMotive });
+                  setShowClearModal(false);
+                  setClearMotive("");
+                }}
+                disabled={clearMotive.trim().length < 5 || clearAbsencesMutation.isPending}
+              >
+                {clearAbsencesMutation.isPending ? "Enregistrement…" : "Confirmer"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
 

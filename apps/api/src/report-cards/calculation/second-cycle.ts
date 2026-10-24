@@ -1,7 +1,7 @@
 /**
  * Calculs 2e cycle (7e-9e) : trimestres, notes /20, avec coefficients.
  */
-import { calculateAverage, roundScore, PartialResult, RoundOptions } from "./common";
+import { calculateAverage, roundScore, PartialResult, RoundOptions, assertScoreInRange } from "./common";
 
 export interface GradeInput {
   value: number | null;
@@ -23,7 +23,14 @@ function effectiveStatus(g: GradeInput): string {
 export function calculateSubjectAverage(
   grades: GradeInput[],
   opts: RoundOptions = { decimals: 2, mode: "ROUND" },
+  scale: number = 20,
 ): PartialResult {
+  // DEC-1 : refuse toute note hors barème
+  for (const g of grades) {
+    if (g.value !== null && g.value !== undefined) {
+      assertScoreInRange(g.value, scale, "Note de matière");
+    }
+  }
   const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
   const validValues = grades
     .filter((g) => {
@@ -45,6 +52,15 @@ export function calculateTermAverage(
   items: SubjectAverageInput[],
   opts: RoundOptions = { decimals: 2, mode: "ROUND" },
 ): PartialResult {
+  // DEC-2 : refus explicite des coefficients nuls, négatifs ou non finis
+  for (const item of items) {
+    if (!Number.isFinite(item.coefficient) || item.coefficient <= 0) {
+      throw new Error(
+        `Coefficient invalide : ${item.coefficient} (doit être strictement positif)`
+      );
+    }
+  }
+
   const valid = items.filter((i): i is SubjectAverageInput & { average: number } =>
     i.average !== null && !Number.isNaN(i.average),
   );

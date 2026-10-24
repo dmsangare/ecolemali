@@ -44,9 +44,10 @@ export function computeAnnualRows(args: {
   terms: AnnualTermInput[];
   cards: AnnualCardInput[];
   students: AnnualStudentInput[];
-  passMark: number; // seuil d'admission de l'ecole, exprime sur 20
+  passMark: number;
+  minCompositions?: number; // D3 : nombre minimal de compositions pour 1er cycle
 }) {
-  const { cycle, terms, cards, students, passMark } = args;
+  const { cycle, terms, cards, students, passMark, minCompositions = 7 } = args;
   const scale = rulesForCycle(cycle).scale;
   const admisThreshold = scaledThreshold(passMark, scale);
 
@@ -57,6 +58,10 @@ export function computeAnnualRows(args: {
       return { termId: t.id, average: card && card.average !== null ? card.average : null };
     });
     const valid = periods.filter((p) => p.average !== null) as Array<{ termId: string; average: number }>;
+
+    // D8 : complétude basée sur l'EXISTENCE d'un bulletin admissible pour chaque période,
+    //      pas sur `average !== null` (au 2e cycle, average peut être null mais items calculables).
+    const periodsPresent = terms.filter((t) => own.some((c) => c.termId === t.id)).length;
 
     let annualAverage: number | null = null;
     if (cycle === "PREMIER_CYCLE") {
@@ -85,8 +90,20 @@ export function computeAnnualRows(args: {
       if (coefTotal > 0) annualAverage = round2(weighted / coefTotal);
     }
 
+    // D8 + D3 : complétude différenciée par cycle
+    let complete: boolean;
+    if (cycle === "PREMIER_CYCLE") {
+      // D3 : 1er cycle — complet si au moins minCompositions valides
+      complete = terms.length > 0 && valid.length >= minCompositions;
+    } else {
+      // D8 : 2e cycle — complet si toutes les périodes présentes
+      complete = terms.length > 0 && periodsPresent === terms.length;
+    }
+
+    // D2 : si dossier incomplet, la décision est TOUJOURS A_DETERMINER,
+    //      même si une moyenne provisoire est calculable.
     const decision: AnnualDecision =
-      annualAverage === null
+      !complete || annualAverage === null
         ? "A_DETERMINER"
         : annualAverage >= admisThreshold
           ? "ADMIS"
@@ -96,7 +113,7 @@ export function computeAnnualRows(args: {
       student,
       periods,
       periodsCount: valid.length,
-      complete: terms.length > 0 && valid.length === terms.length,
+      complete,
       annualAverage,
       rank: null,
       decision,

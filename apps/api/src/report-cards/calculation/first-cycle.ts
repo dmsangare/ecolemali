@@ -1,7 +1,7 @@
 /**
  * Calculs 1er cycle (1re-6e) : compositions mensuelles, notes /10, sans coefficient.
  */
-import { calculateAverage, roundScore, PartialResult, RoundOptions } from "./common";
+import { calculateAverage, roundScore, PartialResult, RoundOptions, assertScoreInRange } from "./common";
 
 export interface GradeInput {
   value: number | null;
@@ -22,7 +22,14 @@ function effectiveStatus(g: GradeInput): string {
 export function calculateCompositionAverage(
   grades: GradeInput[],
   opts: RoundOptions = { decimals: 2, mode: "ROUND" },
+  scale: number = 10,
 ): PartialResult {
+  // DEC-1 : refuse toute note hors barème
+  for (const g of grades) {
+    if (g.value !== null && g.value !== undefined) {
+      assertScoreInRange(g.value, scale, "Note de composition");
+    }
+  }
   const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
   const validValues = grades
     .filter((g) => {

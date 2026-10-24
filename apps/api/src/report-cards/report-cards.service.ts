@@ -7,6 +7,7 @@ import { ReportCardGenerateDto, ReportCardUpdateDto } from "./dto";
 import { calculateSubjectAverage } from "./calculation/second-cycle";
 import { calculateCompositionAverage } from "./calculation/first-cycle";
 import { determineDecision as determineDecisionEngine } from "./calculation/decision";
+import { calculateRank } from "./calculation/common";
 import { DashboardService } from "../dashboard/dashboard.service";
 import {
   isTermAllowedForCycle,
@@ -210,22 +211,38 @@ export class ReportCardsService {
 
     // Bareme par classe
     const scaleByClass = new Map<string, number>();
+    // DEC-6 : détection des élèves bloqués par absence (une fois, avant la boucle)
+    const schoolIdForAbsence = user?.schoolId ?? null;
+    const blockedStudents = schoolIdForAbsence && dto.classId
+      ? await this.detectUnjustifiedAbsences(dto.classId, dto.termId, schoolIdForAbsence)
+      : new Set<string>();
+    const overriddenStudents = dto.classId
+      ? await this.getOverrideStudentIds(dto.classId, dto.termId)
+      : new Set<string>();
+
     for (const e of enrollments) {
       scaleByClass.set(e.classId, rulesForCycle(cycleByLevel.get(e.levelId)).scale);
     }
 
     // Matieres et coefficients : fallback SubjectCoefficient
     // (BulletinConfig supprime — voir commit refonte bulletins v2)
-    const subjectsToUse = await (async () => {
-      const coefficientRows = await this.prisma.subjectCoefficient.findMany({
-        where: { levelId: { in: Array.from(new Set(enrollments.map((e) => e.levelId))) } },
-        include: { subject: true },
-      });
-      return coefficientRows.map((r) => ({
+    // Correction bug C : coefficients groupés PAR NIVEAU (levelId → matières)
+    const coefficientRows = await this.prisma.subjectCoefficient.findMany({
+      where: { levelId: { in: Array.from(new Set(enrollments.map((e) => e.levelId))) } },
+      include: { subject: true },
+    });
+    const subjectsByLevel = new Map<
+      string,
+      Array<{ subjectId: string; name: string; coefficient: number }>
+    >();
+    for (const r of coefficientRows) {
+      if (!subjectsByLevel.has(r.levelId)) subjectsByLevel.set(r.levelId, []);
+      subjectsByLevel.get(r.levelId)!.push({
+        subjectId: r.subjectId,
         name: r.subject.name,
         coefficient: Number(r.coefficient),
-      }));
-        })();
+      });
+    }
 
     // Recuperer les evaluations du trimestre pour ces classes
     const classIds = Array.from(new Set(enrollments.map((e) => e.classId)));
@@ -280,8 +297,11 @@ export class ReportCardsService {
       const subjectAverages: Array<{ subjectId: string; average: number | null; coefficient: number }> = [];
 
       const cycle = cycleByLevel.get(e.levelId) as string;
-      for (const sc of subjectsToUse) {
-        const grades = studentGrades.get(sc.name) || [];
+      // Correction bug C : ne boucler que sur les matières DU NIVEAU de cet élève
+      const subjectsForThisLevel = subjectsByLevel.get(e.levelId) ?? [];
+      for (const sc of subjectsForThisLevel) {
+        // Correction bug A : la clé du map gradesMap est subjectId (UUID), pas le nom
+        const grades = studentGrades.get(sc.subjectId) || [];
         // Utiliser le moteur calculation/ selon le cycle
         const gradeInputs = grades.map((g: any) => ({
           value: g.value,
@@ -292,9 +312,10 @@ export class ReportCardsService {
           ? calculateCompositionAverage(gradeInputs)
           : calculateSubjectAverage(gradeInputs);
         subjectAverages.push({
-          subjectId: sc.name,
+          // Correction bug B : UUID réel, jamais le nom
+          subjectId: sc.subjectId,
           average: partialResult.value,
-          coefficient: Number(sc.coefficient),
+          coefficient: sc.coefficient,
         });
       }
 
@@ -340,11 +361,11 @@ export class ReportCardsService {
     const created: any[] = [];
     for (const r of results) {
       const classAverages = byClass.get(r.classId) || [];
-      const sorted = [...classAverages].sort((a, b) => b - a);
 
+      // D12-4 : rang de compétition (1, 1, 3) via le moteur commun
       let rank: number | null = null;
       if (r.average !== null) {
-        rank = sorted.findIndex((v) => Math.abs(v - r.average!) < 0.0001) + 1;
+        rank = calculateRank(r.average, classAverages);
       }
 
       // Absences pour ce trimestre
@@ -368,10 +389,16 @@ export class ReportCardsService {
         : "INCOMPLET";
 
       // Prisma ReportDecision : ADMIS | PASSE | REDOUBLE | EXCLU | A_DETERMINER
-      const decision: "ADMIS" | "REDOUBLE" | "A_DETERMINER" =
+      let decision: "ADMIS" | "REDOUBLE" | "A_DETERMINER" =
         rawDecision === "ADMIS" ? "ADMIS"
           : rawDecision === "REDOUBLE" ? "REDOUBLE"
             : "A_DETERMINER";  // INCOMPLET, A_EXAMINER → A_DETERMINER
+
+      // DEC-6 : si bloqué par absence, forcer A_DETERMINER
+      const isStudentBlockedForDecision = blockedStudents.has(r.studentId) && !overriddenStudents.has(r.studentId);
+      if (isStudentBlockedForDecision) {
+        decision = "A_DETERMINER";
+      }
 
       // Calcul isComplete :
       // - Il faut au moins une evaluation de type COMPOSITION (ou une evaluation tout court)
@@ -381,7 +408,13 @@ export class ReportCardsService {
       const hasExpectedAssessments = assessmentsForClass.length > 0;
       const allSubjectsHaveAverage = r.subjectAverages.length > 0
         && r.subjectAverages.every((sa: any) => sa.average !== null);
-      const isComplete = hasExpectedAssessments && allSubjectsHaveAverage;
+      let isComplete = hasExpectedAssessments && allSubjectsHaveAverage;
+
+      // DEC-6 : si l'élève a une absence non traitée, forcer le blocage
+      const isStudentBlocked = blockedStudents.has(r.studentId) && !overriddenStudents.has(r.studentId);
+      if (isStudentBlocked) {
+        isComplete = false;
+      }
 
       // Compter les eleves de la classe pour classSize
       const classSize = await this.prisma.enrollment.count({
@@ -403,6 +436,7 @@ export class ReportCardsService {
           decision: decision as any,
           kind: dto.kind ?? (r.cycle === "PREMIER_CYCLE" ? "COMPOSITION" : "TRIMESTRIEL"),
           isComplete,
+          isStale: false,   // DEC-9 : régénéré
         },
         create: {
           studentId: r.studentId,
@@ -419,6 +453,7 @@ export class ReportCardsService {
           status: "DRAFT",
           kind: dto.kind ?? (r.cycle === "PREMIER_CYCLE" ? "COMPOSITION" : "TRIMESTRIEL"),
           isComplete,
+          isStale: false,   // DEC-9
         },
       });
 
@@ -442,6 +477,19 @@ export class ReportCardsService {
     this.logger.log(`Generated ${created.length} report cards for term ${dto.termId}`);
 
     // Construire les warnings pour les evaluations non validees
+    // DEC-6 : warning pour les bulletins bloqués par absence
+    const blockedStudentIds = Array.from(blockedStudents).filter(
+      (sid) => !overriddenStudents.has(sid),
+    );
+    const blockedWarnings = blockedStudentIds.length > 0
+      ? [{
+          type: "BULLETINS_BLOCKED_BY_ABSENCE",
+          message: `${blockedStudentIds.length} bulletin(s) bloqué(s) par absence non traitée`,
+          count: blockedStudentIds.length,
+          studentIds: blockedStudentIds,
+        }]
+      : [];
+
     const warnings = draftAssessments.length > 0
       ? [{
           type: "UNVALIDATED_ASSESSMENTS",
@@ -455,9 +503,60 @@ export class ReportCardsService {
       generated: created.length,
       skipped,
       skippedCount: skipped.length,
-      warnings,
+      warnings: [...blockedWarnings, ...warnings],
       reports: created,
     };
+  }
+
+
+  /**
+   * DEC-6 : détecte les élèves avec absence à une composition pour un term/classe.
+   * Retourne un Set de studentId bloqués.
+   */
+  private async detectUnjustifiedAbsences(
+    classId: string,
+    termId: string,
+    schoolId: string,
+  ): Promise<Set<string>> {
+    const blocked = new Set<string>();
+
+    // Source 1 : AttendanceRecord ABSENT / ABSENT_UNJUSTIFIED pour ce term
+    const attendance = await this.prisma.attendanceRecord.findMany({
+      where: {
+        session: { termId, classId },
+        status: { in: ["ABSENT", "ABSENT_UNJUSTIFIED"] as any },
+        student: { schoolId },
+      },
+      select: { studentId: true },
+    });
+    for (const a of attendance) blocked.add(a.studentId);
+
+    // Source 2 : Grade ABSENT sur une évaluation COMPOSITION
+    const grades = await this.prisma.grade.findMany({
+      where: {
+        status: "ABSENT" as any,
+        assessment: { termId, classId, type: "COMPOSITION" as any },
+        student: { schoolId },
+      },
+      select: { studentId: true },
+    });
+    for (const g of grades) blocked.add(g.studentId);
+
+    return blocked;
+  }
+
+  /**
+   * DEC-6 : retourne les studentId qui ont une dérogation active.
+   */
+  private async getOverrideStudentIds(
+    classId: string,
+    termId: string,
+  ): Promise<Set<string>> {
+    const overrides = await this.prisma.reportCardAbsenceOverride.findMany({
+      where: { reportCard: { classId, termId } },
+      include: { reportCard: { select: { studentId: true } } },
+    });
+    return new Set(overrides.map((o) => o.reportCard.studentId));
   }
 
   async update(id: string, dto: ReportCardUpdateDto, user?: CurrentUserPayload) {
@@ -897,6 +996,89 @@ export class ReportCardsService {
       decision: report.decision,
       appreciation: report.appreciation,
     };
+  }
+
+
+  /**
+   * DEC-6 : marque l'absence comme traitée pour un bulletin.
+   * Crée un ReportCardAbsenceOverride qui permet de générer le bulletin.
+   */
+  async clearAbsences(
+    reportCardId: string,
+    motive: string,
+    user: CurrentUserPayload,
+  ) {
+    const trimmed = motive.trim();
+    if (trimmed.length < 5 || trimmed.length > 500) {
+      throw new BadRequestException("Motif invalide : 5 à 500 caractères requis (espaces exclus).");
+    }
+
+    const report = await this.prisma.reportCard.findUnique({
+      where: { id: reportCardId },
+      include: { student: { select: { schoolId: true } } },
+    });
+    if (!report) throw new NotFoundException("Bulletin introuvable");
+    if (user.schoolId && report.student.schoolId !== user.schoolId) {
+      throw new ForbiddenException("Accès interdit");
+    }
+
+    const existing = await this.prisma.reportCardAbsenceOverride.findUnique({
+      where: { reportCardId },
+    });
+    if (existing) {
+      throw new BadRequestException("Une dérogation existe déjà pour ce bulletin.");
+    }
+
+    return this.prisma.reportCardAbsenceOverride.create({
+      data: {
+        reportCardId,
+        schoolId: report.student.schoolId,
+        clearedBy: user.id,
+        motive: trimmed,
+      },
+    });
+  }
+
+
+  /**
+   * L8 : recalcule isComplete pour les ReportCard affectés par une évaluation.
+   * Appelé après modification/suppression d'une évaluation ou de notes.
+   */
+  async recomputeIsCompleteForAssessment(assessmentId: string): Promise<void> {
+    const assessment = await this.prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { classId: true, termId: true },
+    });
+    if (!assessment) return;
+
+    // Trouver les ReportCard concernés
+    const reports = await this.prisma.reportCard.findMany({
+      where: { classId: assessment.classId, termId: assessment.termId },
+      include: { items: true },
+    });
+
+    for (const report of reports) {
+      // Vérifier qu'il y a au moins une évaluation VALIDATED/LOCKED
+      const hasAssessments = await this.prisma.assessment.count({
+        where: {
+          classId: assessment.classId,
+          termId: assessment.termId,
+          status: { in: ["VALIDATED", "LOCKED"] as any },
+        },
+      });
+
+      // Vérifier que toutes les matières ont une moyenne
+      const allSubjectsHaveAverage =
+        report.items.length > 0 &&
+        report.items.every((i) => i.average !== null);
+
+      const isComplete = hasAssessments > 0 && allSubjectsHaveAverage;
+
+      await this.prisma.reportCard.update({
+        where: { id: report.id },
+        data: { isComplete },
+      });
+    }
   }
 
 }

@@ -1,5 +1,6 @@
 ﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { ReportCardsService } from "../report-cards/report-cards.service";
 import { GradesBulkDto, GradeUpdateDto } from "./dto";
 import { calculateWeightedAverage } from "@sis-mali/shared";
 
@@ -28,7 +29,10 @@ function deriveStatusFlags(
 
 @Injectable()
 export class GradesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reportCards: ReportCardsService,
+  ) {}
 
   async findByAssessment(assessmentId: string) {
     const assessment = await this.prisma.assessment.findUnique({
@@ -172,6 +176,33 @@ export class GradesService {
       await this.prisma.gradeAudit.createMany({ data: auditsToCreate });
     }
 
+    // L8 : recalculer isComplete après modification
+    try {
+      await this.reportCards.recomputeIsCompleteForAssessment(dto.assessmentId);
+    } catch (err) {
+      // Silencieux : le recalcul ne doit pas bloquer la saisie
+    }
+
+    // DEC-9 : marquer les bulletins comme "à recalculer" (non publiés uniquement)
+    try {
+      const assessment = await this.prisma.assessment.findUnique({
+        where: { id: dto.assessmentId },
+        select: { classId: true, termId: true },
+      });
+      if (assessment) {
+        await this.prisma.reportCard.updateMany({
+          where: {
+            classId: assessment.classId,
+            termId: assessment.termId,
+            status: { not: "PUBLISHED" },
+          },
+          data: { isStale: true },
+        });
+      }
+    } catch (err) {
+      // Silencieux
+    }
+
     return { updated: results.length, grades: results, audited: auditsToCreate.length };
   }
 
@@ -232,6 +263,27 @@ export class GradesService {
           motive: "Modification manuelle",
         },
       });
+    }
+
+    // L8 : recalculer isComplete après modification
+    try {
+      await this.reportCards.recomputeIsCompleteForAssessment(grade.assessmentId);
+    } catch (err) {
+      // Silencieux
+    }
+
+    // DEC-9 : marquer les bulletins comme "à recalculer" (non publiés uniquement)
+    try {
+      await this.prisma.reportCard.updateMany({
+        where: {
+          classId: grade.assessment.classId,
+          termId: grade.assessment.termId,
+          status: { not: "PUBLISHED" },
+        },
+        data: { isStale: true },
+      });
+    } catch (err) {
+      // Silencieux
     }
 
     return updated;

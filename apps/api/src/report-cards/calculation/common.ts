@@ -23,6 +23,22 @@ export function roundScore(value: number, opts: RoundOptions = { decimals: 2, mo
  * Rang avec ex-aequo.
  * Exemple : [15, 15, 12, 10] → rangs [1, 1, 3, 4].
  */
+/**
+ * DEC-1 : refuse une note hors barème (CdC §3.1 / §3.2).
+ * Fonction pure, centralisée dans le moteur commun.
+ */
+export function assertScoreInRange(value: number, max: number, context?: string): void {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${context ?? "Note"} : valeur non finie (${value})`);
+  }
+  if (value < 0) {
+    throw new Error(`${context ?? "Note"} : valeur négative interdite (${value}/${max})`);
+  }
+  if (value > max) {
+    throw new Error(`${context ?? "Note"} : valeur ${value} dépasse le barème ${max}`);
+  }
+}
+
 export function calculateRank(target: number, allAverages: Array<number | null>): number {
   const valid = allAverages.filter((a): a is number => a !== null && !Number.isNaN(a));
   const better = valid.filter((a) => a > target).length;

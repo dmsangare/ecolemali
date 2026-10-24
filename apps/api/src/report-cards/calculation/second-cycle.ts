@@ -1,0 +1,110 @@
+/**
+ * Calculs 2e cycle (7e-9e) : trimestres, notes /20, avec coefficients.
+ */
+import { calculateAverage, roundScore, PartialResult, RoundOptions, assertScoreInRange } from "./common";
+
+export interface GradeInput {
+  value: number | null;
+  coefficient?: number;
+  status?: string;
+  isAbsent?: boolean;
+  isExempt?: boolean;
+}
+
+/** Statut effectif : status prioritaire, sinon isAbsent/isExempt. */
+function effectiveStatus(g: GradeInput): string {
+  if (g.status) return g.status;
+  if (g.isExempt) return "EXEMPT";
+  if (g.isAbsent) return "ABSENT";
+  return "PRESENT";
+}
+
+/** Moyenne d'une matière sur un trimestre. */
+export function calculateSubjectAverage(
+  grades: GradeInput[],
+  opts: RoundOptions = { decimals: 2, mode: "ROUND" },
+  scale: number = 20,
+): PartialResult {
+  // DEC-1 : refuse toute note hors barème
+  for (const g of grades) {
+    if (g.value !== null && g.value !== undefined) {
+      assertScoreInRange(g.value, scale, "Note de matière");
+    }
+  }
+  const excluded = grades.filter((g) => g.isAbsent || g.isExempt).length;
+  const validValues = grades
+    .filter((g) => {
+      const st = effectiveStatus(g);
+      return st !== "ABSENT" && st !== "EXEMPT";
+    })
+    .map((g) => g.value);
+  const result = calculateAverage(validValues, opts);
+  return { ...result, excluded };
+}
+
+export interface SubjectAverageInput {
+  average: number | null;
+  coefficient: number;
+}
+
+/** Moyenne générale d'un trimestre = Σ(moyenne matière × coef) / Σ(coef). */
+export function calculateTermAverage(
+  items: SubjectAverageInput[],
+  opts: RoundOptions = { decimals: 2, mode: "ROUND" },
+): PartialResult {
+  // DEC-2 : refus explicite des coefficients nuls, négatifs ou non finis
+  for (const item of items) {
+    if (!Number.isFinite(item.coefficient) || item.coefficient <= 0) {
+      throw new Error(
+        `Coefficient invalide : ${item.coefficient} (doit être strictement positif)`
+      );
+    }
+  }
+
+  const valid = items.filter((i): i is SubjectAverageInput & { average: number } =>
+    i.average !== null && !Number.isNaN(i.average),
+  );
+  if (valid.length === 0) {
+    return { value: null, count: 0, missing: items.length, excluded: 0, complete: false };
+  }
+  const totalWeighted = valid.reduce((s, i) => s + i.average * i.coefficient, 0);
+  const totalCoefficients = valid.reduce((s, i) => s + i.coefficient, 0);
+  if (totalCoefficients === 0) {
+    return { value: null, count: 0, missing: items.length, excluded: 0, complete: false };
+  }
+  return {
+    value: roundScore(totalWeighted / totalCoefficients, opts),
+    count: valid.length,
+    missing: items.length - valid.length,
+    excluded: 0,
+    complete: valid.length === items.length,
+  };
+}
+
+export interface SecondCycleAnnualResult {
+  sum: number | null;
+  average: number | null;
+  count: number;
+  missing: number;
+  complete: boolean;
+}
+
+/** Moyenne annuelle 2e cycle = (Trim_1 + Trim_2 + Trim_3) / 3. */
+export function calculateSecondCycleAnnual(
+  terms: Array<number | null>,
+  opts: RoundOptions = { decimals: 2, mode: "ROUND" },
+): SecondCycleAnnualResult {
+  const valid = terms.filter((t): t is number => t !== null && !Number.isNaN(t));
+  if (valid.length === 0) {
+    return { sum: null, average: null, count: 0, missing: terms.length, complete: false };
+  }
+  const sum = roundScore(valid.reduce((s, v) => s + v, 0), opts);
+  const average = roundScore(sum / valid.length, opts);
+  return {
+    sum,
+    average,
+    count: valid.length,
+    missing: terms.length - valid.length,
+    complete: valid.length === terms.length,
+  };
+}

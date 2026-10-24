@@ -8,6 +8,9 @@ import IORedis from "ioredis";
 import { runFullBackup, cleanupOldBackups } from "./lib/backup";
 import { startBackupScheduler, stopBackupScheduler } from "./lib/scheduler";
 import { prisma } from "./lib/prisma";
+import archiver = require("archiver");
+import * as fsPromises from "fs/promises";
+import * as fsSync from "fs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://redis:6379";
 
@@ -28,7 +31,6 @@ connection.on("error", (err) => {
 // QUEUES
 // ============================================================
 
-const pdfQueue = new Queue("pdf-generation", { connection });
 const notificationQueue = new Queue("notifications", { connection });
 const backupQueue = new Queue("backups", { connection });
 
@@ -36,15 +38,6 @@ const backupQueue = new Queue("backups", { connection });
 // WORKERS
 // ============================================================
 
-const pdfWorker = new Worker(
-  "pdf-generation",
-  async (job) => {
-    console.log(`[PDF] Traitement du job ${job.id}`, job.data);
-    // TODO: Implementer avec Puppeteer
-    return { success: true, jobId: job.id };
-  },
-  { connection, concurrency: 2 },
-);
 
 const notificationWorker = new Worker(
   "notifications",
@@ -96,7 +89,7 @@ const backupWorker = new Worker(
 // EVENT HANDLERS
 // ============================================================
 
-[pdfWorker, notificationWorker, backupWorker].forEach((worker) => {
+[ notificationWorker, backupWorker].forEach((worker) => {
   worker.on("completed", (job) => {
     console.log(`[${worker.name}] Job ${job.id} termine`);
   });
@@ -123,14 +116,13 @@ const shutdown = async () => {
 
   // 2. Fermer les workers
   await Promise.all([
-    pdfWorker.close(),
+    
     notificationWorker.close(),
     backupWorker.close(),
   ]);
 
   // 3. Fermer les queues
   await Promise.all([
-    pdfQueue.close(),
     notificationQueue.close(),
     backupQueue.close(),
   ]);

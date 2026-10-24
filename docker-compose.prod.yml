@@ -63,6 +63,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       PORT: 3000
       TZ: Africa/Bamako
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
       # Super Admin (seed 1ere installation)
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL}
       SUPER_ADMIN_FIRSTNAME: ${SUPER_ADMIN_FIRSTNAME}

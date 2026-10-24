@@ -22,9 +22,9 @@ import { BackupsTab } from "./BackupsTab";
 import { AppearanceTab } from "./AppearanceTab";
 import { TemplatesTab } from "./TemplatesTab";
 import { ThresholdsTab } from "./ThresholdsTab";
+import { BulletinRulesTab } from "./BulletinRulesTab";
 import { HonorRollTab } from "./HonorRollTab";
 import { NumberingTab } from "./NumberingTab";
-import { BulletinConfigTab } from "./BulletinConfigTab";
 import { AuditLogsTab } from "./AuditLogsTab";
 import { SystemLogsTab } from "./SystemLogsTab";
 
@@ -59,6 +59,9 @@ export function SettingsPage() {
           <TabsTrigger value="thresholds" className="flex items-center gap-2">
             <Award className="h-4 w-4" />
             Seuils
+          </TabsTrigger>
+          <TabsTrigger value="bulletin-rules" className="flex items-center gap-2">
+            Règles bulletins
           </TabsTrigger>
           <TabsTrigger value="honorRoll" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
@@ -113,6 +116,9 @@ export function SettingsPage() {
         <TabsContent value="thresholds">
           <ThresholdsTab />
         </TabsContent>
+        <TabsContent value="bulletin-rules">
+          <BulletinRulesTab />
+        </TabsContent>
 
         <TabsContent value="honorRoll">
           <HonorRollTab />
@@ -143,7 +149,6 @@ export function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="bulletin">
-          <BulletinConfigTab />
         </TabsContent>
 
         <TabsContent value="system">

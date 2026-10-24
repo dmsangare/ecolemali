@@ -1,11 +1,38 @@
 ﻿import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { ReportCardsService } from "../report-cards/report-cards.service";
 import { GradesBulkDto, GradeUpdateDto } from "./dto";
 import { calculateWeightedAverage } from "@sis-mali/shared";
 
+
+/**
+ * Source unique de verite : `status`.
+ * `isAbsent` et `isExempt` sont derives de `status` (retrocompat).
+ */
+function deriveStatusFlags(
+  status?: string | null,
+  isAbsent?: boolean | null,
+  isExempt?: boolean | null,
+): { status: string; isAbsent: boolean; isExempt: boolean } {
+  let finalStatus = status;
+  if (!finalStatus) {
+    if (isExempt) finalStatus = "EXEMPT";
+    else if (isAbsent) finalStatus = "ABSENT";
+    else finalStatus = "PRESENT";
+  }
+  return {
+    status: finalStatus,
+    isAbsent: finalStatus === "ABSENT",
+    isExempt: finalStatus === "EXEMPT",
+  };
+}
+
 @Injectable()
 export class GradesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reportCards: ReportCardsService,
+  ) {}
 
   async findByAssessment(assessmentId: string) {
     const assessment = await this.prisma.assessment.findUnique({
@@ -78,6 +105,14 @@ export class GradesService {
       }
     }
 
+    // Recuperer les anciennes notes AVANT le upsert (pour audit)
+    const studentIds = dto.grades.map((g) => g.studentId);
+    const existingGrades = await this.prisma.grade.findMany({
+      where: { assessmentId: dto.assessmentId, studentId: { in: studentIds } },
+      select: { id: true, studentId: true, value: true },
+    });
+    const oldByStudent = new Map(existingGrades.map((g) => [g.studentId, g]));
+
     // Upsert toutes les notes
     const results = await this.prisma.$transaction(
       dto.grades.map((g) =>
@@ -88,25 +123,87 @@ export class GradesService {
               studentId: g.studentId,
             },
           },
-          update: {
-            value: g.value,
-            isAbsent: g.isAbsent,
-            observation: g.observation,
-            enteredBy,
-          },
-          create: {
-            assessmentId: dto.assessmentId,
-            studentId: g.studentId,
-            value: g.value,
-            isAbsent: g.isAbsent,
-            observation: g.observation,
-            enteredBy,
-          },
+          update: (() => {
+            const flags = deriveStatusFlags(g.status, g.isAbsent, g.isExempt);
+            return {
+              value: g.value,
+              status: flags.status as any,
+              isAbsent: flags.isAbsent,
+              isExempt: flags.isExempt,
+              observation: g.observation,
+              comment: g.comment,
+              enteredBy,
+            };
+          })(),
+          create: (() => {
+            const flags = deriveStatusFlags(g.status, g.isAbsent, g.isExempt);
+            return {
+              assessmentId: dto.assessmentId,
+              studentId: g.studentId,
+              value: g.value,
+              status: flags.status as any,
+              isAbsent: flags.isAbsent,
+              isExempt: flags.isExempt,
+              observation: g.observation,
+              comment: g.comment,
+              enteredBy,
+            };
+          })(),
         }),
       ),
     );
 
-    return { updated: results.length, grades: results };
+    // Journal GradeAudit : si une note existait deja et que la valeur a change
+    const auditsToCreate: any[] = [];
+    for (const g of dto.grades) {
+      const old = oldByStudent.get(g.studentId);
+      if (old && old.value !== null && g.value !== null) {
+        const oldVal = Number(old.value);
+        const newVal = Number(g.value);
+        if (oldVal !== newVal) {
+          auditsToCreate.push({
+            gradeId: old.id,
+            oldValue: old.value,
+            newValue: g.value,
+            userId: user.id,
+            motive: "Modification en masse (bulkEntry)",
+          });
+        }
+      }
+    }
+
+    if (auditsToCreate.length > 0) {
+      await this.prisma.gradeAudit.createMany({ data: auditsToCreate });
+    }
+
+    // L8 : recalculer isComplete après modification
+    try {
+      await this.reportCards.recomputeIsCompleteForAssessment(dto.assessmentId);
+    } catch (err) {
+      // Silencieux : le recalcul ne doit pas bloquer la saisie
+    }
+
+    // DEC-9 : marquer les bulletins comme "à recalculer" (non publiés uniquement)
+    try {
+      const assessment = await this.prisma.assessment.findUnique({
+        where: { id: dto.assessmentId },
+        select: { classId: true, termId: true },
+      });
+      if (assessment) {
+        await this.prisma.reportCard.updateMany({
+          where: {
+            classId: assessment.classId,
+            termId: assessment.termId,
+            status: { not: "PUBLISHED" },
+          },
+          data: { isStale: true },
+        });
+      }
+    } catch (err) {
+      // Silencieux
+    }
+
+    return { updated: results.length, grades: results, audited: auditsToCreate.length };
   }
 
   async update(id: string, dto: GradeUpdateDto, user: { id: string; roles: string[] }) {
@@ -134,10 +231,62 @@ export class GradesService {
       }
     }
 
-    return this.prisma.grade.update({
+    const oldValue = grade.value;
+    // Synchroniser status / isAbsent / isExempt
+    const flags = deriveStatusFlags(dto.status, dto.isAbsent, dto.isExempt);
+    const updated = await this.prisma.grade.update({
       where: { id },
-      data: { ...dto, enteredBy: updatedBy },
+      data: {
+        value: dto.value,
+        status: flags.status as any,
+        isAbsent: flags.isAbsent,
+        isExempt: flags.isExempt,
+        observation: dto.observation,
+        comment: dto.comment,
+        enteredBy: updatedBy,
+      },
     });
+
+    // Journal GradeAudit si value a changé
+    const valueChanged =
+      dto.value !== undefined &&
+      (oldValue === null || updated.value === null
+        ? oldValue !== updated.value
+        : Number(oldValue) !== Number(updated.value));
+    if (valueChanged) {
+      await this.prisma.gradeAudit.create({
+        data: {
+          gradeId: id,
+          oldValue: oldValue,
+          newValue: updated.value,
+          userId: user.id,
+          motive: "Modification manuelle",
+        },
+      });
+    }
+
+    // L8 : recalculer isComplete après modification
+    try {
+      await this.reportCards.recomputeIsCompleteForAssessment(grade.assessmentId);
+    } catch (err) {
+      // Silencieux
+    }
+
+    // DEC-9 : marquer les bulletins comme "à recalculer" (non publiés uniquement)
+    try {
+      await this.prisma.reportCard.updateMany({
+        where: {
+          classId: grade.assessment.classId,
+          termId: grade.assessment.termId,
+          status: { not: "PUBLISHED" },
+        },
+        data: { isStale: true },
+      });
+    } catch (err) {
+      // Silencieux
+    }
+
+    return updated;
   }
 
   /**

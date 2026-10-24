@@ -32,6 +32,8 @@ export interface ReportCard {
   absencesCount: number;
   latesCount: number;
   status: ReportStatus;
+  isStale: boolean;
+  isComplete: boolean;
   publishedAt: string | null;
   pdfUrl: string | null;
   createdAt: string;

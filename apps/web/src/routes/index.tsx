@@ -30,6 +30,7 @@ import { LevelsListPage } from "@/pages/levels/LevelsListPage";
 import { AttendanceListPage, AttendanceDetailPage } from "@/pages/attendance";
 import { AssessmentsListPage, AssessmentGradesPage } from "@/pages/assessments";
 import { ReportCardsListPage, ReportCardDetailPage } from "@/pages/report-cards";
+import { CalculationPage } from "@/pages/report-cards/CalculationPage";
 import { AnnualResultsPage } from "@/pages/report-cards/AnnualResultsPage";
 import {
   InvoicesListPage,
@@ -57,6 +58,7 @@ import { AcademicYearsPage } from "@/pages/academic-years/AcademicYearsPage";
 import { YearRolloverPage } from "@/pages/year-rollover/YearRolloverPage";
 import { StateExamsPage } from "@/pages/state-exams/StateExamsPage";
 import TimetablePage from '@/pages/timetable/TimetablePage';
+import { PublicVerificationPage } from '@/pages/public/PublicVerificationPage';
 
 export function AppRoutes() {
   return (
@@ -460,6 +462,14 @@ export function AppRoutes() {
             }
           />
         </Route>
+          <Route
+            path="/report-cards/calculation"
+            element={
+              <ProtectedRoute requiredPermission="report_card:view">
+                <CalculationPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/id-cards"
@@ -579,6 +589,7 @@ export function AppRoutes() {
           />
       </Route>
 
+      <Route path="/v/:shortCode" element={<PublicVerificationPage />} />
       <Route path="/forbidden" element={<ForbiddenPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

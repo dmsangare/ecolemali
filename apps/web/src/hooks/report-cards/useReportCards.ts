@@ -1,3 +1,4 @@
+import { api } from "@/lib/axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { reportCardsApi, type ReportCardFilters } from "@/api/report-cards";
@@ -99,3 +100,35 @@ export function useDeleteReportCard() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 }
+
+
+export function useClearAbsences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, motive }: { id: string; motive: string }) =>
+      reportCardsApi.clearAbsences(id, motive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["report-cards"] });
+    },
+  });
+}
+
+
+export function useRegenerateReportCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ studentId, termId, classId, academicYearId }: {
+      studentId: string; termId: string; classId: string; academicYearId: string;
+    }) => {
+      // Réutilise useGenerateReportCards
+      const { data } = await api.post("/report-cards/generate", {
+        studentId, termId, classId, academicYearId,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["report-cards"] });
+    },
+  });
+}
+

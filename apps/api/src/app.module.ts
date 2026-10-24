@@ -26,6 +26,8 @@ import { AttendanceModule } from "./attendance/attendance.module";
 import { AssessmentsModule } from "./assessments/assessments.module";
 import { GradesModule } from "./grades/grades.module";
 import { ReportCardsModule } from "./report-cards/report-cards.module";
+import { SubjectDomainsModule } from "./subject-domains/subject-domains.module";
+import { AnnualDecisionsModule } from "./annual-decisions/annual-decisions.module";
 import { ExamsModule } from "./exams/exams.module";
 import { FeeTypesModule } from "./fee-types/fee-types.module";
 import { FeeStructuresModule } from "./fee-structures/fee-structures.module";
@@ -57,12 +59,10 @@ import { HealthModule } from "./health/health.module";
 import { SystemLogsModule } from "./system-logs/system-logs.module";
 import { StudentAccountsModule } from "./student-accounts/student-accounts.module";
 import { FilesModule } from "./files/files.module";
-import { BulletinConfigModule } from "./bulletin-config/bulletin-config.module";
 
 @Module({
   imports: [
     HealthModule,
-    BulletinConfigModule,
     FilesModule,
     SystemLogsModule,
     StudentAccountsModule,
@@ -102,6 +102,8 @@ import { BulletinConfigModule } from "./bulletin-config/bulletin-config.module";
     AssessmentsModule,
     GradesModule,
     ReportCardsModule,
+    SubjectDomainsModule,
+    AnnualDecisionsModule,
     ExamsModule,
     FeeTypesModule,
     FeeStructuresModule,

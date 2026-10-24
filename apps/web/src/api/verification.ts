@@ -1,58 +1,48 @@
-import { api } from "@/lib/axios";
+/**
+ * API client — Vérification publique de documents (BLOC 9.5)
+ */
 
-export type DocumentType =
-  | "ID_CARD"
-  | "BULLETIN"
-  | "RECEIPT"
-  | "INVOICE"
-  | "ATTESTATION"
-  | "CERTIFICATE";
-
-export interface SignDocumentInput {
-  type: DocumentType;
-  referenceId: string;
-  meta?: Record<string, any>;
-  expiresAt?: string;
-}
-
-export interface SignDocumentResult {
+export interface VerificationResult {
+  id: string;
+  type: string;
   shortCode: string;
-  hmacToken: string;
-  verificationUrl: string;
-}
-
-export interface VerificationPublicInfo {
-  valid: boolean;
-  revoked: boolean;
-  type: DocumentType;
-  schoolId: string;
-  referenceId: string;
-  meta: Record<string, any> | null;
-  viewCount: number;
+  revokedAt: string | null;
   createdAt: string;
+  viewCount?: number;
+  meta: {
+    studentName?: string;
+    studentMatricule?: string;
+    className?: string;
+    average?: number | null;
+    scale?: number;
+    kind?: string;
+    status?: string;
+    academicYear?: string;
+    termName?: string;
+    [key: string]: any;
+  };
+  school?: {
+    name: string;
+    address?: string;
+    phone?: string;
+  };
 }
 
-export const verificationApi = {
-  async sign(input: SignDocumentInput): Promise<SignDocumentResult> {
-    const { data } = await api.post("/verification/sign", input);
-    return data.data || data;
-  },
+export async function verifyDocument(shortCode: string): Promise<VerificationResult> {
+  // Endpoint public — pas d'auth requise
+  const res = await fetch(`/api/v1/verify/${encodeURIComponent(shortCode)}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-  async revoke(shortCode: string, reason?: string): Promise<any> {
-    const { data } = await api.post("/verification/revoke", {
-      shortCode,
-      reason,
-    });
-    return data.data || data;
-  },
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Document introuvable. Le code est peut-être erroné.');
+    }
+    if (res.status === 429) {
+      throw new Error('Trop de tentatives. Réessayez dans une minute.');
+    }
+    throw new Error('Erreur de vérification. Réessayez.');
+  }
 
-  async verifyPublic(shortCode: string): Promise<VerificationPublicInfo> {
-    const { data } = await api.get(`/verify/${shortCode}`);
-    return data.data || data;
-  },
-
-  async verifyWithToken(shortCode: string, token: string): Promise<any> {
-    const { data } = await api.get(`/verify/${shortCode}/${token}`);
-    return data.data || data;
-  },
-};
+  return res.json();
+}

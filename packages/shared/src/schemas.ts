@@ -454,8 +454,11 @@ export type AssessmentUpdateInput = z.infer<typeof AssessmentUpdateSchema>;
 export const GradeEntrySchema = z.object({
   studentId: uuid,
   value: z.coerce.number().min(0).max(100).nullable(),
+  status: z.enum(["PRESENT", "ABSENT", "EXEMPT", "MISSING"]).default("PRESENT"),
   isAbsent: z.boolean().default(false),
+  isExempt: z.boolean().default(false),
   observation: z.string().optional(),
+  comment: z.string().optional(),
 });
 
 export const GradesBulkSchema = z.object({
@@ -465,8 +468,11 @@ export const GradesBulkSchema = z.object({
 
 export const GradeUpdateSchema = z.object({
   value: z.coerce.number().min(0).max(100).nullable().optional(),
+  status: z.enum(["PRESENT", "ABSENT", "EXEMPT", "MISSING"]).optional(),
   isAbsent: z.boolean().optional(),
+  isExempt: z.boolean().optional(),
   observation: z.string().optional(),
+  comment: z.string().optional(),
 });
 
 export type GradeEntryInput = z.infer<typeof GradeEntrySchema>;
@@ -482,15 +488,23 @@ export const ReportCardGenerateSchema = z.object({
   termId: uuid,
   classId: uuid.optional(),
   studentId: uuid.optional(),
+  kind: z.enum(["COMPOSITION", "TRIMESTRIEL", "ANNUEL"]).optional().default("TRIMESTRIEL"),
 });
 
 export const ReportCardUpdateSchema = z.object({
   decision: z.nativeEnum(ReportDecision).optional(),
   appreciation: z.string().optional(),
+  conductScore: z.number().min(0).max(20).nullable().optional(),
+  conductAppreciation: z.string().optional(),
 });
 
 export type ReportCardGenerateInput = z.infer<typeof ReportCardGenerateSchema>;
 export type ReportCardUpdateInput = z.infer<typeof ReportCardUpdateSchema>;
+
+export const ReportCardReopenSchema = z.object({
+  motive: z.string().min(5, 'Motif obligatoire (min 5 caractères)').max(500),
+});
+export type ReportCardReopenInput = z.infer<typeof ReportCardReopenSchema>;
 
 // ============================================================
 // EXAM

@@ -30,6 +30,18 @@ export interface FinanceSettings {
   warningThreshold?: number;
   criticalThreshold?: number;
 }
+export interface BulletinRulesCycle {
+  gradingScale: number;
+  passMark: number;
+  evaluations: number;
+  hasCoefficients: boolean;
+}
+
+export interface BulletinRulesSettings {
+  firstCycle: BulletinRulesCycle;
+  secondCycle: BulletinRulesCycle;
+}
+
 export interface SettingsData {
   appearance?: AppearanceSettings;
   templates?: TemplatesSettings;
@@ -37,6 +49,7 @@ export interface SettingsData {
   honorRoll?: HonorRollSettings;
   numbering?: NumberingSettings;
   finance?: FinanceSettings;
+  bulletinRules?: BulletinRulesSettings;
 }
 
 export interface Settings {

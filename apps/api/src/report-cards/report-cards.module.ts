@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ClassPdfModule } from './class-pdf/class-pdf.module';
 import { ReportCardsController } from "./report-cards.controller";
 import { ReportCardsService } from "./report-cards.service";
 import { AnnualResultsController } from "./annual-results.controller";
@@ -7,7 +8,7 @@ import { DashboardModule } from "../dashboard/dashboard.module";
 import { VerificationModule } from "../verification/verification.module";
 
 @Module({
-  imports: [DashboardModule, VerificationModule],
+  imports: [ClassPdfModule, DashboardModule, VerificationModule],
   controllers: [ReportCardsController, AnnualResultsController],
   providers: [ReportCardsService, AnnualResultsService],
   exports: [ReportCardsService, AnnualResultsService],

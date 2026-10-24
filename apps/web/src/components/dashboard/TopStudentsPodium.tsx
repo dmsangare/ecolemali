@@ -42,7 +42,7 @@ function PodiumCard({
           const Icon = style.icon;
           return (
             <div
-              key={`${cycle}-${entry.rank}`}
+              key={`${cycle}-${entry.student.id}`}
               className={cn(
                 "flex items-center gap-3 rounded-lg border-2 p-3",
                 style.bg,

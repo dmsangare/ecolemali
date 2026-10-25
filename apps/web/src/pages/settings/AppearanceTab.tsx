@@ -6,6 +6,7 @@ import { useSettings, useUpdateAppearance } from "@/hooks/settings/useSettings";
 
 // Palette de couleurs predefinies
 const PRESET_COLORS = [
+  { name: "École", value: "#0e7490" },
   { name: "Bleu classique", value: "#2563eb" },
   { name: "Vert emeraude", value: "#059669" },
   { name: "Violet royal", value: "#7c3aed" },
@@ -15,7 +16,6 @@ const PRESET_COLORS = [
   { name: "Indigo", value: "#4f46e5" },
   { name: "Cyan", value: "#0891b2" },
   { name: "Ambre", value: "#d97706" },
-  { name: "Noir elegant", value: "#1f2937" },
 ];
 
 const DEFAULT_COLOR = "#2563eb";

@@ -1,0 +1,152 @@
+/* ============================================================================
+ * SIS-MALI — Tokens graphiques (Lot 2 — Fondations)
+ * ----------------------------------------------------------------------------
+ * Marque       : vert-bleu Mali premium (teal profond)
+ * Typographie  : Inter (déjà chargée dans globals.css)
+ * Radius       : 10px de base
+ * Mode sombre  : supporté
+ *
+ * Format HSL espace (compatible shadcn existant).
+ * Aucun token shadcn existant n'est modifié — les tokens SIS sont
+ * ADDITIFS et consommés via Tailwind (extend.colors.sis.*).
+ * ========================================================================== */
+
+@layer base {
+  :root {
+    /* ---------------------------------------------------------------------
+     * BRAND — échelle complète (teal profond, ancrage africain + premium)
+     * ------------------------------------------------------------------- */
+    --sis-brand-50:  187 92% 96%;
+    --sis-brand-100: 187 88% 90%;
+    --sis-brand-200: 187 85% 80%;
+    --sis-brand-300: 188 82% 68%;
+    --sis-brand-400: 189 80% 54%;
+    --sis-brand-500: 190 90% 30%;   /* ← couleur primaire de marque */
+    --sis-brand-600: 191 92% 25%;
+    --sis-brand-700: 192 93% 21%;
+    --sis-brand-800: 193 94% 17%;
+    --sis-brand-900: 194 95% 12%;
+
+    --sis-brand:            190 90% 30%;
+    --sis-brand-foreground: 0 0% 100%;
+
+    /* ---------------------------------------------------------------------
+     * SÉMANTIQUES — états métier (succès, alerte, danger, info)
+     * ------------------------------------------------------------------- */
+    --sis-success:            142 76% 36%;
+    --sis-success-foreground: 0 0% 100%;
+    --sis-success-bg:         142 76% 96%;
+    --sis-success-border:     142 60% 80%;
+
+    --sis-warning:            38 92% 50%;
+    --sis-warning-foreground: 26 90% 15%;
+    --sis-warning-bg:         48 100% 96%;
+    --sis-warning-border:     45 90% 80%;
+
+    --sis-danger:             0 84% 60%;
+    --sis-danger-foreground:  0 0% 100%;
+    --sis-danger-bg:          0 100% 97%;
+    --sis-danger-border:      0 80% 88%;
+
+    --sis-info:               199 89% 48%;
+    --sis-info-foreground:    0 0% 100%;
+    --sis-info-bg:            199 100% 96%;
+    --sis-info-border:        199 70% 82%;
+
+    /* ---------------------------------------------------------------------
+     * NEUTRES — échelle 0 → 950 (fond, bordures, texte)
+     * ------------------------------------------------------------------- */
+    --sis-neutral-0:   0 0% 100%;
+    --sis-neutral-50:  210 20% 98%;
+    --sis-neutral-100: 210 16% 95%;
+    --sis-neutral-200: 214 15% 90%;
+    --sis-neutral-300: 213 14% 82%;
+    --sis-neutral-400: 214 11% 64%;
+    --sis-neutral-500: 215 10% 50%;
+    --sis-neutral-600: 216 12% 38%;
+    --sis-neutral-700: 217 15% 28%;
+    --sis-neutral-800: 218 18% 18%;
+    --sis-neutral-900: 220 22% 11%;
+    --sis-neutral-950: 222 26% 7%;
+
+    /* ---------------------------------------------------------------------
+     * RAYONS — 10px de base (boost premium, cohérent shadcn)
+     * ------------------------------------------------------------------- */
+    --sis-radius-xs: 0.375rem; /*  6px */
+    --sis-radius-sm: 0.5rem;   /*  8px */
+    --sis-radius:    0.625rem; /* 10px — base */
+    --sis-radius-md: 0.75rem;  /* 12px */
+    --sis-radius-lg: 0.875rem; /* 14px */
+    --sis-radius-xl: 1rem;     /* 16px */
+
+    /* ---------------------------------------------------------------------
+     * OMBRES — subtiles, premium, non criardes
+     * ------------------------------------------------------------------- */
+    --sis-shadow-xs: 0 1px 2px 0 hsl(220 22% 11% / 0.04);
+    --sis-shadow-sm: 0 1px 3px 0 hsl(220 22% 11% / 0.06),
+                     0 1px 2px -1px hsl(220 22% 11% / 0.06);
+    --sis-shadow:    0 2px 6px -1px hsl(220 22% 11% / 0.08),
+                     0 1px 3px -1px hsl(220 22% 11% / 0.05);
+    --sis-shadow-md: 0 4px 10px -2px hsl(220 22% 11% / 0.08),
+                     0 2px 5px -2px hsl(220 22% 11% / 0.06);
+    --sis-shadow-lg: 0 10px 20px -4px hsl(220 22% 11% / 0.10),
+                     0 4px 8px -4px hsl(220 22% 11% / 0.06);
+
+    /* ---------------------------------------------------------------------
+     * ESPACEMENTS / TYPO — rappels utiles aux composants
+     * ------------------------------------------------------------------- */
+    --sis-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                     Roboto, sans-serif;
+  }
+
+  /* -----------------------------------------------------------------------
+   * MODE SOMBRE — mêmes tokens, adaptés
+   * --------------------------------------------------------------------- */
+  .dark {
+    --sis-brand:            188 82% 44%;
+    --sis-brand-foreground: 194 95% 8%;
+
+    --sis-success:            142 60% 45%;
+    --sis-success-foreground: 142 90% 96%;
+    --sis-success-bg:         142 30% 14%;
+    --sis-success-border:     142 40% 26%;
+
+    --sis-warning:            38 92% 55%;
+    --sis-warning-foreground: 26 90% 10%;
+    --sis-warning-bg:         38 40% 16%;
+    --sis-warning-border:     38 55% 28%;
+
+    --sis-danger:             0 72% 58%;
+    --sis-danger-foreground:  0 0% 100%;
+    --sis-danger-bg:          0 40% 16%;
+    --sis-danger-border:      0 55% 30%;
+
+    --sis-info:               199 82% 58%;
+    --sis-info-foreground:    199 90% 8%;
+    --sis-info-bg:            199 40% 16%;
+    --sis-info-border:        199 50% 28%;
+
+    --sis-neutral-0:   222 26% 7%;
+    --sis-neutral-50:  220 22% 11%;
+    --sis-neutral-100: 218 18% 18%;
+    --sis-neutral-200: 217 15% 28%;
+    --sis-neutral-300: 216 12% 38%;
+    --sis-neutral-400: 215 10% 50%;
+    --sis-neutral-500: 214 11% 64%;
+    --sis-neutral-600: 213 14% 76%;
+    --sis-neutral-700: 214 15% 84%;
+    --sis-neutral-800: 210 16% 92%;
+    --sis-neutral-900: 210 20% 96%;
+    --sis-neutral-950: 0 0% 100%;
+
+    --sis-shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.30);
+    --sis-shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.35),
+                     0 1px 2px -1px hsl(0 0% 0% / 0.30);
+    --sis-shadow:    0 2px 6px -1px hsl(0 0% 0% / 0.40),
+                     0 1px 3px -1px hsl(0 0% 0% / 0.30);
+    --sis-shadow-md: 0 4px 10px -2px hsl(0 0% 0% / 0.45),
+                     0 2px 5px -2px hsl(0 0% 0% / 0.30);
+    --sis-shadow-lg: 0 10px 20px -4px hsl(0 0% 0% / 0.50),
+                     0 4px 8px -4px hsl(0 0% 0% / 0.30);
+  }
+}

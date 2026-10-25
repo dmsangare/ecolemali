@@ -6,20 +6,38 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
-  Loader2,
   ArrowRight,
+  Clock
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  KpiCard,
+  PageLoader,
+  ErrorState,
+  EmptyState,
+  StatusBadge
+} from "@/components/ui";
 import { useTeacherDashboard } from "@/hooks/dashboard";
 import { TopStudentsPodium } from "@/components/dashboard";
+import { TeacherClassDistribution } from "./TeacherDashboard.stats";
 
 export function TeacherDashboard() {
-  const { data, isLoading } = useTeacherDashboard();
+  const { data, isLoading, isError, refetch } = useTeacherDashboard();
 
-  if (isLoading) {
+  if (isLoading) return <PageLoader label="Chargement de votre espace..." />;
+  
+  if (isError) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="p-6">
+        <ErrorState
+          title="Impossible de charger le tableau de bord"
+          description="Une erreur est survenue lors de la récupération de vos données."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -27,16 +45,10 @@ export function TeacherDashboard() {
   if (!data?.hasProfile) {
     return (
       <div className="p-6">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              Aucun profil enseignant associe a votre compte.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Contactez l'administration pour lier votre compte a une fiche enseignant.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Profil enseignant non configuré"
+          description="Aucun profil enseignant n'est associé à votre compte. Contactez l'administration pour lier votre compte à une fiche enseignant."
+        />
       </div>
     );
   }
@@ -50,166 +62,177 @@ export function TeacherDashboard() {
   } = data;
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Bonjour, {data.teacher.firstName} {data.teacher.lastName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Voici un aperçu de vos classes et activites
-        </p>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Bonjour, {data.teacher.firstName} {data.teacher.lastName}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Voici un aperçu de vos classes et activités.
+          </p>
+        </div>
+        <div className="text-sm text-muted-foreground flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
+          <Clock className="h-4 w-4" />
+          {new Date().toLocaleDateString("fr-FR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
       </div>
 
       {/* KPI */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Mes classes
-            </CardTitle>
-            <School className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{myClasses.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Mes matieres
-            </CardTitle>
-            <BookOpen className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mySubjects.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Élèves total
-            </CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Mes classes"
+          value={myClasses.length}
+          hint="Classes assignées"
+          icon={<School className="h-5 w-5" />}
+          accent="brand"
+        />
+        <KpiCard
+          label="Mes matières"
+          value={mySubjects.length}
+          hint="Matières enseignées"
+          icon={<BookOpen className="h-5 w-5" />}
+          accent="info"
+        />
+        <KpiCard
+          label="Total élèves"
+          value={totalStudents}
+          hint="Élèves dans mes classes"
+          icon={<Users className="h-5 w-5" />}
+          accent="success"
+        />
       </div>
 
       {/* Actions rapides */}
       <div className="grid gap-3 md:grid-cols-3">
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/assessments">
-            <FileText className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Saisir des notes</div>
-              <div className="text-xs text-muted-foreground">
-                {pendingAssessments.length} en attente
+        <Link to="/assessments" className="block group">
+          <Card className="h-full transition-all group-hover:border-sis-brand group-hover:shadow-sis-md cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sis-brand-50 text-sis-brand">
+                <FileText className="h-5 w-5" />
               </div>
-            </div>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/attendance">
-            <ClipboardCheck className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Faire l'appel</div>
-              <div className="text-xs text-muted-foreground">
-                Présences du jour
+              <div>
+                <p className="font-semibold text-sm">Saisir des notes</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingAssessments.length} évaluation(s) en attente
+                </p>
               </div>
-            </div>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/report-cards">
-            <FileText className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Bulletins</div>
-              <div className="text-xs text-muted-foreground">
-                Voir et generer
+            </CardContent>
+          </Card>
+        </Link>
+        
+        <Link to="/attendance" className="block group">
+          <Card className="h-full transition-all group-hover:border-sis-brand group-hover:shadow-sis-md cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sis-info-bg text-sis-info">
+                <ClipboardCheck className="h-5 w-5" />
               </div>
-            </div>
-          </Link>
-        </Button>
+              <div>
+                <p className="font-semibold text-sm">Faire l'appel</p>
+                <p className="text-xs text-muted-foreground">Présences du jour</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/report-cards" className="block group">
+          <Card className="h-full transition-all group-hover:border-sis-brand group-hover:shadow-sis-md cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sis-success-bg text-sis-success">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Bulletins</p>
+                <p className="text-xs text-muted-foreground">Voir et générer</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Mes classes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <School className="h-4 w-4 text-primary" />
-              Mes classes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {myClasses.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Aucune classe assignee
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {myClasses.map((c: any) => (
-                  <Link
-                    key={c.id}
-                    to={`/classes/${c.id}`}
-                    className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition"
-                  >
-                    <div>
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {c.level?.name} · {c.studentCount} eleves
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Section Graphique + Listes */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Graphique (1/3) */}
+        <div className="lg:col-span-1">
+          <TeacherClassDistribution classes={myClasses} />
+        </div>
 
-        {/* Evaluations a venir */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              Evaluations a venir (7 jours)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingAssessments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Aucune evaluation a venir
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {upcomingAssessments.slice(0, 5).map((a: any) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{a.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {a.class?.name} · {a.subject?.name}
-                      </p>
+        {/* Listes (2/3) */}
+        <div className="lg:col-span-2 grid gap-6 md:grid-cols-2">
+          {/* Mes classes */}
+          <Card className="flex flex-col">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-base flex items-center gap-2">
+                <School className="h-4 w-4 text-sis-brand" />
+                Mes classes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 flex-1">
+              {myClasses.length === 0 ? (
+                <div className="p-6">
+                  <EmptyState title="Aucune classe" description="Aucune classe assignée." />
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {myClasses.slice(0, 5).map((c: any) => (
+                    <Link
+                      key={c.id}
+                      to={`/classes/${c.id}`}
+                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.level?.name} · {c.studentCount} élèves
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Évaluations */}
+          <Card className="flex flex-col">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-sis-info" />
+                Prochaines évaluations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 flex-1">
+              {upcomingAssessments.length === 0 ? (
+                <div className="p-6">
+                  <EmptyState title="Aucune évaluation" description="Rien de prévu dans les 7 prochains jours." />
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {upcomingAssessments.slice(0, 5).map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between p-4">
+                      <div>
+                        <p className="font-medium text-sm">{a.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {a.class?.name} · {a.subject?.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <StatusBadge variant="info">
+                          {new Date(a.date).toLocaleDateString("fr-FR", { day: '2-digit', month: '2-digit' })}
+                        </StatusBadge>
+                      </div>
                     </div>
-                    <p className="text-xs font-mono text-muted-foreground">
-                      {new Date(a.date).toLocaleDateString("fr-FR")}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Top élèves */}
+      {/* Top élèves (composant existant conservé) */}
       <TopStudentsPodium />
     </div>
   );

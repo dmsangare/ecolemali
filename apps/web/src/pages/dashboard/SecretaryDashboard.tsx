@@ -1,135 +1,122 @@
 import { Link } from "react-router-dom";
 import {
-  UserPlus,
   Users,
-  Loader2,
+  UserPlus,
   Clock,
   ArrowRight,
-  FileText,
+  GraduationCap,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  KpiCard,
+  PageLoader,
+  ErrorState,
+  EmptyState,
+} from "@/components/ui";
 import { useSecretaryDashboard } from "@/hooks/dashboard";
-import { TopStudentsPodium } from "@/components/dashboard";
 
 export function SecretaryDashboard() {
-  const { data, isLoading } = useSecretaryDashboard();
+  const { data, isLoading, isError, refetch } = useSecretaryDashboard();
 
-  if (isLoading) {
+  if (isLoading) return <PageLoader label="Chargement du secrétariat..." />;
+
+  if (isError) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="p-6">
+        <ErrorState
+          title="Impossible de charger les données"
+          description="Une erreur est survenue lors de la récupération des inscriptions."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
 
-  const { todayEnrollments = 0, totalStudents = 0, recentStudents = [] } =
-    data || {};
+  const { todayEnrollments, totalStudents, recentStudents } = data ?? {
+    todayEnrollments: 0,
+    totalStudents: 0,
+    recentStudents: [],
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Gestion des inscriptions et eleves
-        </p>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Tableau de bord — Secrétariat
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Suivi des inscriptions et des nouveaux élèves.
+          </p>
+        </div>
+        <div className="text-sm text-muted-foreground flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full">
+          <Clock className="h-4 w-4" />
+          {new Date().toLocaleDateString("fr-FR", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </div>
       </div>
 
       {/* KPI */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Inscriptions aujourd'hui
-            </CardTitle>
-            <UserPlus className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{todayEnrollments}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Nouveaux inscrits
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total élèves actifs
-            </CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Toutes classes confondues
-            </p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Inscriptions aujourd'hui"
+          value={todayEnrollments}
+          hint="Nouvelles inscriptions enregistrées ce jour"
+          icon={<UserPlus className="h-5 w-5" />}
+          accent="brand"
+        />
+        <KpiCard
+          label="Élèves actifs"
+          value={totalStudents}
+          hint="Total des élèves actifs dans l'établissement"
+          icon={<Users className="h-5 w-5" />}
+          accent="success"
+        />
       </div>
 
-      {/* Actions rapides */}
-      <div className="grid gap-3 md:grid-cols-3">
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/students/new">
-            <UserPlus className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Nouvel élève</div>
-              <div className="text-xs text-muted-foreground">
-                Créer une inscription
-              </div>
-            </div>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/students">
-            <Users className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Liste des élèves</div>
-              <div className="text-xs text-muted-foreground">
-                Consulter / modifier
-              </div>
-            </div>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto py-4 justify-start">
-          <Link to="/enrollments">
-            <FileText className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Inscriptions</div>
-              <div className="text-xs text-muted-foreground">
-                Gerer les dossiers
-              </div>
-            </div>
-          </Link>
-        </Button>
-      </div>
-
-      {/* Derniers élèves */}
+      {/* Derniers élèves inscrits */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" />
+            <GraduationCap className="h-4 w-4 text-sis-brand" />
             Derniers élèves inscrits
           </CardTitle>
+          <Link
+            to="/students"
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            Tout voir <ArrowRight className="h-3 w-3" />
+          </Link>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {recentStudents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Aucun élève enregistre
-            </p>
+            <div className="p-6">
+              <EmptyState
+                title="Aucun élève inscrit"
+                description="Les inscriptions apparaîtront ici dès que vous ajouterez un élève."
+              />
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y">
               {recentStudents.map((s: any) => (
                 <Link
                   key={s.id}
                   to={`/students/${s.id}`}
-                  className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition"
+                  className="flex items-center justify-between p-4 hover:bg-muted/30 transition"
                 >
-                  <div>
-                    <p className="font-medium">
-                      {s.lastName} {s.firstName}
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {s.lastName?.toUpperCase()} {s.firstName}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">
+                    <p className="text-xs text-muted-foreground">
                       {s.matricule} ·{" "}
                       {new Date(s.createdAt).toLocaleDateString("fr-FR")}
                     </p>
@@ -142,8 +129,40 @@ export function SecretaryDashboard() {
         </CardContent>
       </Card>
 
-      {/* Top élèves */}
-      <TopStudentsPodium />
+      {/* Actions rapides */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Link to="/students/new" className="block group">
+          <Card className="h-full transition-all group-hover:border-sis-brand group-hover:shadow-sis-md cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sis-brand-50 text-sis-brand">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Inscrire un élève</p>
+                <p className="text-xs text-muted-foreground">
+                  Ajouter un nouvel élève
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/enrollments" className="block group">
+          <Card className="h-full transition-all group-hover:border-sis-brand group-hover:shadow-sis-md cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sis-info-bg text-sis-info">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Inscriptions en cours</p>
+                <p className="text-xs text-muted-foreground">
+                  Voir toutes les inscriptions
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 }

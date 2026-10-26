@@ -17,11 +17,11 @@ import {
   Settings,
   School,
   UsersRound,
-  Library,
-  UserCog,
-  Tag,
-  Coins,
-  TrendingDown, AlertTriangle, CreditCard, Layers } from "lucide-react";
+  CreditCard,
+  Layers,
+  AlertTriangle,
+  TrendingDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSchool } from "@/hooks/school/useSchool";
@@ -41,7 +41,7 @@ interface NavSection {
 
 const SECTIONS: NavSection[] = [
   {
-    title: "General",
+    title: "Général",
     items: [
       { label: "Tableau de bord", to: "/dashboard", icon: LayoutDashboard },
       { label: "Tableau d'honneur", to: "/honor-roll", icon: Trophy },
@@ -84,13 +84,13 @@ const SECTIONS: NavSection[] = [
       { label: "Configuration", to: "/finance/configuration", icon: Settings, permission: "fee:view" },
     ],
   },
-    {
-      title: "Services",
-      items: [
-        { label: "Cartes scolaires", to: "/id-cards", icon: CreditCard, permission: "student:view" },
-      ],
-    },
-    {
+  {
+    title: "Services",
+    items: [
+      { label: "Cartes scolaires", to: "/id-cards", icon: CreditCard, permission: "student:view" },
+    ],
+  },
+  {
     title: "Système",
     items: [
       { label: "Années scolaires", to: "/academic-years", icon: Calendar, permission: "academic_year:view" },
@@ -113,26 +113,31 @@ export function Sidebar() {
 
   const visibleSections = SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.permission || hasPermission(item.permission)),
+    items: section.items.filter(
+      (item) => !item.permission || hasPermission(item.permission),
+    ),
   })).filter((section) => section.items.length > 0);
 
   return (
-    <aside className="flex w-64 flex-col border-r bg-card h-screen">
+    <aside className="flex w-64 flex-col border-r border-sis-neutral-200 bg-card h-screen dark:border-sis-neutral-800">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-6">
+      <div className="flex h-16 items-center gap-2 border-b border-sis-neutral-200 px-6 dark:border-sis-neutral-800">
         {hasLogo ? (
           <img
             src={school!.logoUrl!}
             alt={schoolName}
-            className="h-8 w-8 rounded-md object-contain shrink-0"
+            className="h-8 w-8 rounded-sis-sm object-contain shrink-0"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-sis-sm bg-sis-brand text-sis-brand-foreground font-bold shrink-0">
             {sigle.charAt(0).toUpperCase()}
           </div>
         )}
         <div className="flex flex-col min-w-0">
-          <span className="text-sm font-bold leading-none truncate" title={schoolName}>
+          <span
+            className="text-sm font-bold leading-none truncate"
+            title={schoolName}
+          >
             {schoolName}
           </span>
           <span className="text-xs text-muted-foreground leading-none mt-0.5">
@@ -157,11 +162,11 @@ export function Sidebar() {
                     to={item.to}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center gap-3 rounded-md py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-sis-sm py-2 text-sm font-medium transition-colors",
                         item.indent ? "pl-9 pr-3" : "px-3",
                         isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-sis-brand text-sis-brand-foreground shadow-sis-sm"
+                          : "text-muted-foreground hover:bg-sis-brand-50 hover:text-sis-brand dark:hover:bg-sis-brand-900/20 dark:hover:text-sis-brand-300",
                       )
                     }
                   >
@@ -176,7 +181,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-3">
+      <div className="border-t border-sis-neutral-200 p-3 dark:border-sis-neutral-800">
         <p className="text-xs text-muted-foreground text-center">
           SIS-MALI v1.0
         </p>

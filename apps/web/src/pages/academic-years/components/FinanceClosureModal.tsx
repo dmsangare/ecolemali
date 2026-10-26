@@ -65,11 +65,11 @@ export function FinanceClosureModal({ year, onClose }: Props) {
   if (result) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
         onClick={onClose}
       >
         <div
-          className="bg-background rounded-lg shadow-xl max-w-lg w-full"
+          className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full"
           onClick={(e) => e.stopPropagation()}
         >
           <CardContent className="p-8 space-y-5 text-center">
@@ -126,11 +126,11 @@ export function FinanceClosureModal({ year, onClose }: Props) {
   if (isLoading || !preview) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
         onClick={onClose}
       >
         <div
-          className="bg-background rounded-lg shadow-xl p-8"
+          className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] p-8"
           onClick={(e) => e.stopPropagation()}
         >
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -145,11 +145,11 @@ export function FinanceClosureModal({ year, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-3xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-3xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -303,7 +303,7 @@ export function FinanceClosureModal({ year, onClose }: Props) {
               <CardContent className="p-5">
                 <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
                   <Users className="h-4 w-4 text-amber-600" />
-                  Débiteurs à reporter ({preview.debtors.length})
+                  Débiteurs Ã  reporter ({preview.debtors.length})
                 </h3>
                 <div className="space-y-1 text-xs max-h-40 overflow-y-auto">
                   {preview.debtors.map((d) => (

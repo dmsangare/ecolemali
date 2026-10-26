@@ -104,7 +104,7 @@ export function InvoiceDetailPage() {
                 )}
                 {invoice.issuedAt && (
                   <span>
-                    · Émise le{" "}
+                    Â· Émise le{" "}
                     {new Date(invoice.issuedAt).toLocaleDateString("fr-FR")}
                   </span>
                 )}
@@ -165,7 +165,7 @@ export function InvoiceDetailPage() {
       {/* DETAIL ITEMS */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">📋 Détail des frais</CardTitle>
+          <CardTitle className="text-base">ðŸ“‹ Détail des frais</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {!invoice.items || invoice.items.length === 0 ? (
@@ -188,7 +188,7 @@ export function InvoiceDetailPage() {
                     <tr key={item.id} className="border-b last:border-0">
                       <td className="p-3">
                         <div className="font-medium">
-                          {item.feeType?.name || item.description || "—"}
+                          {item.feeType?.name || item.description || "â€”"}
                         </div>
                         {item.description && item.feeType && (
                           <div className="text-xs text-muted-foreground">
@@ -225,7 +225,7 @@ export function InvoiceDetailPage() {
       {/* PAIEMENTS */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">💰 Paiements enregistrés</CardTitle>
+          <CardTitle className="text-base">ðŸ’° Paiements enregistrés</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {!invoice.payments || invoice.payments.length === 0 ? (
@@ -265,7 +265,7 @@ export function InvoiceDetailPage() {
                           </span>
                         </td>
                         <td className="p-3 font-mono text-xs">
-                          {p.reference || "—"}
+                          {p.reference || "â€”"}
                         </td>
                         <td className="p-3 text-right font-mono font-semibold text-green-600">
                           {formatFCFA(p.amount)}
@@ -339,11 +339,11 @@ export function InvoiceDetailPage() {
       {/* MODALE ANNULATION */}
       {showCancelModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           onClick={() => setShowCancelModal(false)}
         >
           <div
-            className="bg-background rounded-lg shadow-xl max-w-md w-full"
+            className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 space-y-4">

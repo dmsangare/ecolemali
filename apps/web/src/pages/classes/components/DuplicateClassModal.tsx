@@ -40,7 +40,7 @@ export function DuplicateClassModal({
 
   const cycle = sourceClass.level?.cycle;
 
-  // Vérifier si le code existe déjà
+  // Vérifier si le code existe déjÃ 
   const codeExists = useMemo(() => {
     if (!allClasses) return false;
     return allClasses.some(
@@ -82,11 +82,11 @@ export function DuplicateClassModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-lg w-full"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -150,7 +150,7 @@ export function DuplicateClassModal({
             {/* Avertissement code */}
             {codeExists && (
               <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded p-2">
-                ⚠️ Le code <strong>{code}</strong> existe deja pour cette
+                âš ï¸ Le code <strong>{code}</strong> existe deja pour cette
                 année scolaire.
               </div>
             )}

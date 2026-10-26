@@ -9,14 +9,14 @@ import { api } from "@/lib/axios";
 import { isTermAllowedForCycle } from "@/lib/grading";
 
 const ASSESSMENT_TYPES = [
-  { value: "INTERROGATION", label: "Interrogation", emoji: "⚪" },
-  { value: "DEVOIR", label: "Devoir", emoji: "🔵" },
-  { value: "CONTROLE", label: "Controle", emoji: "🟣" },
-  { value: "COMPOSITION", label: "Composition", emoji: "🟠" },
-  { value: "EXAMEN", label: "Examen", emoji: "🔴" },
-  { value: "TP", label: "Travaux Pratiques", emoji: "🟢" },
-  { value: "ORAL", label: "Oral", emoji: "🟡" },
-  { value: "PROJET", label: "Projet", emoji: "🔷" },
+  { value: "INTERROGATION", label: "Interrogation", emoji: "âšª" },
+  { value: "DEVOIR", label: "Devoir", emoji: "ðŸ”µ" },
+  { value: "CONTROLE", label: "Controle", emoji: "ðŸŸ£" },
+  { value: "COMPOSITION", label: "Composition", emoji: "ðŸŸ " },
+  { value: "EXAMEN", label: "Examen", emoji: "ðŸ”´" },
+  { value: "TP", label: "Travaux Pratiques", emoji: "ðŸŸ¢" },
+  { value: "ORAL", label: "Oral", emoji: "ðŸŸ¡" },
+  { value: "PROJET", label: "Projet", emoji: "ðŸ”·" },
 ];
 
 interface Props {
@@ -152,11 +152,11 @@ export function CreateAssessmentModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-2xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-2xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -208,7 +208,7 @@ export function CreateAssessmentModal({ onClose }: Props) {
                   <option value="">-- Selectionner --</option>
                   {sortedClasses.map((c) => {
                     const level = levels?.find((l) => l.id === c.levelId);
-                    const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+                    const emoji = level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
                     return (
                       <option key={c.id} value={c.id}>
                         {emoji} {c.name}

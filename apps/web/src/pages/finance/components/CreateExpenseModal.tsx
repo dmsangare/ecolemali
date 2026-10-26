@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2, Save, TrendingDown } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -64,22 +65,23 @@ export function CreateExpenseModal({ onClose }: Props) {
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+      onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl max-w-lg w-full my-8 relative z-[10000]"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                <TrendingDown className="h-5 w-5 text-red-600" />
+              <div className="h-10 w-10 rounded-sis-md bg-sis-danger-bg flex items-center justify-center shrink-0">
+                <TrendingDown className="h-5 w-5 text-sis-danger" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Nouvelle depense</h2>
+                <h2 className="text-lg font-semibold">Nouvelle dépense</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Enregistrer une sortie de caisse
                 </p>
@@ -92,23 +94,23 @@ export function CreateExpenseModal({ onClose }: Props) {
 
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
             <div>
-              <Label>Categorie *</Label>
+              <Label>Catégorie *</Label>
               {loadingCategories ? (
-                <div className="flex items-center justify-center py-4 mt-1 border rounded-md">
+                <div className="flex items-center justify-center py-4 mt-1 border rounded-sis-md">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 </div>
               ) : categories.length === 0 ? (
-                <div className="py-4 mt-1 text-center text-sm text-muted-foreground border rounded-md border-dashed">
-                  Aucune categorie disponible.
+                <div className="py-4 mt-1 text-center text-sm text-muted-foreground border rounded-sis-md border-dashed">
+                  Aucune catégorie disponible.
                 </div>
               ) : (
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="mt-1 w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
                   required
                 >
-                  <option value="">-- Selectionner une categorie --</option>
+                  <option value="">-- Sélectionner une catégorie --</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.emoji || "X"} {cat.name}
@@ -127,7 +129,7 @@ export function CreateExpenseModal({ onClose }: Props) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
                 placeholder="Ex: 15000"
-                className="mt-1 font-mono text-lg font-bold text-right"
+                className="mt-1 font-mono text-lg font-bold text-right rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                 required
               />
               {amountNum > 0 && (
@@ -143,8 +145,8 @@ export function CreateExpenseModal({ onClose }: Props) {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Achat craies et cahiers pour 6eme A"
-                className="mt-1 w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Ex: Achat craies et cahiers pour 6ème A"
+                className="mt-1 w-full min-h-[80px] rounded-sis-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
                 maxLength={500}
                 required
               />
@@ -154,39 +156,39 @@ export function CreateExpenseModal({ onClose }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="beneficiary">Beneficiaire (optionnel)</Label>
+              <Label htmlFor="beneficiary">Bénéficiaire (optionnel)</Label>
               <Input
                 id="beneficiary"
                 value={beneficiary}
                 onChange={(e) => setBeneficiary(e.target.value)}
-                placeholder="Ex: Librairie du marche"
-                className="mt-1"
+                placeholder="Ex: Librairie du marché"
+                className="mt-1 rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                 maxLength={150}
               />
             </div>
 
             <div>
-              <Label htmlFor="spentAt">Date de la depense</Label>
+              <Label htmlFor="spentAt">Date de la dépense</Label>
               <Input
                 id="spentAt"
                 type="date"
                 value={spentAt}
                 onChange={(e) => setSpentAt(e.target.value)}
-                className="mt-1"
+                className="mt-1 rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
               />
             </div>
 
             {selectedCategory && amountNum > 0 && (
-              <div className="rounded-lg bg-muted/50 border px-4 py-3 space-y-1">
+              <div className="rounded-sis-md bg-muted/50 border px-4 py-3 space-y-1">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Categorie</span>
+                  <span className="text-muted-foreground">Catégorie</span>
                   <span className="font-medium">
                     {selectedCategory.emoji} {selectedCategory.name}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Montant</span>
-                  <span className="font-bold font-mono text-red-600">
+                  <span className="font-bold font-mono text-sis-danger">
                     -{formatFCFA(amountNum)}
                   </span>
                 </div>
@@ -206,18 +208,19 @@ export function CreateExpenseModal({ onClose }: Props) {
             <Button
               type="submit"
               disabled={!isValid || createMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-sis-danger hover:bg-sis-danger/90 text-sis-danger-foreground"
             >
               {createMutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              Enregistrer la depense
+              Enregistrer la dépense
             </Button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

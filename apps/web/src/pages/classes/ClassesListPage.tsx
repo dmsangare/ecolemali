@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { School, Search, Loader2, Plus, DoorOpen } from "lucide-react";
-import { Input, Button } from "@/components/ui";
+import { School, Search, Plus, DoorOpen } from "lucide-react";
+import { Input, Button, PageLoader, EmptyState } from "@/components/ui";
 import { useClasses } from "@/hooks/classes";
 import { useAuth } from "@/contexts/AuthContext";
 import { CycleSection } from "./components/CycleSection";
@@ -58,15 +58,15 @@ export function ClassesListPage() {
   }, [classes]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* ONGLETS */}
-      <div className="flex items-center gap-1 border-b">
+      <div className="flex items-center gap-1 border-b border-sis-neutral-200 dark:border-sis-neutral-800">
         <button
           onClick={() => setActiveTab("classes")}
           className={
             "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 " +
             (activeTab === "classes"
-              ? "border-primary text-primary"
+              ? "border-sis-brand text-sis-brand"
               : "border-transparent text-muted-foreground hover:text-foreground")
           }
         >
@@ -78,7 +78,7 @@ export function ClassesListPage() {
           className={
             "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 " +
             (activeTab === "rooms"
-              ? "border-primary text-primary"
+              ? "border-sis-brand text-sis-brand"
               : "border-transparent text-muted-foreground hover:text-foreground")
           }
         >
@@ -91,86 +91,82 @@ export function ClassesListPage() {
       {activeTab === "rooms" ? (
         <RoomsTab />
       ) : (
-      <div className="space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <School className="h-6 w-6" />
-            Classes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalClasses} classe{totalClasses > 1 ? "s" : ""} ·{" "}
-            {totalStudents} eleve{totalStudents > 1 ? "s" : ""}
-          </p>
-        </div>
-        {canCreate && (
-          <Button onClick={() => openModal("PREMIER_CYCLE")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle classe
-          </Button>
-        )}
-      </div>
-
-      {/* BARRE DE RECHERCHE */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher une classe (nom, code, niveau, salle)..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* CONTENU */}
-      {isLoading ? (
-        <div className="flex h-96 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : totalClasses === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-            <School className="h-8 w-8 text-muted-foreground" />
+        <div className="space-y-6">
+          {/* HEADER */}
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-brand-50 text-sis-brand mt-0.5 dark:bg-sis-brand-900/30 dark:text-sis-brand-300">
+                <School className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Classes</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {totalClasses} classe{totalClasses > 1 ? "s" : ""} ·{" "}
+                  {totalStudents} élève{totalStudents > 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            {canCreate && (
+              <Button onClick={() => openModal("PREMIER_CYCLE")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle classe
+              </Button>
+            )}
           </div>
-          <div>
-            <p className="font-medium">Aucune classe pour le moment</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Commencez par créer votre premiere classe
-            </p>
+
+          {/* BARRE DE RECHERCHE */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une classe (nom, code, niveau, salle)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 rounded-sis-md border-sis-neutral-200 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700"
+            />
           </div>
-          {canCreate && (
-            <Button onClick={() => openModal("PREMIER_CYCLE")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle classe
-            </Button>
+
+          {/* CONTENU */}
+          {isLoading ? (
+            <PageLoader label="Chargement des classes..." />
+          ) : totalClasses === 0 ? (
+            <EmptyState
+              icon={<School className="h-7 w-7" />}
+              title="Aucune classe pour le moment"
+              description="Commencez par créer votre première classe."
+              action={
+                canCreate ? (
+                  <Button onClick={() => openModal("PREMIER_CYCLE")}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle classe
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="space-y-10">
+              <CycleSection
+                cycle="PREMIER_CYCLE"
+                classes={firstCycle}
+                onCreateClick={() => openModal("PREMIER_CYCLE")}
+                canCreate={canCreate}
+              />
+              <CycleSection
+                cycle="DEUXIEME_CYCLE"
+                classes={secondCycle}
+                onCreateClick={() => openModal("DEUXIEME_CYCLE")}
+                canCreate={canCreate}
+              />
+            </div>
+          )}
+
+          {/* MODALE DE CREATION */}
+          {modalOpen && (
+            <CreateClassModal
+              defaultCycle={modalDefaultCycle}
+              onClose={() => setModalOpen(false)}
+            />
           )}
         </div>
-      ) : (
-        <div className="space-y-10">
-          <CycleSection
-            cycle="PREMIER_CYCLE"
-            classes={firstCycle}
-            onCreateClick={() => openModal("PREMIER_CYCLE")}
-            canCreate={canCreate}
-          />
-          <CycleSection
-            cycle="DEUXIEME_CYCLE"
-            classes={secondCycle}
-            onCreateClick={() => openModal("DEUXIEME_CYCLE")}
-            canCreate={canCreate}
-          />
-        </div>
-      )}
-
-      {/* MODALE DE CREATION */}
-      {modalOpen && (
-        <CreateClassModal
-          defaultCycle={modalDefaultCycle}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-      </div>
       )}
     </div>
   );

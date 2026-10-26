@@ -1,5 +1,5 @@
 import { Plus, School } from "lucide-react";
-import { Button, Card, CardContent } from "@/components/ui";
+import { Button, Card, CardContent, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { ClassCard } from "./ClassCard";
 import type { ClassItem, LevelCycle } from "@/types/class";
@@ -21,24 +21,25 @@ export function CycleSection({
   const isFirstCycle = cycle === "PREMIER_CYCLE";
   const count = classes.length;
 
-  // Couleurs selon le cycle
+  // Couleurs SIS selon le cycle
   const colors = isFirstCycle
     ? {
-        header: "text-emerald-700 dark:text-emerald-400",
-        badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-        border: "border-emerald-200 dark:border-emerald-900",
-        bg: "bg-emerald-50/50 dark:bg-emerald-950/20",
-        button:
-          "bg-emerald-600 hover:bg-emerald-700 text-white",
-        icon: "text-emerald-600",
+        header: "text-sis-brand",
+        badge:
+          "bg-sis-brand-50 text-sis-brand dark:bg-sis-brand-900/30 dark:text-sis-brand-300",
+        border: "border-sis-brand/30 dark:border-sis-brand-800",
+        bg: "bg-sis-brand-50/40 dark:bg-sis-brand-900/10",
+        button: "",
+        icon: "text-sis-brand",
       }
     : {
-        header: "text-blue-700 dark:text-blue-400",
-        badge: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-        border: "border-blue-200 dark:border-blue-900",
-        bg: "bg-blue-50/50 dark:bg-blue-950/20",
-        button: "bg-blue-600 hover:bg-blue-700 text-white",
-        icon: "text-blue-600",
+        header: "text-sis-info",
+        badge:
+          "bg-sis-info-bg text-sis-info dark:bg-sis-info-bg/30 dark:text-sis-info",
+        border: "border-sis-info/30 dark:border-sis-info/40",
+        bg: "bg-sis-info-bg/40 dark:bg-sis-info-bg/10",
+        button: "",
+        icon: "text-sis-info",
       };
 
   // Ordre : par niveau (orderIndex) puis par code
@@ -54,14 +55,19 @@ export function CycleSection({
       {/* HEADER DE SECTION */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <h2 className={cn("text-lg font-semibold flex items-center gap-2", colors.header)}>
+          <h2
+            className={cn(
+              "text-lg font-semibold flex items-center gap-2",
+              colors.header
+            )}
+          >
             <School className={cn("h-5 w-5", colors.icon)} />
             {CYCLE_LABELS[cycle]}
           </h2>
           <span
             className={cn(
               "text-xs font-medium px-2.5 py-1 rounded-full",
-              colors.badge,
+              colors.badge
             )}
           >
             {count} classe{count > 1 ? "s" : ""}
@@ -72,7 +78,7 @@ export function CycleSection({
           <Button
             size="sm"
             onClick={onCreateClick}
-            className={cn(colors.button)}
+            className={colors.button}
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Nouvelle classe
@@ -82,31 +88,38 @@ export function CycleSection({
 
       {/* CONTENU */}
       {count === 0 ? (
-        <Card className={cn("border-dashed", colors.border, colors.bg)}>
+        <Card
+          className={cn(
+            "border-dashed rounded-sis-lg",
+            colors.border,
+            colors.bg
+          )}
+        >
           <CardContent className="flex flex-col items-center justify-center gap-3 py-12">
             <div
               className={cn(
                 "h-14 w-14 rounded-full flex items-center justify-center",
-                colors.badge,
+                colors.badge
               )}
             >
               <School className="h-7 w-7" />
             </div>
             <div className="text-center space-y-1">
               <p className="font-medium">
-                Aucune classe {isFirstCycle ? "du premier cycle" : "du deuxieme cycle"}
+                Aucune classe{" "}
+                {isFirstCycle ? "du premier cycle" : "du deuxième cycle"}
               </p>
               <p className="text-sm text-muted-foreground">
-                Creez votre premiere classe{" "}
+                Créez votre première classe{" "}
                 {isFirstCycle
-                  ? "(1ere A, 2eme A, ...)"
-                  : "(7eme A, 8eme A, ...)"}
+                  ? "(1ère A, 2ème A, ...)"
+                  : "(7ème A, 8ème A, ...)"}
               </p>
             </div>
             <Button
               size="sm"
               onClick={onCreateClick}
-              className={cn(colors.button)}
+              className={colors.button}
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Créer une classe

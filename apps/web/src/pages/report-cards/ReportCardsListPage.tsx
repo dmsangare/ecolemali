@@ -3,20 +3,23 @@ import { Link } from "react-router-dom";
 import {
   FileText,
   Plus,
-  Loader2,
   Eye,
   Search,
-  Award,
   FileDown,
   CheckCircle2,
   Send,
+  FileCheck2,
+  FileClock,
 } from "lucide-react";
 import {
   Button,
   Input,
-  Card,
-  CardContent,
+  PageLoader,
+  EmptyState,
+  KpiCard,
+  StatusBadge,
 } from "@/components/ui";
+import { DataTable, Column } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import {
   useReportCards,
@@ -28,16 +31,36 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import {
   STATUS_LABELS,
-  DECISION_LABELS,
   getAppreciation,
   getAppreciationColor,
 } from "@/types/report-cards";
 import type { ReportCard } from "@/types/report-cards";
 import { GenerateReportCardsModal } from "./components/GenerateReportCardsModal";
-import { useGenerateClassPdf, useClassPdfStatus, downloadClassPdf } from "@/hooks/report-cards/useClassPdf";
+import { useGenerateClassPdf, useClassPdfStatus } from "@/hooks/report-cards/useClassPdf";
 import { PublishClassModal } from "./components/PublishClassModal";
 import { useAuth } from "@/contexts/AuthContext";
 
+// ============================================================
+// Types pour StatusBadge (variants SIS)
+// ============================================================
+type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";
+
+function getStatusVariant(status: string): BadgeVariant {
+  switch (status) {
+    case "PUBLISHED":
+      return "success";
+    case "VALIDATED":
+      return "info";
+    case "DRAFT":
+      return "neutral";
+    default:
+      return "neutral";
+  }
+}
+
+// ============================================================
+// Page principale
+// ============================================================
 export function ReportCardsListPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("report_card:create");
@@ -62,30 +85,29 @@ export function ReportCardsListPage() {
     staleTime: 10 * 60_000,
   });
 
-  // Filtres backend
-  const filters: any = {};
+  const filters: Record<string, string> = {};
   if (classId) filters.classId = classId;
   if (termId) filters.termId = termId;
 
   const { data, isLoading } = useReportCards(filters);
 
-  const allReports = useMemo(() => {
+  const allReports: ReportCard[] = useMemo(() => {
     if (!data) return [];
     return Array.isArray(data) ? data : (data as any).data || [];
   }, [data]);
 
-  // Filtre texte cote frontend
   const reports = useMemo(() => {
     if (!search.trim()) return allReports;
     const q = search.toLowerCase();
-    return allReports.filter((r: ReportCard) => {
+    return allReports.filter((r) => {
       const name = `${r.student?.lastName || ""} ${r.student?.firstName || ""}`;
       const matricule = r.student?.matricule || "";
-      return name.toLowerCase().includes(q) || matricule.toLowerCase().includes(q);
+      return (
+        name.toLowerCase().includes(q) || matricule.toLowerCase().includes(q)
+      );
     });
   }, [allReports, search]);
 
-  // Classes triees
   const sortedClasses = useMemo(() => {
     if (!classes || !levels) return [];
     return [...classes].sort((a, b) => {
@@ -96,30 +118,193 @@ export function ReportCardsListPage() {
     });
   }, [classes, levels]);
 
-  // Stats globales
   const totalCount = reports.length;
-  const publishedCount = reports.filter(
-    (r: ReportCard) => r.status === "PUBLISHED",
-  ).length;
-  const draftCount = reports.filter(
-    (r: ReportCard) => r.status === "DRAFT",
-  ).length;
+  const publishedCount = reports.filter((r) => r.status === "PUBLISHED").length;
+  const draftCount = reports.filter((r) => r.status === "DRAFT").length;
+
+  const handleGenerateClassPdf = () => {
+    if (!classId) {
+      alert("Sélectionnez une classe");
+      return;
+    }
+    generateClassPdf.mutate(
+      { classId, academicYearId: "" },
+      { onSuccess: (data) => setClassPdfJobId(data.jobId) },
+    );
+  };
+
+  const hasFilters = Boolean(classId || termId || search);
+
+  const handleReset = () => {
+    setClassId("");
+    setTermId("");
+    setSearch("");
+  };
+
+  // ============================================================
+  // Colonnes du tableau
+  // ============================================================
+  const columns: Column<ReportCard>[] = [
+    {
+      key: "student",
+      header: "Élève",
+      cell: (r) => (
+        <div className="flex items-center gap-2">
+          {r.student?.gender && (
+            <span
+              className={cn(
+                "inline-flex items-center justify-center h-8 w-8 rounded-full text-xs font-semibold shrink-0",
+                r.student.gender === "M"
+                  ? "bg-sis-info-bg text-sis-info"
+                  : "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
+              )}
+            >
+              {r.student.firstName[0]}
+              {r.student.lastName[0]}
+            </span>
+          )}
+          <div>
+            <div className="font-medium">
+              {r.student ? `${r.student.lastName} ${r.student.firstName}` : "—"}
+            </div>
+            {r.student?.matricule && (
+              <div className="text-xs text-muted-foreground font-mono">
+                {r.student.matricule}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "class",
+      header: "Classe",
+      cell: (r) => (
+        <span className="text-muted-foreground">{r.class?.name || "—"}</span>
+      ),
+    },
+    {
+      key: "term",
+      header: "Trimestre",
+      cell: (r) => (
+        <span className="text-muted-foreground">{r.term?.name || "—"}</span>
+      ),
+    },
+    {
+      key: "average",
+      header: "Moyenne",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (r) => {
+        const scale = r.scale ?? 20;
+        const appreciationColor = getAppreciationColor(r.average, scale);
+        if (r.average === null || r.average === undefined) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return (
+          <span className={cn("font-bold text-base", appreciationColor)}>
+            {Number(r.average).toFixed(2)}
+            <span className="text-xs font-normal text-muted-foreground">
+              {" "}
+              / {scale}
+            </span>
+          </span>
+        );
+      },
+    },
+    {
+      key: "rank",
+      header: "Rang",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (r) => {
+        if (!r.rank) return <span className="text-muted-foreground">—</span>;
+        const variant: BadgeVariant =
+          r.rank === 1
+            ? "warning"
+            : r.rank === 2
+              ? "neutral"
+              : r.rank === 3
+                ? "warning"
+                : "neutral";
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+              r.rank === 1 &&
+                "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+              r.rank === 2 &&
+                "bg-sis-neutral-200 text-sis-neutral-700 dark:bg-sis-neutral-700 dark:text-sis-neutral-200",
+              r.rank === 3 &&
+                "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+              r.rank > 3 &&
+                "bg-sis-neutral-100 text-sis-neutral-700 dark:bg-sis-neutral-800 dark:text-sis-neutral-300",
+            )}
+          >
+            {r.rank === 1 && "🥇"}
+            {r.rank === 2 && "🥈"}
+            {r.rank === 3 && "🥉"}
+            {r.rank}/{r.classSize || "?"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "appreciation",
+      header: "Appréciation",
+      cell: (r) => {
+        const scale = r.scale ?? 20;
+        const appreciation = getAppreciation(r.average, scale);
+        const appreciationColor = getAppreciationColor(r.average, scale);
+        return (
+          <span className={cn("text-sm font-medium", appreciationColor)}>
+            {appreciation}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Statut",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (r) => {
+        const info = STATUS_LABELS[r.status] || STATUS_LABELS.DRAFT;
+        return (
+          <StatusBadge
+            variant={getStatusVariant(r.status)}
+            showIcon={false}
+          >
+            {info.label}
+          </StatusBadge>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (r) => <ReportCardActions report={r} />,
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Bulletins
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalCount} bulletin(s) · {draftCount} brouillon(s) ·{" "}
-            {publishedCount} publié(s)
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-brand-50 text-sis-brand mt-0.5 dark:bg-sis-brand-900/30 dark:text-sis-brand-300">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Bulletins</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gérez et publiez les bulletins de vos élèves
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <>
               <Button variant="outline" onClick={() => setPublishOpen(true)}>
@@ -128,16 +313,7 @@ export function ReportCardsListPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => {
-                  if (!classId) {
-                    alert("Sélectionnez une classe");
-                    return;
-                  }
-                  generateClassPdf.mutate(
-                    { classId, academicYearId: "" },
-                    { onSuccess: (data) => setClassPdfJobId(data.jobId) }
-                  );
-                }}
+                onClick={handleGenerateClassPdf}
                 disabled={generateClassPdf.isPending || !!classPdfJobId}
               >
                 <FileDown className="h-4 w-4 mr-2" />
@@ -145,111 +321,113 @@ export function ReportCardsListPage() {
                   ? `Génération… (${classPdfStatus?.progress ?? 0}%)`
                   : "Imprimer classe (ZIP)"}
               </Button>
+              <Button onClick={() => setGenerateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Générer les bulletins
+              </Button>
             </>
-          )}
-          {canManage && (
-            <Button onClick={() => setGenerateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Générer les bulletins
-            </Button>
           )}
         </div>
       </div>
 
+      {/* KPI */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <KpiCard
+          label="Total bulletins"
+          value={totalCount}
+          hint={hasFilters ? "Selon vos filtres" : "Tous les bulletins"}
+          icon={<FileText className="h-5 w-5" />}
+          accent="brand"
+        />
+        <KpiCard
+          label="Brouillons"
+          value={draftCount}
+          hint="À valider"
+          icon={<FileClock className="h-5 w-5" />}
+          accent="warning"
+        />
+        <KpiCard
+          label="Publiés"
+          value={publishedCount}
+          hint="Visibles aux parents"
+          icon={<FileCheck2 className="h-5 w-5" />}
+          accent="success"
+        />
+      </div>
+
       {/* FILTRES */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <select
-          value={classId}
-          onChange={(e) => setClassId(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">🏫 Toutes les classes</option>
-          {sortedClasses.map((c) => {
-            const level = levels?.find((l) => l.id === c.levelId);
-            const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
-            return (
-              <option key={c.id} value={c.id}>
-                {emoji} {c.name}
+      <div className="rounded-sis-lg border border-sis-neutral-200 bg-card p-4 dark:border-sis-neutral-800">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <select
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">🏫 Toutes les classes</option>
+            {sortedClasses.map((c) => {
+              const level = levels?.find((l) => l.id === c.levelId);
+              const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+              return (
+                <option key={c.id} value={c.id}>
+                  {emoji} {c.name}
+                </option>
+              );
+            })}
+          </select>
+
+          <select
+            value={termId}
+            onChange={(e) => setTermId(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">📅 Tous les trimestres</option>
+            {terms?.map((t: any) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
-            );
-          })}
-        </select>
+            ))}
+          </select>
 
-        <select
-          value={termId}
-          onChange={(e) => setTermId(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">📅 Tous les trimestres</option>
-          {terms?.map((t: any) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un élève (nom, matricule)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="rounded-sis-md border-sis-neutral-200 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700"
           />
         </div>
       </div>
 
-      {/* CONTENU */}
+      {/* TABLEAU OU ÉTAT */}
       {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <PageLoader label="Chargement des bulletins..." />
       ) : reports.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-3">
-              <FileText className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <p className="font-medium">Aucun bulletin trouve</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              {classId || termId
-                ? "Essayez de modifier les filtres"
-                : "Generez vos premiers bulletins"}
-            </p>
-            {canManage && (
-              <Button onClick={() => setGenerateOpen(true)} size="sm">
+        <EmptyState
+          icon={<FileText className="h-7 w-7" />}
+          title="Aucun bulletin trouvé"
+          description={
+            hasFilters
+              ? "Essayez de modifier les filtres de recherche."
+              : "Générez vos premiers bulletins pour commencer."
+          }
+          action={
+            hasFilters ? (
+              <Button variant="outline" onClick={handleReset}>
+                Réinitialiser les filtres
+              </Button>
+            ) : canManage ? (
+              <Button onClick={() => setGenerateOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Générer les bulletins
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            ) : undefined
+          }
+        />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Élève</th>
-                    <th className="text-left p-3 font-medium">Classe</th>
-                    <th className="text-left p-3 font-medium">Trimestre</th>
-                    <th className="text-center p-3 font-medium">Moyenne</th>
-                    <th className="text-center p-3 font-medium">Rang</th>
-                    <th className="text-left p-3 font-medium">Appreciation</th>
-                    <th className="text-center p-3 font-medium">Statut</th>
-                    <th className="text-right p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map((r: ReportCard) => (
-                    <ReportCardRow key={r.id} report={r} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <DataTable
+          data={reports}
+          columns={columns}
+          keyExtractor={(r) => r.id}
+        />
       )}
 
       {/* MODALES */}
@@ -264,141 +442,46 @@ export function ReportCardsListPage() {
 }
 
 // ============================================================
-// Ligne
+// Composant Actions
 // ============================================================
-function ReportCardRow({ report }: { report: ReportCard }) {
+function ReportCardActions({ report }: { report: ReportCard }) {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("report_card:update");
-  const statusInfo = STATUS_LABELS[report.status] || STATUS_LABELS.DRAFT;
-  const scale = report.scale ?? 20;
-  const appreciation = getAppreciation(report.average, scale);
-  const appreciationColor = getAppreciationColor(report.average, scale);
 
   const validateMutation = useValidateReportCard();
   const publishMutation = usePublishReportCard();
 
-  const handleValidate = async () => {
-    await validateMutation.mutateAsync(report.id);
-  };
-
-  const handlePublish = async () => {
-    await publishMutation.mutateAsync(report.id);
-  };
-
-  const fullName = report.student
-    ? `${report.student.lastName} ${report.student.firstName}`
-    : "—";
-
   return (
-    <tr className="border-b last:border-0 hover:bg-muted/30">
-      <td className="p-3">
-        <div className="flex items-center gap-2">
-          {report.student?.gender && (
-            <span
-              className={cn(
-                "inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-semibold shrink-0",
-                report.student.gender === "M"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-pink-100 text-pink-700",
-              )}
-            >
-              {report.student.firstName[0]}
-              {report.student.lastName[0]}
-            </span>
-          )}
-          <div>
-            <div className="font-medium">{fullName}</div>
-            {report.student?.matricule && (
-              <div className="text-xs text-muted-foreground font-mono">
-                {report.student.matricule}
-              </div>
-            )}
-          </div>
-        </div>
-      </td>
-      <td className="p-3 text-muted-foreground">
-        {report.class?.name || "—"}
-      </td>
-      <td className="p-3 text-muted-foreground">{report.term?.name || "—"}</td>
-      <td className="p-3 text-center">
-        {report.average !== null && report.average !== undefined ? (
-          <span className={cn("font-bold text-base", appreciationColor)}>
-            {Number(report.average).toFixed(2)}
-            <span className="text-xs font-normal text-muted-foreground"> / {scale}</span>
-          </span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="p-3 text-center">
-        {report.rank ? (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium",
-              report.rank === 1
-                ? "bg-yellow-100 text-yellow-800"
-                : report.rank === 2
-                  ? "bg-gray-100 text-gray-700"
-                  : report.rank === 3
-                    ? "bg-orange-100 text-orange-700"
-                    : "bg-muted text-muted-foreground",
-            )}
-          >
-            {report.rank === 1 && "🥇"}
-            {report.rank === 2 && "🥈"}
-            {report.rank === 3 && "🥉"}
-            {report.rank}/{report.classSize || "?"}
-          </span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </td>
-      <td className="p-3">
-        <span className={cn("text-sm font-medium", appreciationColor)}>
-          {appreciation}
-        </span>
-      </td>
-      <td className="p-3 text-center">
-        <span
-          className={cn(
-            "inline-block px-2 py-0.5 rounded text-xs font-medium",
-            statusInfo.color,
-          )}
+    <div className="flex items-center justify-end gap-1">
+      <Button asChild variant="ghost" size="sm">
+        <Link to={`/report-cards/${report.id}`}>
+          <Eye className="h-3.5 w-3.5 mr-1" />
+          Voir
+        </Link>
+      </Button>
+      {canManage && report.status === "DRAFT" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => validateMutation.mutateAsync(report.id)}
+          disabled={validateMutation.isPending}
+          title="Valider"
         >
-          {statusInfo.label}
-        </span>
-      </td>
-      <td className="p-3 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <Button asChild variant="ghost" size="sm">
-            <Link to={`/report-cards/${report.id}`}>
-              <Eye className="h-3.5 w-3.5 mr-1" />
-              Voir
-            </Link>
-          </Button>
-          {canManage && report.status === "DRAFT" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleValidate}
-              disabled={validateMutation.isPending}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {canManage && report.status === "VALIDATED" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePublish}
-              disabled={publishMutation.isPending}
-              className="text-green-600 hover:text-green-700"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      </td>
-    </tr>
+          <CheckCircle2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      {canManage && report.status === "VALIDATED" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => publishMutation.mutateAsync(report.id)}
+          disabled={publishMutation.isPending}
+          title="Publier"
+          className="text-sis-success hover:text-sis-success/80"
+        >
+          <Send className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
   );
 }

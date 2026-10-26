@@ -1,9 +1,10 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Plus, Layers, Loader2, Pencil, Trash2, Sparkles, X, Search,
 } from "lucide-react";
 import {
   Button, Input, Label, Card, CardContent, CardHeader, CardTitle,
+  PageLoader, EmptyState,
 } from "@/components/ui";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -14,8 +15,8 @@ import type {
 } from "@/types/level";
 
 const CYCLE_LABELS: Record<LevelCycle, string> = {
-  PREMIER_CYCLE: "Premier cycle (1ere - 6eme annee)",
-  DEUXIEME_CYCLE: "Deuxieme cycle (7eme - 9eme annee)",
+  PREMIER_CYCLE: "Premier cycle (1ère – 6ème année)",
+  DEUXIEME_CYCLE: "Deuxième cycle (7ème – 9ème année)",
 };
 
 const EXAM_LABELS: Record<StateExamType, string> = {
@@ -25,24 +26,23 @@ const EXAM_LABELS: Record<StateExamType, string> = {
   BAC: "BAC",
 };
 
-// Niveaux standard du système educatif malien
 const MALI_STANDARD_LEVELS: Omit<CreateLevelInput, "schoolId">[] = [
-  { name: "1ere Annee", code: "1A", cycle: "PREMIER_CYCLE", orderIndex: 1 },
-  { name: "2eme Annee", code: "2A", cycle: "PREMIER_CYCLE", orderIndex: 2 },
-  { name: "3eme Annee", code: "3A", cycle: "PREMIER_CYCLE", orderIndex: 3 },
-  { name: "4eme Annee", code: "4A", cycle: "PREMIER_CYCLE", orderIndex: 4 },
-  { name: "5eme Annee", code: "5A", cycle: "PREMIER_CYCLE", orderIndex: 5 },
-  { name: "6eme Annee", code: "6A", cycle: "PREMIER_CYCLE", orderIndex: 6, stateExamType: "CEP" },
-  { name: "7eme Annee", code: "7A", cycle: "DEUXIEME_CYCLE", orderIndex: 7 },
-  { name: "8eme Annee", code: "8A", cycle: "DEUXIEME_CYCLE", orderIndex: 8 },
-  { name: "9eme Annee", code: "9A", cycle: "DEUXIEME_CYCLE", orderIndex: 9, stateExamType: "DEF" },
-  { name: "10eme Annee", code: "10A", cycle: "DEUXIEME_CYCLE", orderIndex: 10 },
-  { name: "11eme Annee", code: "11A", cycle: "DEUXIEME_CYCLE", orderIndex: 11 },
-  { name: "12eme Annee", code: "12A", cycle: "DEUXIEME_CYCLE", orderIndex: 12, stateExamType: "BAC" },
+  { name: "1ère Année", code: "1A", cycle: "PREMIER_CYCLE", orderIndex: 1 },
+  { name: "2ème Année", code: "2A", cycle: "PREMIER_CYCLE", orderIndex: 2 },
+  { name: "3ème Année", code: "3A", cycle: "PREMIER_CYCLE", orderIndex: 3 },
+  { name: "4ème Année", code: "4A", cycle: "PREMIER_CYCLE", orderIndex: 4 },
+  { name: "5ème Année", code: "5A", cycle: "PREMIER_CYCLE", orderIndex: 5 },
+  { name: "6ème Année", code: "6A", cycle: "PREMIER_CYCLE", orderIndex: 6, stateExamType: "CEP" },
+  { name: "7ème Année", code: "7A", cycle: "DEUXIEME_CYCLE", orderIndex: 7 },
+  { name: "8ème Année", code: "8A", cycle: "DEUXIEME_CYCLE", orderIndex: 8 },
+  { name: "9ème Année", code: "9A", cycle: "DEUXIEME_CYCLE", orderIndex: 9, stateExamType: "DEF" },
+  { name: "10ème Année", code: "10A", cycle: "DEUXIEME_CYCLE", orderIndex: 10 },
+  { name: "11ème Année", code: "11A", cycle: "DEUXIEME_CYCLE", orderIndex: 11 },
+  { name: "12ème Année", code: "12A", cycle: "DEUXIEME_CYCLE", orderIndex: 12, stateExamType: "BAC" },
 ];
 
 export function LevelsListPage() {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const canCreate = hasPermission("level:create");
   const canEdit = hasPermission("level:update");
   const canDelete = hasPermission("level:delete");
@@ -72,7 +72,7 @@ export function LevelsListPage() {
   const handleDelete = (level: Level) => {
     if (
       confirm(
-        `Supprimer le niveau "${level.name}" ?\n\nCette action est irreversible.`,
+        `Supprimer le niveau "${level.name}" ?\n\nCette action est irréversible.`,
       )
     ) {
       deleteMutation.mutate(level.id);
@@ -90,26 +90,24 @@ export function LevelsListPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader label="Chargement des niveaux..." />;
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Layers className="h-6 w-6" />
-            Niveaux
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gerez les niveaux d'enseignement de votre etablissement
-            (1ere année a la 12eme annee, ou personnalise).
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-brand-50 text-sis-brand mt-0.5 dark:bg-sis-brand-900/30 dark:text-sis-brand-300">
+            <Layers className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Niveaux</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gérez les niveaux d'enseignement de votre établissement
+              (1ère à 12ème année, ou personnalisé).
+            </p>
+          </div>
         </div>
         {canCreate && (
           <Button onClick={handleOpenCreate}>
@@ -120,46 +118,41 @@ export function LevelsListPage() {
       </div>
 
       {/* SEARCH */}
-      <div className="flex items-center gap-2 max-w-md">
-        <Search className="h-4 w-4 text-muted-foreground" />
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Rechercher un niveau..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          className="pl-9 rounded-sis-md border-sis-neutral-200 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700"
         />
       </div>
 
       {/* EMPTY STATE */}
       {(!levels || levels.length === 0) && (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center space-y-4">
-            <Layers className="h-12 w-12 text-muted-foreground/50 mx-auto" />
-            <div>
-              <h3 className="font-semibold">Aucun niveau configure</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Commencez par pre-remplir les niveaux standard du Mali, ou
-                creez vos niveaux manuellement.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              {canCreate && (
-                <>
-                  <Button onClick={handleOpenCreate} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Créer manuellement
-                  </Button>
-                  <PrefillButton />
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Layers className="h-7 w-7" />}
+          title="Aucun niveau configuré"
+          description="Commencez par pré-remplir les niveaux standard du Mali, ou créez vos niveaux manuellement."
+          action={
+            canCreate ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button onClick={handleOpenCreate} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer manuellement
+                </Button>
+                <PrefillButton />
+              </div>
+            ) : undefined
+          }
+        />
       )}
 
       {/* LISTE PREMIER CYCLE */}
       {premierCycle.length > 0 && (
         <CycleSection
           title={CYCLE_LABELS.PREMIER_CYCLE}
+          accent="brand"
           levels={premierCycle}
           canEdit={canEdit}
           canDelete={canDelete}
@@ -172,6 +165,7 @@ export function LevelsListPage() {
       {deuxiemeCycle.length > 0 && (
         <CycleSection
           title={CYCLE_LABELS.DEUXIEME_CYCLE}
+          accent="info"
           levels={deuxiemeCycle}
           canEdit={canEdit}
           canDelete={canDelete}
@@ -182,10 +176,7 @@ export function LevelsListPage() {
 
       {/* MODAL */}
       {modalOpen && (
-        <LevelFormModal
-          level={editing}
-          onClose={() => setModalOpen(false)}
-        />
+        <LevelFormModal level={editing} onClose={() => setModalOpen(false)} />
       )}
     </div>
   );
@@ -194,7 +185,6 @@ export function LevelsListPage() {
 // ============================================================
 // PREFILL BUTTON
 // ============================================================
-
 function PrefillButton() {
   const { user } = useAuth();
   const createMutation = useCreateLevel();
@@ -202,13 +192,13 @@ function PrefillButton() {
 
   const handlePrefill = async () => {
     if (!user?.schoolId) {
-      alert("Aucune ecole rattachee. Reconnectez-vous.");
+      alert("Aucune école rattachée. Reconnectez-vous.");
       return;
     }
     if (
       !confirm(
-        `Creer les ${MALI_STANDARD_LEVELS.length} niveaux standard du Mali ?\n\n` +
-          `(1ere année a la 12eme annee, avec CEP/DEF/BAC)`,
+        `Créer les ${MALI_STANDARD_LEVELS.length} niveaux standard du Mali ?\n\n` +
+          `(1ère année à la 12ème année, avec CEP/DEF/BAC)`,
       )
     ) {
       return;
@@ -223,20 +213,20 @@ function PrefillButton() {
         });
       }
     } catch (e) {
-      // toast deja gere
+      // toast déjà géré
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Button onClick={handlePrefill} disabled={loading}>
+    <Button onClick={handlePrefill} disabled={loading} className="bg-sis-brand hover:bg-sis-brand-600 text-sis-brand-foreground">
       {loading ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
       ) : (
         <Sparkles className="h-4 w-4 mr-2" />
       )}
-      Pre-remplir avec les niveaux du Mali
+      Pré-remplir avec les niveaux du Mali
     </Button>
   );
 }
@@ -244,31 +234,41 @@ function PrefillButton() {
 // ============================================================
 // CYCLE SECTION
 // ============================================================
-
 function CycleSection({
-  title, levels, canEdit, canDelete, onEdit, onDelete,
+  title, accent, levels, canEdit, canDelete, onEdit, onDelete,
 }: {
   title: string;
+  accent: "brand" | "info";
   levels: Level[];
   canEdit: boolean;
   canDelete: boolean;
   onEdit: (l: Level) => void;
   onDelete: (l: Level) => void;
 }) {
+  const accentClasses =
+    accent === "brand"
+      ? "bg-sis-brand-50 text-sis-brand dark:bg-sis-brand-900/30 dark:text-sis-brand-300"
+      : "bg-sis-info-bg text-sis-info dark:bg-sis-info-bg/30 dark:text-sis-info";
+  const headerColor =
+    accent === "brand" ? "text-sis-brand" : "text-sis-info";
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="rounded-sis-lg border-sis-neutral-200 shadow-sis-sm dark:border-sis-neutral-800">
+      <CardHeader className="border-b">
+        <CardTitle className={`text-base ${headerColor} flex items-center gap-2`}>
+          <Layers className="h-4 w-4" />
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y">
+        <div className="divide-y divide-sis-neutral-200 dark:divide-sis-neutral-800">
           {levels.map((level) => (
             <div
               key={level.id}
-              className="flex items-center justify-between px-6 py-3 hover:bg-muted/30"
+              className="flex items-center justify-between px-6 py-3 hover:bg-sis-neutral-50/70 transition dark:hover:bg-sis-neutral-900/40"
             >
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-primary/10 text-primary text-xs font-bold">
+                <span className={`inline-flex items-center justify-center h-8 w-8 rounded-sis-sm text-xs font-bold ${accentClasses}`}>
                   {level.code}
                 </span>
                 <div>
@@ -276,7 +276,7 @@ function CycleSection({
                   <p className="text-xs text-muted-foreground">
                     Ordre : {level.orderIndex}
                     {level.stateExamType !== "NONE" && (
-                      <> Â· Examen d'Etat : {EXAM_LABELS[level.stateExamType]}</>
+                      <> · Examen d'État : {EXAM_LABELS[level.stateExamType]}</>
                     )}
                   </p>
                 </div>
@@ -288,11 +288,7 @@ function CycleSection({
                   </Button>
                 )}
                 {canDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(level)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(level)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 )}
@@ -306,9 +302,8 @@ function CycleSection({
 }
 
 // ============================================================
-// MODAL FORM
+// MODAL FORM (déjà patchée par le script précédent)
 // ============================================================
-
 function LevelFormModal({
   level, onClose,
 }: {
@@ -342,7 +337,7 @@ function LevelFormModal({
       return;
     }
     if (!isEdit && !user?.schoolId) {
-      setError("Aucune ecole rattachee. Reconnectez-vous.");
+      setError("Aucune école rattachée. Reconnectez-vous.");
       return;
     }
 
@@ -364,17 +359,17 @@ function LevelFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Layers className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-sis-md bg-sis-brand-50 flex items-center justify-center shrink-0">
+              <Layers className="h-5 w-5 text-sis-brand" />
             </div>
             <div>
               <h2 className="text-lg font-semibold">
@@ -394,7 +389,7 @@ function LevelFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-sis-md border border-sis-danger-border bg-sis-danger-bg p-3 text-sm text-sis-danger">
               {error}
             </div>
           )}
@@ -402,9 +397,10 @@ function LevelFormModal({
           <div className="space-y-2">
             <Label>Nom du niveau *</Label>
             <Input
-              placeholder="Ex: 6eme Annee"
+              placeholder="Ex: 6ème Année"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
               required
             />
           </div>
@@ -414,7 +410,7 @@ function LevelFormModal({
               <Label>Code *</Label>
               <Input
                 placeholder="Ex: 6A"
-                className="font-mono uppercase"
+                className="font-mono uppercase rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                 value={form.code}
                 onChange={(e) =>
                   setForm({ ...form, code: e.target.value.toUpperCase() })
@@ -432,6 +428,7 @@ function LevelFormModal({
                 onChange={(e) =>
                   setForm({ ...form, orderIndex: parseInt(e.target.value) || 1 })
                 }
+                className="rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
               />
             </div>
           </div>
@@ -439,7 +436,7 @@ function LevelFormModal({
           <div className="space-y-2">
             <Label>Cycle *</Label>
             <select
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
               value={form.cycle}
               onChange={(e) =>
                 setForm({ ...form, cycle: e.target.value as LevelCycle })
@@ -451,9 +448,9 @@ function LevelFormModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Examen d'Etat</Label>
+            <Label>Examen d'État</Label>
             <select
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
               value={form.stateExamType}
               onChange={(e) =>
                 setForm({
@@ -463,9 +460,9 @@ function LevelFormModal({
               }
             >
               <option value="NONE">Aucun</option>
-              <option value="CEP">CEP (fin 6eme annee)</option>
-              <option value="DEF">DEF (fin 9eme annee)</option>
-              <option value="BAC">BAC (fin 12eme annee)</option>
+              <option value="CEP">CEP (fin 6ème année)</option>
+              <option value="DEF">DEF (fin 9ème année)</option>
+              <option value="BAC">BAC (fin 12ème année)</option>
             </select>
           </div>
 
@@ -473,9 +470,9 @@ function LevelFormModal({
             <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
               Annuler
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} className="bg-sis-brand hover:bg-sis-brand-600 text-sis-brand-foreground">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isEdit ? "Enregistrer" : "Creer le niveau"}
+              {isEdit ? "Enregistrer" : "Créer le niveau"}
             </Button>
           </div>
         </form>

@@ -385,7 +385,7 @@ export function RolesTab() {
                           {roleDetail.usersCount ?? 0} utilisateur
                           {(roleDetail.usersCount ?? 0) > 1 ? "s" : ""}
                         </span>
-                        <span>·</span>
+                        <span>Â·</span>
                         <span className="font-mono">
                           {roleDetail.permissions.length} permissions
                         </span>
@@ -477,7 +477,7 @@ export function RolesTab() {
               </span>
               {stats.modified > 0 && (
                 <>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">Â·</span>
                   <span className="text-orange-600 font-medium">
                     {stats.modified} modification{stats.modified > 1 ? "s" : ""} non enregistree{stats.modified > 1 ? "s" : ""}
                   </span>
@@ -485,7 +485,7 @@ export function RolesTab() {
               )}
               {hasChanges && (
                 <>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">Â·</span>
                   <span className="text-blue-600 font-medium">
                     Pensez a enregistrer
                   </span>
@@ -639,11 +639,11 @@ function CreateRoleModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-md w-full"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-md w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>

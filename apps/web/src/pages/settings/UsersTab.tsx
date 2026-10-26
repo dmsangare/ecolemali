@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Users as UsersIcon, Plus, Loader2, Mail, Phone,
   Shield, Trash2, Key, Pencil,
@@ -256,11 +256,11 @@ function CreateUserModal({
   // Apres creation : afficher la modal de confirmation
   if (createdResult) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-green-600">✓</span>
+              <span className="text-green-600">?</span>
               Utilisateur cree
             </CardTitle>
           </CardHeader>
@@ -297,7 +297,7 @@ function CreateUserModal({
               </div>
             </div>
             <div className="rounded border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
-              ⚠️ Ce mot de passe ne sera plus affiche. Notez-le maintenant.
+              ?? Ce mot de passe ne sera plus affiche. Notez-le maintenant.
             </div>
             <div className="flex justify-end">
               <Button onClick={onClose}>Fermer</Button>
@@ -309,7 +309,7 @@ function CreateUserModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <CardTitle>Nouvel utilisateur</CardTitle>
@@ -576,7 +576,7 @@ function EditUserModal({ user, onClose }: { user: any; onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
       <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto my-8">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Modifier l utilisateur</CardTitle>

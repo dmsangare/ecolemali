@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SkeletonTable } from "@/components/ui/loading-skeleton";
 
 export interface Column<T> {
   key: string;
@@ -95,11 +96,8 @@ export function DataTable<T>({
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Chargement...</p>
-        </div>
+      <div className="p-4">
+        <SkeletonTable rows={5} cols={columns.length} />
       </div>
     );
   }
@@ -111,8 +109,8 @@ export function DataTable<T>({
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
-        <thead className="border-b bg-muted/50">
-          <tr className="text-left text-xs font-medium text-muted-foreground uppercase">
+        <thead className="border-b border-sis-neutral-200 bg-sis-neutral-50 dark:border-sis-neutral-800 dark:bg-sis-neutral-900/60">
+          <tr className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {isSelectionEnabled && (
               <th className="w-10 px-3 py-3">
                 <input
@@ -124,7 +122,7 @@ export function DataTable<T>({
                     }
                   }}
                   onChange={handleSelectAll}
-                  className="h-4 w-4 rounded border-input cursor-pointer"
+                  className="h-4 w-4 rounded border-input cursor-pointer accent-sis-brand"
                 />
               </th>
             )}
@@ -133,7 +131,8 @@ export function DataTable<T>({
                 key={column.key}
                 className={cn(
                   "px-4 py-3",
-                  column.sortable && "cursor-pointer select-none hover:bg-muted/80",
+                  column.sortable &&
+                    "cursor-pointer select-none hover:bg-sis-neutral-100 dark:hover:bg-sis-neutral-800 transition-colors",
                   column.headerClassName
                 )}
                 style={column.width ? { width: column.width } : undefined}
@@ -147,7 +146,7 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-sis-neutral-200 dark:divide-sis-neutral-800">
           {data.map((row, index) => {
             const id = keyExtractor(row);
             const isSelected =
@@ -159,20 +158,25 @@ export function DataTable<T>({
               <tr
                 key={id}
                 className={cn(
-                  "border-b transition-colors",
+                  "transition-colors",
                   onRowClick && "cursor-pointer",
-                  isSelected ? "bg-primary/5" : "hover:bg-muted/30",
+                  isSelected
+                    ? "bg-sis-brand-50 dark:bg-sis-brand-900/30"
+                    : "hover:bg-sis-neutral-50/70 dark:hover:bg-sis-neutral-900/40",
                   rowClassName?.(row)
                 )}
                 onClick={() => onRowClick?.(row)}
               >
                 {isSelectionEnabled && (
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <td
+                    className="px-3 py-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => handleSelectRow(id)}
-                      className="h-4 w-4 rounded border-input cursor-pointer"
+                      className="h-4 w-4 rounded border-input cursor-pointer accent-sis-brand"
                     />
                   </td>
                 )}

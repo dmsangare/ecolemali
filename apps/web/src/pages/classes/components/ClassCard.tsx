@@ -12,17 +12,19 @@ interface ClassCardProps {
 export function ClassCard({ classItem, cycle }: ClassCardProps) {
   const isFirstCycle = cycle === "PREMIER_CYCLE";
 
-  // Couleurs selon le cycle
+  // Couleurs selon le cycle — tokens SIS
   const colors = isFirstCycle
     ? {
-        border: "border-l-4 border-l-emerald-500",
-        badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-        hover: "hover:border-emerald-300 hover:shadow-emerald-100/50",
+        border: "border-l-4 border-l-sis-brand",
+        badge:
+          "bg-sis-brand-50 text-sis-brand dark:bg-sis-brand-900/30 dark:text-sis-brand-300",
+        hover: "hover:border-sis-brand/50 hover:shadow-sis-md",
       }
     : {
-        border: "border-l-4 border-l-blue-500",
-        badge: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-        hover: "hover:border-blue-300 hover:shadow-blue-100/50",
+        border: "border-l-4 border-l-sis-info",
+        badge:
+          "bg-sis-info-bg text-sis-info dark:bg-sis-info-bg/30 dark:text-sis-info",
+        hover: "hover:border-sis-info/50 hover:shadow-sis-md",
       };
 
   // Compteurs
@@ -30,15 +32,13 @@ export function ClassCard({ classItem, cycle }: ClassCardProps) {
   const capacity = classItem.capacity ?? 50;
   const fillRate = capacity > 0 ? (enrollmentCount / capacity) * 100 : 0;
 
-  // Jauge de remplissage (couleur selon %)
+  // Jauge de remplissage — couleurs sémantiques SIS
   const gaugeColor =
     fillRate >= 90
-      ? "bg-red-500"
+      ? "bg-sis-danger"
       : fillRate >= 70
-        ? "bg-orange-500"
-        : isFirstCycle
-          ? "bg-emerald-500"
-          : "bg-blue-500";
+        ? "bg-sis-warning"
+        : "bg-sis-success";
 
   // Nom complet du titulaire
   const teacherName = classItem.mainTeacher
@@ -48,7 +48,7 @@ export function ClassCard({ classItem, cycle }: ClassCardProps) {
   return (
     <Card
       className={cn(
-        "group transition-all hover:shadow-md",
+        "group rounded-sis-lg border-sis-neutral-200 shadow-sis-sm transition-all dark:border-sis-neutral-800",
         colors.border,
         colors.hover,
       )}
@@ -98,7 +98,7 @@ export function ClassCard({ classItem, cycle }: ClassCardProps) {
                     {enrollmentCount}
                   </span>
                   {" / "}
-                  {capacity} eleves
+                  {capacity} élèves
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
@@ -106,7 +106,7 @@ export function ClassCard({ classItem, cycle }: ClassCardProps) {
               </span>
             </div>
             {/* Jauge */}
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-1.5 bg-sis-neutral-100 rounded-full overflow-hidden dark:bg-sis-neutral-800">
               <div
                 className={cn("h-full transition-all", gaugeColor)}
                 style={{ width: `${Math.min(fillRate, 100)}%` }}
@@ -131,12 +131,14 @@ export function ClassCard({ classItem, cycle }: ClassCardProps) {
         <Link
           to={`/classes/${classItem.id}`}
           className={cn(
-            "flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md",
+            "flex items-center justify-center gap-2 w-full py-2 px-3 rounded-sis-md",
             "text-sm font-medium transition-colors",
-            "bg-muted hover:bg-muted/80 group-hover:bg-primary group-hover:text-primary-foreground",
+            "bg-sis-neutral-100 hover:bg-sis-neutral-200 text-foreground",
+            "group-hover:bg-sis-brand group-hover:text-sis-brand-foreground",
+            "dark:bg-sis-neutral-800 dark:hover:bg-sis-neutral-700",
           )}
         >
-          Voir details
+          Voir détails
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </CardContent>

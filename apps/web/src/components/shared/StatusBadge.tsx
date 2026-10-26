@@ -1,14 +1,15 @@
 import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const VARIANTS = {
-  success: "bg-green-500/10 text-green-700 border-green-500/20",
-  danger: "bg-red-500/10 text-red-700 border-red-500/20",
-  warning: "bg-orange-500/10 text-orange-700 border-orange-500/20",
-  info: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  purple: "bg-purple-500/10 text-purple-700 border-purple-500/20",
-  gray: "bg-gray-500/10 text-gray-700 border-gray-500/20",
-  pink: "bg-pink-500/10 text-pink-700 border-pink-500/20",
-  yellow: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  success: "bg-sis-success-bg text-sis-success border-sis-success-border",
+  danger: "bg-sis-danger-bg text-sis-danger border-sis-danger-border",
+  warning: "bg-sis-warning-bg text-sis-warning-foreground border-sis-warning-border",
+  info: "bg-sis-info-bg text-sis-info border-sis-info-border",
+  purple: "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-300",
+  gray: "bg-sis-neutral-100 text-sis-neutral-700 border-sis-neutral-200 dark:bg-sis-neutral-800 dark:text-sis-neutral-300 dark:border-sis-neutral-700",
+  pink: "bg-pink-500/10 text-pink-700 border-pink-500/20 dark:bg-pink-500/20 dark:text-pink-300",
+  yellow: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:bg-yellow-500/20 dark:text-yellow-300",
 } as const;
 
 export type BadgeVariant = keyof typeof VARIANTS;
@@ -28,7 +29,11 @@ export function StatusBadge({
 }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${VARIANTS[variant]} ${className}`}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        VARIANTS[variant],
+        className
+      )}
     >
       {icon}
       {label}

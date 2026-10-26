@@ -142,7 +142,7 @@ export function CreateInvoiceModal({ onClose, preselectedStudent }: Props) {
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-3xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-3xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -232,8 +232,8 @@ export function CreateInvoiceModal({ onClose, preselectedStudent }: Props) {
             {lines.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-sm text-muted-foreground border border-dashed rounded-md">
-                  Aucune ligne. Cliquez sur « Ajouter une ligne » ou
-                  « Depuis la grille ».
+                  Aucune ligne. Cliquez sur Â« Ajouter une ligne Â» ou
+                  Â« Depuis la grille Â».
                 </CardContent>
               </Card>
             ) : (
@@ -363,16 +363,16 @@ export function CreateInvoiceModal({ onClose, preselectedStudent }: Props) {
       {/* MODALE GRILLE */}
       {showGridPicker && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           onClick={() => setShowGridPicker(false)}
         >
           <div
-            className="bg-background rounded-lg shadow-xl max-w-2xl w-full"
+            className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-2xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b">
               <h2 className="text-lg font-semibold">
-                Grille tarifaire — {enrollment?.level?.name || "Niveau"}
+                Grille tarifaire â€” {enrollment?.level?.name || "Niveau"}
               </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Ajoutez un frais ou tous les frais

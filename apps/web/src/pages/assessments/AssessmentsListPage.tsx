@@ -3,21 +3,23 @@ import { Link } from "react-router-dom";
 import {
   FileText,
   Plus,
-  Loader2,
   Eye,
   Lock,
   Unlock,
-  Trash2,
   Edit,
-  Search,
-  MoreVertical,
+  ClipboardList,
+  CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
 import {
   Button,
   Input,
-  Card,
-  CardContent,
+  PageLoader,
+  EmptyState,
+  KpiCard,
+  StatusBadge,
 } from "@/components/ui";
+import { DataTable, Column } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { useAssessments, useUpdateAssessmentStatus } from "@/hooks/assessments";
 import { useClasses, useLevels } from "@/hooks/classes";
@@ -27,29 +29,52 @@ import { formatDate } from "@/lib/formatters";
 import { CreateAssessmentModal } from "./components/CreateAssessmentModal";
 import { useAuth } from "@/contexts/AuthContext";
 
-const TYPE_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-  INTERROGATION: { label: "Interrogation", emoji: "âšª", color: "bg-gray-500/10 text-gray-700 border-gray-300" },
-  DEVOIR: { label: "Devoir", emoji: "🔵", color: "bg-blue-500/10 text-blue-700 border-blue-300" },
-  CONTROLE: { label: "Controle", emoji: "🟣", color: "bg-purple-500/10 text-purple-700 border-purple-300" },
-  COMPOSITION: { label: "Composition", emoji: "🟠", color: "bg-orange-500/10 text-orange-700 border-orange-300" },
-  EXAMEN: { label: "Examen", emoji: "🔴", color: "bg-red-500/10 text-red-700 border-red-300" },
-  TP: { label: "TP", emoji: "🟢", color: "bg-green-500/10 text-green-700 border-green-300" },
-  ORAL: { label: "Oral", emoji: "🟡", color: "bg-yellow-500/10 text-yellow-700 border-yellow-300" },
-  PROJET: { label: "Projet", emoji: "🔷", color: "bg-cyan-500/10 text-cyan-700 border-cyan-300" },
+// ============================================================
+// Types & configuration
+// ============================================================
+interface Assessment {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  date?: string;
+  maxScore: number;
+  coefficient: number;
+  classId?: string;
+  class?: { capacity?: number; name?: string };
+  _count?: { grades?: number; enrollments?: number };
+}
+
+type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";
+
+const TYPE_LABELS: Record<
+  string,
+  { label: string; emoji: string; variant: BadgeVariant }
+> = {
+  INTERROGATION: { label: "Interrogation", emoji: "❔", variant: "neutral" },
+  DEVOIR: { label: "Devoir", emoji: "🔵", variant: "info" },
+  CONTROLE: { label: "Contrôle", emoji: "🟣", variant: "info" },
+  COMPOSITION: { label: "Composition", emoji: "🟠", variant: "warning" },
+  EXAMEN: { label: "Examen", emoji: "🔴", variant: "danger" },
+  TP: { label: "TP", emoji: "🟢", variant: "success" },
+  ORAL: { label: "Oral", emoji: "🟡", variant: "warning" },
+  PROJET: { label: "Projet", emoji: "🔷", variant: "info" },
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: "Brouillon", color: "bg-gray-500/10 text-gray-700" },
-  OPEN: { label: "Ouverte", color: "bg-blue-500/10 text-blue-700" },
-  SUBMITTED: { label: "Soumise", color: "bg-orange-500/10 text-orange-700" },
-  VALIDATED: { label: "Validee", color: "bg-green-500/10 text-green-700" },
-  LOCKED: { label: "Verrouillee", color: "bg-purple-500/10 text-purple-700" },
+const STATUS_LABELS: Record<string, { label: string; variant: BadgeVariant }> = {
+  DRAFT: { label: "Brouillon", variant: "neutral" },
+  OPEN: { label: "Ouverte", variant: "info" },
+  SUBMITTED: { label: "Soumise", variant: "warning" },
+  VALIDATED: { label: "Validée", variant: "success" },
+  LOCKED: { label: "Verrouillée", variant: "neutral" },
 };
 
+// ============================================================
+// Page principale
+// ============================================================
 export function AssessmentsListPage() {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission("assessment:create");
-  const canManage = hasPermission("assessment:update");
   const [classId, setClassId] = useState("");
   const [termId, setTermId] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -77,35 +102,28 @@ export function AssessmentsListPage() {
     staleTime: 10 * 60_000,
   });
 
-  // Filtres envoyes au backend
-  const filters: any = {};
+  const filters: Record<string, string> = {};
   if (classId) filters.classId = classId;
   if (termId) filters.termId = termId;
   if (subjectId) filters.subjectId = subjectId;
 
   const { data, isLoading } = useAssessments(filters);
 
-  // Les donnees peuvent etre {data: [], meta: {}} ou directement []
-  const rawList = Array.isArray(data) ? data : data?.data || [];
-  const allAssessments = Array.isArray(rawList) ? rawList : [];
+  const rawList = Array.isArray(data) ? data : (data as any)?.data || [];
+  const allAssessments: Assessment[] = Array.isArray(rawList) ? rawList : [];
 
-  // Filtre texte cote frontend
   const assessments = useMemo(() => {
     if (!search.trim()) return allAssessments;
     const q = search.toLowerCase();
-    return allAssessments.filter((a: any) =>
-      a.title?.toLowerCase().includes(q),
-    );
+    return allAssessments.filter((a) => a.title?.toLowerCase().includes(q));
   }, [allAssessments, search]);
 
-  // Stats
   const totalAssessments = assessments.length;
   const totalGrades = assessments.reduce(
-    (sum: number, a: any) => sum + (a._count?.grades || 0),
+    (sum, a) => sum + (a._count?.grades || 0),
     0,
   );
 
-  // Classes triees
   const sortedClasses = useMemo(() => {
     if (!classes || !levels) return [];
     return [...classes].sort((a, b) => {
@@ -116,156 +134,307 @@ export function AssessmentsListPage() {
     });
   }, [classes, levels]);
 
+  const handleReset = () => {
+    setClassId("");
+    setTermId("");
+    setSubjectId("");
+    setSearch("");
+  };
+
+  const hasFilters = Boolean(classId || termId || subjectId || search);
+
+  // ============================================================
+  // Colonnes du tableau (API partagée)
+  // ============================================================
+  const columns: Column<Assessment>[] = [
+    {
+      key: "type",
+      header: "Type",
+      cell: (a) => {
+        const info = TYPE_LABELS[a.type] || TYPE_LABELS.DEVOIR;
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+              info.variant === "success" &&
+                "bg-sis-success-bg text-sis-success border-sis-success-border",
+              info.variant === "danger" &&
+                "bg-sis-danger-bg text-sis-danger border-sis-danger-border",
+              info.variant === "warning" &&
+                "bg-sis-warning-bg text-sis-warning border-sis-warning-border",
+              info.variant === "info" &&
+                "bg-sis-info-bg text-sis-info border-sis-info-border",
+              info.variant === "neutral" &&
+                "bg-sis-neutral-100 text-sis-neutral-700 border-sis-neutral-200",
+            )}
+          >
+            <span>{info.emoji}</span>
+            {info.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: "title",
+      header: "Titre",
+      cell: (a) => <span className="font-medium">{a.title}</span>,
+    },
+    {
+      key: "date",
+      header: "Date",
+      cell: (a) => (
+        <span className="text-muted-foreground">
+          {a.date ? formatDate(a.date) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "maxScore",
+      header: "Barème",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (a) => (
+        <span className="font-mono">/{Number(a.maxScore).toFixed(0)}</span>
+      ),
+    },
+    {
+      key: "coefficient",
+      header: "Coef",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (a) => <span className="font-mono">{a.coefficient}</span>,
+    },
+    {
+      key: "grades",
+      header: "Notes",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (a) => {
+        const gradeCount = a._count?.grades || 0;
+        const classSize = a._count?.enrollments || a.class?.capacity || 40;
+        const fillRate = classSize > 0 ? (gradeCount / classSize) * 100 : 0;
+        return (
+          <div className="flex items-center gap-2 min-w-[80px]">
+            <div className="flex-1 h-1.5 bg-sis-neutral-100 rounded-full overflow-hidden dark:bg-sis-neutral-800">
+              <div
+                className={cn(
+                  "h-full transition-all",
+                  fillRate >= 90
+                    ? "bg-sis-success"
+                    : fillRate >= 50
+                      ? "bg-sis-brand"
+                      : "bg-sis-warning",
+                )}
+                style={{ width: `${Math.min(fillRate, 100)}%` }}
+              />
+            </div>
+            <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+              {gradeCount}/{classSize}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Statut",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (a) => {
+        const info = STATUS_LABELS[a.status] || STATUS_LABELS.DRAFT;
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+              info.variant === "success" &&
+                "bg-sis-success-bg text-sis-success border-sis-success-border",
+              info.variant === "danger" &&
+                "bg-sis-danger-bg text-sis-danger border-sis-danger-border",
+              info.variant === "warning" &&
+                "bg-sis-warning-bg text-sis-warning border-sis-warning-border",
+              info.variant === "info" &&
+                "bg-sis-info-bg text-sis-info border-sis-info-border",
+              info.variant === "neutral" &&
+                "bg-sis-neutral-100 text-sis-neutral-700 border-sis-neutral-200",
+            )}
+          >
+            {info.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (a) => <AssessmentActions assessment={a} />,
+    },
+  ];
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Notes & Evaluations
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalAssessments} evaluation(s) Â· {totalGrades} note(s) saisie(s)
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-brand-50 text-sis-brand mt-0.5 dark:bg-sis-brand-900/30 dark:text-sis-brand-300">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Notes & Évaluations
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gérez les évaluations de votre établissement
+            </p>
+          </div>
         </div>
         {canCreate && (
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Nouvelle evaluation
+            Nouvelle évaluation
           </Button>
         )}
       </div>
 
-      {/* FILTRES */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        <select
-          value={classId}
-          onChange={(e) => setClassId(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">🏫 Toutes les classes</option>
-          {sortedClasses.map((c) => {
-            const level = levels?.find((l) => l.id === c.levelId);
-            const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
-            return (
-              <option key={c.id} value={c.id}>
-                {emoji} {c.name}
-              </option>
-            );
-          })}
-        </select>
-
-        <select
-          value={termId}
-          onChange={(e) => setTermId(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">📅 Tous les trimestres</option>
-          {terms?.map((t: any) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={subjectId}
-          onChange={(e) => setSubjectId(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">📚 Toutes les matieres</option>
-          {subjects?.map((s: any) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un titre..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* KPI */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <KpiCard
+          label="Évaluations"
+          value={totalAssessments}
+          hint={hasFilters ? "Selon vos filtres" : "Toutes les évaluations"}
+          icon={<ClipboardList className="h-5 w-5" />}
+          accent="brand"
+        />
+        <KpiCard
+          label="Notes saisies"
+          value={totalGrades}
+          hint="Total des notes enregistrées"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          accent="success"
+        />
       </div>
 
-      {/* CONTENU */}
-      {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {/* FILTRES */}
+      <div className="rounded-sis-lg border border-sis-neutral-200 bg-card p-4 dark:border-sis-neutral-800">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <select
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">🏫 Toutes les classes</option>
+            {sortedClasses.map((c) => {
+              const level = levels?.find((l) => l.id === c.levelId);
+              const emoji = level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+              return (
+                <option key={c.id} value={c.id}>
+                  {emoji} {c.name}
+                </option>
+              );
+            })}
+          </select>
+
+          <select
+            value={termId}
+            onChange={(e) => setTermId(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">📅 Tous les trimestres</option>
+            {terms?.map((t: any) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={subjectId}
+            onChange={(e) => setSubjectId(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">📚 Toutes les matières</option>
+            {subjects?.map((s: any) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="relative">
+            <Input
+              placeholder="Rechercher un titre..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-sis-md border-sis-neutral-200 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700"
+            />
+          </div>
         </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Réinitialiser les filtres
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* TABLEAU OU ÉTAT */}
+      {isLoading ? (
+        <PageLoader label="Chargement des évaluations..." />
       ) : assessments.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-3">
-              <FileText className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <p className="font-medium">Aucune evaluation trouvee</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              {classId || termId || subjectId
-                ? "Essayez de modifier les filtres"
-                : "Creez votre premiere evaluation"}
-            </p>
-            {canCreate && (
-              <Button onClick={() => setCreateOpen(true)} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle evaluation
+        <EmptyState
+          icon={<FileText className="h-7 w-7" />}
+          title="Aucune évaluation trouvée"
+          description={
+            hasFilters
+              ? "Essayez de modifier les filtres de recherche."
+              : "Créez votre première évaluation pour commencer."
+          }
+          action={
+            hasFilters ? (
+              <Button variant="outline" onClick={handleReset}>
+                Réinitialiser les filtres
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            ) : canCreate ? (
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle évaluation
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Type</th>
-                    <th className="text-left p-3 font-medium">Titre</th>
-                    <th className="text-left p-3 font-medium">Date</th>
-                    <th className="text-center p-3 font-medium">Bareme</th>
-                    <th className="text-center p-3 font-medium">Coef</th>
-                    <th className="text-center p-3 font-medium">Notes</th>
-                    <th className="text-center p-3 font-medium">Statut</th>
-                    <th className="text-right p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assessments.map((a: any) => (
-                    <AssessmentRow key={a.id} assessment={a} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <DataTable
+          data={assessments}
+          columns={columns}
+          keyExtractor={(a) => a.id}
+        />
       )}
 
       {/* MODALE */}
-      {createOpen && <CreateAssessmentModal onClose={() => setCreateOpen(false)} />}
+      {createOpen && (
+        <CreateAssessmentModal onClose={() => setCreateOpen(false)} />
+      )}
     </div>
   );
 }
 
 // ============================================================
-// Row component
+// Composant Actions
 // ============================================================
-function AssessmentRow({ assessment }: { assessment: any }) {
+function AssessmentActions({ assessment }: { assessment: Assessment }) {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("assessment:update");
-  const typeInfo = TYPE_LABELS[assessment.type] || TYPE_LABELS.DEVOIR;
-  const statusInfo = STATUS_LABELS[assessment.status] || STATUS_LABELS.DRAFT;
-  const gradeCount = assessment._count?.grades || 0;
-  const classSize = assessment._count?.enrollments || assessment.class?.capacity || 40;
-  const fillRate = classSize > 0 ? (gradeCount / classSize) * 100 : 0;
 
   const isLocked = assessment.status === "LOCKED";
-  const canEdit = assessment.status === "DRAFT";
   const canLock = assessment.status === "VALIDATED";
   const canGrade = ["OPEN", "SUBMITTED"].includes(assessment.status);
 
@@ -276,96 +445,44 @@ function AssessmentRow({ assessment }: { assessment: any }) {
   };
 
   return (
-    <tr className="border-b last:border-0 hover:bg-muted/30">
-      <td className="p-3">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-xs font-medium",
-            typeInfo.color,
-          )}
+    <div className="flex items-center justify-end gap-1">
+      {canGrade ? (
+        <Button asChild variant="ghost" size="sm">
+          <Link to={`/assessments/${assessment.id}/grades`}>
+            <Edit className="h-3.5 w-3.5 mr-1" />
+            Saisir
+          </Link>
+        </Button>
+      ) : (
+        <Button asChild variant="ghost" size="sm">
+          <Link to={`/assessments/${assessment.id}/grades`}>
+            <Eye className="h-3.5 w-3.5 mr-1" />
+            Voir
+          </Link>
+        </Button>
+      )}
+      {canManage && canLock && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleLock("lock")}
+          disabled={statusMutation.isPending}
+          title="Verrouiller l'évaluation"
         >
-          <span>{typeInfo.emoji}</span>
-          {typeInfo.label}
-        </span>
-      </td>
-      <td className="p-3 font-medium">{assessment.title}</td>
-      <td className="p-3 text-muted-foreground">
-        {assessment.date ? formatDate(assessment.date) : "—"}
-      </td>
-      <td className="p-3 text-center font-mono">
-        /{Number(assessment.maxScore).toFixed(0)}
-      </td>
-      <td className="p-3 text-center font-mono">{assessment.coefficient}</td>
-      <td className="p-3">
-        <div className="flex items-center gap-2 min-w-[80px]">
-          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className={cn(
-                "h-full transition-all",
-                fillRate >= 90
-                  ? "bg-green-500"
-                  : fillRate >= 50
-                    ? "bg-blue-500"
-                    : "bg-orange-500",
-              )}
-              style={{ width: `${Math.min(fillRate, 100)}%` }}
-            />
-          </div>
-          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-            {gradeCount}/{classSize}
-          </span>
-        </div>
-      </td>
-      <td className="p-3 text-center">
-        <span
-          className={cn(
-            "inline-block px-2 py-0.5 rounded text-xs font-medium",
-            statusInfo.color,
-          )}
+          <Lock className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      {canManage && isLocked && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleLock("reopen")}
+          disabled={statusMutation.isPending}
+          title="Réouvrir l'évaluation"
         >
-          {statusInfo.label}
-        </span>
-      </td>
-      <td className="p-3 text-right">
-        <div className="flex items-center justify-end gap-1">
-          {canGrade && (
-            <Button asChild variant="ghost" size="sm">
-              <Link to={`/assessments/${assessment.id}/grades`}>
-                <Edit className="h-3.5 w-3.5 mr-1" />
-                Saisir
-              </Link>
-            </Button>
-          )}
-          {!canGrade && (
-            <Button asChild variant="ghost" size="sm">
-              <Link to={`/assessments/${assessment.id}/grades`}>
-                <Eye className="h-3.5 w-3.5 mr-1" />
-                Voir
-              </Link>
-            </Button>
-          )}
-          {canManage && canLock && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleLock("lock")}
-              disabled={statusMutation.isPending}
-            >
-              <Lock className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {canManage && isLocked && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleLock("reopen")}
-              disabled={statusMutation.isPending}
-            >
-              <Unlock className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      </td>
-    </tr>
+          <Unlock className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
   );
 }

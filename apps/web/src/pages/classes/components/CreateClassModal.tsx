@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Loader2,
@@ -67,8 +68,6 @@ export function CreateClassModal({
       setCode("");
       return;
     }
-    // Extraire le 1er chiffre ET la derniere lettre
-    // Ex: "1ère A" -> "1A", "9ème B" -> "9B", "1A" -> "1A"
     const numMatch = name.match(/\d+/);
     const letterMatch = name.match(/[A-Za-z](?=\s*$)/);
     const num = numMatch ? numMatch[0] : "";
@@ -82,7 +81,6 @@ export function CreateClassModal({
   useEffect(() => {
     if (name.trim()) return;
     if (!code.trim()) return;
-    // Ex: "1A" -> "1ère A", "9B" -> "9ème B"
     const match = code.match(/^(\d+)([A-Za-z])?$/);
     if (match) {
       const num = match[1];
@@ -94,7 +92,6 @@ export function CreateClassModal({
 
   // --- Validation ---
   const isFirstCycle = cycle === "PREMIER_CYCLE";
-  // Prof principal désormais facultatif pour tous les cycles
   const teacherRequired = false;
   const teacherMissing = false;
 
@@ -129,7 +126,6 @@ export function CreateClassModal({
     }
   };
 
-  // --- Detecter si un prof est specialise (2eme cycle) ---
   const isSpecialist = (specialty?: string | null): boolean => {
     if (!specialty) return false;
     const s = specialty.toLowerCase();
@@ -149,7 +145,6 @@ export function CreateClassModal({
     );
   };
 
-  // --- Prof selectionne est un specialiste du 2eme cycle ? ---
   const selectedTeacher = teachers?.find((t) => t.id === mainTeacherId);
   const selectedIsSpecialist = selectedTeacher
     ? isSpecialist(selectedTeacher.specialty)
@@ -157,7 +152,6 @@ export function CreateClassModal({
   const showSpecialistWarning =
     isFirstCycle && selectedIsSpecialist && !!mainTeacherId;
 
-  // --- Tri des niveaux / salles / profs ---
   const sortedLevels = useMemo(() => {
     if (!levels) return [];
     return [...levels].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -177,13 +171,13 @@ export function CreateClassModal({
     );
   }, [teachers]);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 overflow-y-auto backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-2xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl max-w-2xl w-full my-8 relative z-[10000]"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -192,7 +186,7 @@ export function CreateClassModal({
             <div>
               <h2 className="text-lg font-semibold">Nouvelle classe</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Creez une classe pour l année scolaire en cours
+                Créez une classe pour l'année scolaire en cours
               </p>
             </div>
             <Button
@@ -221,10 +215,10 @@ export function CreateClassModal({
                   id="academicYear"
                   value={academicYearId}
                   onChange={(e) => setAcademicYearId(e.target.value)}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="mt-1 w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
                   required
                 >
-                  <option value="">-- Selectionner --</option>
+                  <option value="">-- Sélectionner --</option>
                   {academicYears?.map((y) => (
                     <option key={y.id} value={y.id}>
                       {y.label} {y.isCurrent ? "(en cours)" : ""}
@@ -245,10 +239,10 @@ export function CreateClassModal({
                   type="button"
                   onClick={() => setCycle("PREMIER_CYCLE")}
                   className={cn(
-                    "flex flex-col items-start gap-1 p-3 rounded-lg border-2 text-left transition-all",
+                    "flex flex-col items-start gap-1 p-3 rounded-sis-md border-2 text-left transition-all",
                     cycle === "PREMIER_CYCLE"
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                      : "border-input hover:border-emerald-200",
+                      ? "border-sis-brand bg-sis-brand-50 dark:bg-sis-brand-900/30"
+                      : "border-input hover:border-sis-brand/50",
                   )}
                 >
                   <span className="font-medium text-sm">
@@ -262,10 +256,10 @@ export function CreateClassModal({
                   type="button"
                   onClick={() => setCycle("DEUXIEME_CYCLE")}
                   className={cn(
-                    "flex flex-col items-start gap-1 p-3 rounded-lg border-2 text-left transition-all",
+                    "flex flex-col items-start gap-1 p-3 rounded-sis-md border-2 text-left transition-all",
                     cycle === "DEUXIEME_CYCLE"
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                      : "border-input hover:border-blue-200",
+                      ? "border-sis-info bg-sis-info-bg dark:bg-sis-info-bg/30"
+                      : "border-input hover:border-sis-info/50",
                   )}
                 >
                   <span className="font-medium text-sm">
@@ -288,10 +282,10 @@ export function CreateClassModal({
                   id="level"
                   value={levelId}
                   onChange={(e) => setLevelId(e.target.value)}
-                  className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="mt-1 w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
                   required
                 >
-                  <option value="">-- Selectionner --</option>
+                  <option value="">-- Sélectionner --</option>
                   {sortedLevels.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
@@ -310,11 +304,11 @@ export function CreateClassModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: 1ère A"
-                  className="mt-1"
+                  className="mt-1 rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                   required
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Tapez le nom, le code se genere automatiquement
+                  Tapez le nom, le code se génère automatiquement
                 </p>
               </div>
               <div>
@@ -327,7 +321,7 @@ export function CreateClassModal({
                     setCodeManuallyEdited(true);
                   }}
                   placeholder="1A"
-                  className="mt-1 font-mono uppercase"
+                  className="mt-1 font-mono uppercase rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                   maxLength={10}
                   required
                 />
@@ -337,7 +331,7 @@ export function CreateClassModal({
                     onClick={() => setCodeManuallyEdited(false)}
                     className="text-xs text-primary hover:underline mt-1"
                   >
-                    Re-generer auto
+                    Re-générer auto
                   </button>
                 )}
               </div>
@@ -357,7 +351,7 @@ export function CreateClassModal({
                     id="room"
                     value={roomId}
                     onChange={(e) => setRoomId(e.target.value)}
-                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="mt-1 w-full h-10 rounded-sis-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand"
                   >
                     <option value="">-- Aucune --</option>
                     {sortedRooms.map((r) => (
@@ -371,7 +365,7 @@ export function CreateClassModal({
               <div>
                 <Label htmlFor="capacity" className="flex items-center gap-2">
                   <Users className="h-3.5 w-3.5" />
-                  Capacite max
+                  Capacité max
                 </Label>
                 <Input
                   id="capacity"
@@ -380,7 +374,7 @@ export function CreateClassModal({
                   max={200}
                   value={capacity}
                   onChange={(e) => setCapacity(Number(e.target.value) || 0)}
-                  className="mt-1"
+                  className="mt-1 rounded-sis-md focus:ring-sis-brand/30 focus:border-sis-brand"
                   required
                 />
               </div>
@@ -401,7 +395,7 @@ export function CreateClassModal({
                 )}
                 {!teacherRequired && (
                   <span className="text-xs text-muted-foreground">
-                    (optionnel en 2eme cycle)
+                    (optionnel en 2ème cycle)
                   </span>
                 )}
               </Label>
@@ -413,13 +407,13 @@ export function CreateClassModal({
                   value={mainTeacherId}
                   onChange={(e) => setMainTeacherId(e.target.value)}
                   className={cn(
-                    "mt-1 w-full h-10 rounded-md border bg-background px-3 text-sm",
+                    "mt-1 w-full h-10 rounded-sis-md border bg-background px-3 text-sm focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand",
                     teacherMissing
                       ? "border-destructive"
                       : "border-input",
                   )}
                 >
-                  <option value="">-- Selectionner --</option>
+                  <option value="">-- Sélectionner --</option>
                   {sortedTeachers.map((t) => {
                     const isSpec = isSpecialist(t.specialty);
                     return (
@@ -442,10 +436,10 @@ export function CreateClassModal({
                 </div>
               )}
               {showSpecialistWarning && (
-                <div className="flex items-start gap-2 mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-900 rounded p-2">
+                <div className="flex items-start gap-2 mt-2 text-xs text-sis-warning bg-sis-warning-bg border border-sis-warning-border rounded p-2">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <span>
-                    Ce professeur est <strong>specialise</strong> (2eme cycle). Pour un premier cycle, preferez un <strong>instituteur polyvalent</strong>. Vous pouvez continuer si necessaire.
+                    Ce professeur est <strong>spécialisé</strong> (2ème cycle). Pour un premier cycle, préférez un <strong>instituteur polyvalent</strong>. Vous pouvez continuer si nécessaire.
                   </span>
                 </div>
               )}
@@ -465,11 +459,7 @@ export function CreateClassModal({
             <Button
               type="submit"
               disabled={!formValid || createMutation.isPending}
-              className={cn(
-                isFirstCycle
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 hover:bg-blue-700",
-              )}
+              className="bg-sis-brand hover:bg-sis-brand-600 text-sis-brand-foreground"
             >
               {createMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -479,6 +469,7 @@ export function CreateClassModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

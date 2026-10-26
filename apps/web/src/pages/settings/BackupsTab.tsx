@@ -102,7 +102,7 @@ export function BackupsTab() {
             Sauvegardes
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {backups.length} sauvegarde(s) — Créez et restaurez vos données
+            {backups.length} sauvegarde(s) â€” Créez et restaurez vos données
           </p>
         </div>
         <Button onClick={handleCreate} disabled={createMutation.isPending}>
@@ -231,7 +231,7 @@ function AutoBackupCard({
                 : "bg-muted text-muted-foreground border-border"
             }`}
           >
-            {settings.enabled ? "● Activée" : "○ Désactivée"}
+            {settings.enabled ? "â— Activée" : "â—‹ Désactivée"}
           </span>
         </div>
       </CardHeader>
@@ -250,7 +250,7 @@ function AutoBackupCard({
                 : "Jamais"
             }
           />
-          <InfoItem label="Prochaine" value={nextRun || "—"} />
+          <InfoItem label="Prochaine" value={nextRun || "â€”"} />
         </div>
 
         <div className="flex justify-end pt-2 border-t">
@@ -315,7 +315,7 @@ function BackupRow({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // Error déjà gérée par le hook
+      // Error déjÃ  gérée par le hook
     }
   };
 
@@ -446,7 +446,7 @@ function ConfigureAutoModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <CardTitle>Configurer la sauvegarde automatique</CardTitle>
@@ -593,7 +593,7 @@ function RestoreModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 text-destructive">
@@ -605,7 +605,7 @@ function RestoreModal({
           {/* Warning */}
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-2">
             <p className="text-sm font-semibold text-destructive">
-              ⚠️ Cette opération remplacera TOUTES les données actuelles
+              âš ï¸ Cette opération remplacera TOUTES les données actuelles
             </p>
             <p className="text-xs text-destructive/80">
               Toutes les modifications effectuées après cette sauvegarde seront
@@ -616,7 +616,7 @@ function RestoreModal({
 
           {/* Détails du backup */}
           <div className="space-y-2 bg-muted/30 rounded-lg p-4">
-            <p className="text-xs text-muted-foreground uppercase">Sauvegarde à restaurer</p>
+            <p className="text-xs text-muted-foreground uppercase">Sauvegarde Ã  restaurer</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs">Date</p>
@@ -632,7 +632,7 @@ function RestoreModal({
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Statut</p>
-                <p className="font-medium text-emerald-600">Vérifié ✅</p>
+                <p className="font-medium text-emerald-600">Vérifié âœ…</p>
               </div>
             </div>
           </div>

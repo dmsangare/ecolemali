@@ -1,4 +1,5 @@
 ﻿import { ReactNode, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,7 +10,7 @@ interface ModalProps {
   description?: string;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl" | "full";
 }
 
 export function Modal({
@@ -45,24 +46,25 @@ export function Modal({
 
   if (!open) return null;
 
-  const sizeClass =
-    size === "sm" ? "max-w-md" : size === "lg" ? "max-w-3xl" : "max-w-xl";
+  const sizeClass = {
+    sm: "max-w-md",
+    md: "max-w-xl",
+    lg: "max-w-3xl",
+    xl: "max-w-5xl",
+    full: "max-w-[95vw]",
+  }[size];
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
+      onClick={onClose}
     >
-      {/* Overlay */}
+      {/* Contenu - stopPropagation pour ne pas fermer au clic intérieur */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Contenu */}
-      <div
-        className={`relative w-full ${sizeClass} bg-background rounded-lg shadow-xl max-h-[90vh] flex flex-col`}
+        className={`relative w-full ${sizeClass} bg-background rounded-sis-lg shadow-2xl max-h-[90vh] flex flex-col z-[10000]`}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-4 border-b">
@@ -86,8 +88,11 @@ export function Modal({
         <div className="flex-1 overflow-y-auto p-4">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="border-t p-4 flex justify-end gap-2">{footer}</div>}
+        {footer && (
+          <div className="border-t p-4 flex justify-end gap-2">{footer}</div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -51,7 +51,7 @@ export function CashSessionHeader({ session, todayTotal }: Props) {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
-              {" · "}
+              {" Â· "}
               Fonds initial : {formatFCFA(Number(session.openingAmount))}
             </p>
           </div>
@@ -78,9 +78,9 @@ export function CashSessionHeader({ session, todayTotal }: Props) {
       </div>
 
       {showCloseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div
-            className="bg-background rounded-lg shadow-xl max-w-md w-full"
+            className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 space-y-4">

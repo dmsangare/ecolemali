@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2, Sparkles, AlertCircle, CheckCircle2, Building2, Layers, School } from "lucide-react";
 import {
   Button, Label, Card, CardContent,
@@ -80,11 +80,11 @@ export function BulkInvoiceModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}

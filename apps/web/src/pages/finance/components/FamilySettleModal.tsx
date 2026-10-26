@@ -79,8 +79,8 @@ export function FamilySettleModal({
   const totalDue = siblings.reduce((sum, s) => sum + 0, 0); // calcul serveur de toute façon
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-      <div className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -89,7 +89,7 @@ export function FamilySettleModal({
             <div>
               <h2 className="text-lg font-semibold">Encaisser pour la famille</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {guardianName} — {siblings.length + 1} enfant(s)
+                {guardianName} â€” {siblings.length + 1} enfant(s)
               </p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export function FamilySettleModal({
               ) : siblings.length === 0 ? (
                 <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
                   <AlertCircle className="h-3 w-3" />
-                  Aucun frère/sœur trouvé pour ce tuteur
+                  Aucun frère/sÅ“ur trouvé pour ce tuteur
                 </div>
               ) : (
                 siblings.map((sib) => (
@@ -129,7 +129,7 @@ export function FamilySettleModal({
           {/* Montant */}
           <div>
             <Label htmlFor="fam-amount" className="text-sm font-medium">
-              Montant à encaisser *
+              Montant Ã  encaisser *
             </Label>
             <Input
               id="fam-amount"
@@ -183,7 +183,7 @@ export function FamilySettleModal({
                 id="fam-ref"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="N° transaction"
+                placeholder="NÂ° transaction"
                 className="mt-1 font-mono"
               />
             </div>
@@ -205,7 +205,7 @@ export function FamilySettleModal({
             <CardContent className="py-3 text-xs text-muted-foreground">
               <AlertCircle className="h-3 w-3 inline mr-1" />
               Le montant sera réparti <strong>FIFO</strong> sur les factures non soldées
-              des enfants de ce tuteur, de la plus ancienne à la plus récente.
+              des enfants de ce tuteur, de la plus ancienne Ã  la plus récente.
             </CardContent>
           </Card>
         </div>

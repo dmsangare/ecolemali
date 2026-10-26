@@ -105,10 +105,10 @@ export function RemindWhatsAppModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-2xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-2xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -120,7 +120,7 @@ export function RemindWhatsAppModal({
             <div>
               <h2 className="text-lg font-semibold">Relancer par WhatsApp</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Facture {reminder.invoiceNumber} · {formatFCFA(reminder.balance)} · {reminder.daysLate}j de retard
+                Facture {reminder.invoiceNumber} Â· {formatFCFA(reminder.balance)} Â· {reminder.daysLate}j de retard
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export function RemindWhatsAppModal({
               maxLength={200}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {additionalText.length}/200 · Ajoute au message avant la signature
+              {additionalText.length}/200 Â· Ajoute au message avant la signature
             </p>
           </div>
         </div>

@@ -67,10 +67,10 @@ export function CreateFeeTypeModal({ editFeeType, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-lg w-full"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -85,7 +85,7 @@ export function CreateFeeTypeModal({ editFeeType, onClose }: Props) {
                   {isEdit ? "Modifier le type de frais" : "Nouveau type de frais"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {isEdit ? "Modifier les informations" : "Ajouter un frais à facturer"}
+                  {isEdit ? "Modifier les informations" : "Ajouter un frais Ã  facturer"}
                 </p>
               </div>
             </div>

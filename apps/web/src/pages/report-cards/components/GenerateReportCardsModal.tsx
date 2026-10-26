@@ -151,11 +151,11 @@ export function GenerateReportCardsModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-lg w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-lg w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -168,7 +168,7 @@ export function GenerateReportCardsModal({ onClose }: Props) {
               <div>
                 <h2 className="text-lg font-semibold">Générer les bulletins</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Crée les bulletins à partir des notes saisies
+                  Crée les bulletins Ã  partir des notes saisies
                 </p>
               </div>
             </div>
@@ -228,11 +228,11 @@ export function GenerateReportCardsModal({ onClose }: Props) {
             {/* REGLES PAR CYCLE */}
             <div className="text-xs rounded border bg-muted/40 p-2.5 space-y-1.5">
               <div>
-                <strong>1er cycle</strong> (1ère → 6ème) : notes sur <strong>10</strong>, composition{" "}
+                <strong>1er cycle</strong> (1ère â†’ 6ème) : notes sur <strong>10</strong>, composition{" "}
                 <strong>mensuelle</strong>.
               </div>
               <div>
-                <strong>2ème cycle</strong> (7ème → 9ème, DEF) : notes sur <strong>20</strong> avec{" "}
+                <strong>2ème cycle</strong> (7ème â†’ 9ème, DEF) : notes sur <strong>20</strong> avec{" "}
                 <strong>coefficients</strong>, composition <strong>trimestrielle</strong>.
               </div>
               {!monthlyExists && academicYearId && (
@@ -309,7 +309,7 @@ export function GenerateReportCardsModal({ onClose }: Props) {
                         {sortedClasses.map((c) => {
                           const level = levels?.find((l) => l.id === c.levelId);
                           const emoji =
-                            level?.cycle === "PREMIER_CYCLE" ? "📗" : "📘";
+                            level?.cycle === "PREMIER_CYCLE" ? "ðŸ“—" : "ðŸ“˜";
                           return (
                             <option key={c.id} value={c.id}>
                               {emoji} {c.name}
@@ -339,7 +339,7 @@ export function GenerateReportCardsModal({ onClose }: Props) {
             <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded p-2.5">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <div>
-                Si des bulletins existent déjà pour cette période, ils seront
+                Si des bulletins existent déjÃ  pour cette période, ils seront
                 <strong> régénérés</strong> (les décisions/appréciations saisies
                 seront conservées).
               </div>

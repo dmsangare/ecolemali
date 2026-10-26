@@ -204,17 +204,17 @@ function YearCard({
               </span>
               {year.isCurrent && (
                 <span className="text-xs text-green-700 font-medium">
-                  · Année courante
+                  Â· Année courante
                 </span>
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {new Date(year.startDate).toLocaleDateString("fr-FR")} →{" "}
+              {new Date(year.startDate).toLocaleDateString("fr-FR")} â†’{" "}
               {new Date(year.endDate).toLocaleDateString("fr-FR")}
             </p>
             {year._count && (
               <p className="text-xs text-muted-foreground mt-1">
-                {year._count.classes} classe(s) · {year._count.enrollments} eleve(s) ·{" "}
+                {year._count.classes} classe(s) Â· {year._count.enrollments} eleve(s) Â·{" "}
                 {year._count.terms} periode(s)
               </p>
             )}
@@ -341,11 +341,11 @@ function ConfirmActionModal({
   const isClose = action.type === "close";
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-md w-full"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-md w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 space-y-4">

@@ -93,11 +93,11 @@ export function AssignStudentsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-3xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -136,7 +136,7 @@ export function AssignStudentsModal({
 
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="text-muted-foreground">
-              {filtered.length} eleve(s) disponible(s) · {selected.size} selectionne(s)
+              {filtered.length} eleve(s) disponible(s) Â· {selected.size} selectionne(s)
             </span>
             <div className="flex gap-2">
               <Button

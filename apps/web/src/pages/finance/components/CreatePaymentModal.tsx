@@ -134,10 +134,10 @@ export function CreatePaymentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
     >
       <div
-        className="bg-background rounded-lg shadow-xl max-w-2xl w-full my-8"
+        className="bg-background rounded-sis-lg shadow-2xl relative z-[10000] max-w-2xl w-full my-8"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -212,7 +212,7 @@ export function CreatePaymentModal({
                                   {inv.number}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  Total : {formatFCFA(inv.totalAmount)} · Payé : {formatFCFA(inv.paidAmount)}
+                                  Total : {formatFCFA(inv.totalAmount)} Â· Payé : {formatFCFA(inv.paidAmount)}
                                 </p>
                               </div>
                             </div>
@@ -307,7 +307,7 @@ export function CreatePaymentModal({
                 {needsReference && (
                   <div>
                     <Label htmlFor="reference" className="text-sm font-medium">
-                      Reference {method === "MOBILE_MONEY" ? "(N° transaction)" : ""}
+                      Reference {method === "MOBILE_MONEY" ? "(NÂ° transaction)" : ""}
                     </Label>
                     <Input
                       id="reference"
@@ -317,8 +317,8 @@ export function CreatePaymentModal({
                         method === "MOBILE_MONEY"
                           ? "Ex: OM-20261004-1234"
                           : method === "CHECK"
-                          ? "Ex: N° cheque"
-                          : "Ex: N° virement"
+                          ? "Ex: NÂ° cheque"
+                          : "Ex: NÂ° virement"
                       }
                       className="mt-1 font-mono"
                       maxLength={80}

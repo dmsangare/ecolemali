@@ -2,16 +2,23 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Wallet,
-  Search,
-  Loader2,
   Eye,
   Download,
   Plus,
   TrendingUp,
   Ban,
   FileText,
+  Loader2,
 } from "lucide-react";
-import { Button, Input, Card, CardContent } from "@/components/ui";
+import {
+  Button,
+  Input,
+  PageLoader,
+  EmptyState,
+  KpiCard,
+  StatusBadge,
+} from "@/components/ui";
+import { DataTable, Column } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/axios";
 import {
@@ -27,7 +34,32 @@ import {
 } from "@/types/finance";
 import { CreatePaymentModal } from "./components/CreatePaymentModal";
 
-const METHODS: PaymentMethod[] = ["CASH", "MOBILE_MONEY", "TRANSFER", "CHECK", "OTHER"];
+const METHODS: PaymentMethod[] = [
+  "CASH",
+  "MOBILE_MONEY",
+  "TRANSFER",
+  "CHECK",
+  "OTHER",
+];
+
+type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";
+
+function getMethodVariant(method: string): BadgeVariant {
+  switch (method) {
+    case "CASH":
+      return "success";
+    case "MOBILE_MONEY":
+      return "info";
+    case "TRANSFER":
+      return "brand" as any;
+    case "CHECK":
+      return "warning";
+    case "OTHER":
+      return "neutral";
+    default:
+      return "neutral";
+  }
+}
 
 export function PaymentsListPage() {
   const [search, setSearch] = useState("");
@@ -35,14 +67,14 @@ export function PaymentsListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const filters: any = {};
+  const filters: Record<string, string> = {};
   if (methodFilter) filters.method = methodFilter;
 
   const { data, isLoading } = usePayments(filters);
   const { data: todayTotal } = useTodayTotal();
   const cancelMutation = useCancelPayment();
 
-  const paymentList = useMemo(() => {
+  const paymentList: Payment[] = useMemo(() => {
     if (!data) return [];
     return Array.isArray(data) ? data : (data as any).data || [];
   }, [data]);
@@ -50,10 +82,9 @@ export function PaymentsListPage() {
   const filtered = useMemo(() => {
     if (!search.trim()) return paymentList;
     const q = search.toLowerCase();
-    return paymentList.filter((p: Payment) => {
+    return paymentList.filter((p) => {
       const name = `${p.student?.lastName || ""} ${p.student?.firstName || ""}`;
-
-  return (
+      return (
         name.toLowerCase().includes(q) ||
         p.student?.matricule?.toLowerCase().includes(q) ||
         p.reference?.toLowerCase().includes(q) ||
@@ -62,17 +93,22 @@ export function PaymentsListPage() {
     });
   }, [paymentList, search]);
 
-  // Stats
-  const totalFiltered = filtered.reduce((sum: number, p: Payment) => {
+  const totalFiltered = filtered.reduce((sum, p) => {
     if (p.cancelledAt) return sum;
     return sum + Number(p.amount);
   }, 0);
 
+  const cancelledCount = paymentList.filter((p) => p.cancelledAt).length;
+
+  const hasFilters = Boolean(search || methodFilter);
+
+  const handleReset = () => {
+    setSearch("");
+    setMethodFilter("");
+  };
+
   const handleCancel = (payment: Payment) => {
-    const reason = window.prompt(
-      "Raison de l'annulation ?",
-      "Erreur de saisie",
-    );
+    const reason = window.prompt("Raison de l'annulation ?", "Erreur de saisie");
     if (!reason) return;
     cancelMutation.mutate({ id: payment.id, dto: { reason } });
   };
@@ -95,24 +131,124 @@ export function PaymentsListPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("Erreur lors du telechargement du recu");
+      alert("Erreur lors du téléchargement du reçu");
     } finally {
       setDownloadingId(null);
     }
   };
 
+  // ============================================================
+  // Colonnes du tableau
+  // ============================================================
+  const columns: Column<Payment>[] = [
+    {
+      key: "receipt",
+      header: "N° reçu",
+      cell: (p) =>
+        p.receiptNumber ? (
+          <span className="inline-flex items-center gap-1 font-mono text-xs">
+            <FileText className="h-3 w-3 text-sis-brand" />
+            {p.receiptNumber}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "student",
+      header: "Élève",
+      cell: (p) =>
+        p.student ? (
+          <div>
+            <div className="font-medium">
+              {p.student.lastName} {p.student.firstName}
+            </div>
+            <div className="text-xs text-muted-foreground font-mono">
+              {p.student.matricule}
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "invoice",
+      header: "Facture",
+      cell: (p) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {(p.invoice as any)?.number || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Montant",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (p) => (
+        <span
+          className={cn(
+            "font-mono font-semibold",
+            p.cancelledAt ? "text-muted-foreground line-through" : "text-sis-success",
+          )}
+        >
+          {formatFCFA(p.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "method",
+      header: "Méthode",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (p) => {
+        const info =
+          PAYMENT_METHOD_LABELS[p.method as PaymentMethod] ||
+          PAYMENT_METHOD_LABELS.CASH;
+        return (
+          <StatusBadge
+            variant={getMethodVariant(p.method)}
+            showIcon={false}
+          >
+            <span className="mr-1">{info.emoji}</span>
+            {info.label}
+          </StatusBadge>
+        );
+      },
+    },
+    {
+      key: "date",
+      header: "Date",
+      cell: (p) => (
+        <span className="text-muted-foreground text-xs">
+          {new Date(p.paidAt).toLocaleString("fr-FR")}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (p) => <PaymentActions payment={p} onCancel={handleCancel} onDownloadPdf={handleDownloadPdf} downloadingId={downloadingId} />,
+    },
+  ];
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
-            Paiements
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {paymentList.length} paiement(s) · {formatFCFA(totalFiltered)} affiché(s)
-          </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-success-bg text-sis-success mt-0.5 dark:bg-sis-success-bg/30">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Paiements</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {paymentList.length} paiement(s) · {formatFCFA(totalFiltered)}{" "}
+              affiché(s)
+            </p>
+          </div>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -120,205 +256,104 @@ export function PaymentsListPage() {
         </Button>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard
+      {/* KPI */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KpiCard
           label="Total du jour"
           value={formatFCFA(todayTotal?.total || 0)}
-          subtitle={`${todayTotal?.count || 0} paiement(s)`}
-          icon={<TrendingUp className="h-4 w-4" />}
-          color="text-green-600"
+          hint={`${todayTotal?.count || 0} paiement(s) aujourd'hui`}
+          icon={<TrendingUp className="h-5 w-5" />}
+          accent="success"
         />
-        <StatCard
+        <KpiCard
           label="Total affiché"
           value={formatFCFA(totalFiltered)}
-          subtitle={`${filtered.length} paiement(s)`}
-          icon={<Wallet className="h-4 w-4" />}
-          color="text-blue-600"
+          hint={`${filtered.length} paiement(s) selon filtres`}
+          icon={<Wallet className="h-5 w-5" />}
+          accent="brand"
         />
-        <StatCard
+        <KpiCard
           label="Annulés"
-          value={String(
-            paymentList.filter((p: Payment) => p.cancelledAt).length,
-          )}
-          subtitle="Sur la période"
-          icon={<Ban className="h-4 w-4" />}
-          color="text-red-600"
+          value={String(cancelledCount)}
+          hint="Sur la période"
+          icon={<Ban className="h-5 w-5" />}
+          accent="danger"
         />
       </div>
 
       {/* FILTRES */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <select
-          value={methodFilter}
-          onChange={(e) => setMethodFilter(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">💳 Toutes les méthodes</option>
-          {METHODS.map((m) => {
-            const info = PAYMENT_METHOD_LABELS[m];
-            return (
-              <option key={m} value={m}>
-                {info.emoji} {info.label}
-              </option>
-            );
-          })}
-        </select>
+      <div className="rounded-sis-lg border border-sis-neutral-200 bg-card p-4 dark:border-sis-neutral-800">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <select
+            value={methodFilter}
+            onChange={(e) => setMethodFilter(e.target.value)}
+            className="h-10 rounded-sis-md border border-sis-neutral-200 bg-card px-3 text-sm transition-colors hover:border-sis-neutral-300 focus:outline-none focus:ring-2 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700 dark:bg-sis-neutral-900"
+          >
+            <option value="">💳 Toutes les méthodes</option>
+            {METHODS.map((m) => {
+              const info = PAYMENT_METHOD_LABELS[m];
+              return (
+                <option key={m} value={m}>
+                  {info.emoji} {info.label}
+                </option>
+              );
+            })}
+          </select>
 
-        <div className="relative sm:col-span-2">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher (élève, matricule, référence, n° reçu)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="sm:col-span-2 rounded-sis-md border-sis-neutral-200 focus:ring-sis-brand/30 focus:border-sis-brand dark:border-sis-neutral-700"
           />
         </div>
+
+        {hasFilters && (
+          <div className="mt-3 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Réinitialiser les filtres
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* CONTENU */}
+      {/* TABLEAU OU ÉTAT */}
       {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <PageLoader label="Chargement des paiements..." />
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Wallet className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <p className="font-medium">Aucun paiement trouvé</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Enregistrez votre premier paiement
-            </p>
-            <Button onClick={() => setCreateOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouveau paiement
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Wallet className="h-7 w-7" />}
+          title="Aucun paiement trouvé"
+          description={
+            hasFilters
+              ? "Essayez de modifier les filtres de recherche."
+              : "Enregistrez votre premier paiement pour commencer."
+          }
+          action={
+            hasFilters ? (
+              <Button variant="outline" onClick={handleReset}>
+                Réinitialiser les filtres
+              </Button>
+            ) : (
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau paiement
+              </Button>
+            )
+          }
+        />
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
-                    <th className="text-left p-3 font-medium">N° reçu</th>
-                    <th className="text-left p-3 font-medium">Élève</th>
-                    <th className="text-left p-3 font-medium">Facture</th>
-                    <th className="text-right p-3 font-medium">Montant</th>
-                    <th className="text-center p-3 font-medium">Méthode</th>
-                    <th className="text-left p-3 font-medium">Date</th>
-                    <th className="text-right p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p: Payment) => {
-                    const methodInfo =
-                      PAYMENT_METHOD_LABELS[p.method as PaymentMethod] ||
-                      PAYMENT_METHOD_LABELS.CASH;
-                    const isCancelled = !!p.cancelledAt;
-
-                    return (
-                      <tr
-                        key={p.id}
-                        className={cn(
-                          "border-b last:border-0 hover:bg-muted/30",
-                          isCancelled && "opacity-60",
-                        )}
-                      >
-                        <td className="p-3 font-mono text-xs">
-                          {p.receiptNumber ? (
-                            <span className="inline-flex items-center gap-1">
-                              <FileText className="h-3 w-3 text-blue-500" />
-                              {p.receiptNumber}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="p-3">
-                          {p.student ? (
-                            <div>
-                              <div className="font-medium">
-                                {p.student.lastName} {p.student.firstName}
-                              </div>
-                              <div className="text-xs text-muted-foreground font-mono">
-                                {p.student.matricule}
-                              </div>
-                            </div>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="p-3 font-mono text-xs text-muted-foreground">
-                          {(p.invoice as any)?.number || "—"}
-                        </td>
-                        <td className="p-3 text-right font-mono font-semibold text-green-600">
-                          {formatFCFA(p.amount)}
-                        </td>
-                        <td className="p-3 text-center">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium",
-                              methodInfo.color,
-                            )}
-                          >
-                            <span>{methodInfo.emoji}</span>
-                            {methodInfo.label}
-                          </span>
-                        </td>
-                        <td className="p-3 text-muted-foreground text-xs">
-                          {new Date(p.paidAt).toLocaleString("fr-FR")}
-                        </td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button asChild variant="ghost" size="sm">
-                              <Link to={`/payments/${p.id}`}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Link>
-                            </Button>
-                            {p.receipt?.id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Telecharger le reçu PDF"
-                                onClick={() =>
-                                  handleDownloadPdf(
-                                    p.receipt!.id,
-                                    p.receipt!.number,
-                                  )
-                                }
-                                disabled={downloadingId === p.receipt.id}
-                              >
-                                {downloadingId === p.receipt.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Download className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            )}
-                            {!isCancelled && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCancel(p)}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Ban className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <DataTable
+          data={filtered}
+          columns={columns}
+          keyExtractor={(p) => p.id}
+          rowClassName={(p) => (p.cancelledAt ? "opacity-60" : "")}
+        />
       )}
 
       {/* MODALE */}
@@ -330,31 +365,56 @@ export function PaymentsListPage() {
 }
 
 // ============================================================
-function StatCard({
-  label,
-  value,
-  subtitle,
-  icon,
-  color,
+// Composant Actions
+// ============================================================
+function PaymentActions({
+  payment,
+  onCancel,
+  onDownloadPdf,
+  downloadingId,
 }: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  color?: string;
+  payment: Payment;
+  onCancel: (p: Payment) => void;
+  onDownloadPdf: (receiptId: string, receiptNumber: string) => void;
+  downloadingId: string | null;
 }) {
+  const isCancelled = !!payment.cancelledAt;
+
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-          {icon}
-          {label}
-        </div>
-        <div className={cn("text-lg font-bold font-mono", color)}>{value}</div>
-        {subtitle && (
-          <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex items-center justify-end gap-1">
+      <Button asChild variant="ghost" size="sm">
+        <Link to={`/payments/${payment.id}`}>
+          <Eye className="h-3.5 w-3.5" />
+        </Link>
+      </Button>
+      {payment.receipt?.id && (
+        <Button
+          variant="ghost"
+          size="sm"
+          title="Télécharger le reçu PDF"
+          onClick={() =>
+            onDownloadPdf(payment.receipt!.id, payment.receipt!.number)
+          }
+          disabled={downloadingId === payment.receipt.id}
+        >
+          {downloadingId === payment.receipt.id ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+        </Button>
+      )}
+      {!isCancelled && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onCancel(payment)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          title="Annuler le paiement"
+        >
+          <Ban className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
   );
 }

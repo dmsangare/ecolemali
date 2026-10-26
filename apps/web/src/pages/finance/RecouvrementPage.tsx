@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar, Wallet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RemindersListPage } from "./RemindersListPage";
 import { InstallmentsOverview } from "./components/InstallmentsOverview";
@@ -17,11 +17,18 @@ export function RecouvrementPage() {
 
   return (
     <div className="space-y-4">
-      <div className="px-6 pt-6">
-        <h1 className="text-2xl font-bold">Recouvrement</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Suivi des impayés, échéances et relances familles
-        </p>
+      <div className="px-6 pt-6 max-w-7xl mx-auto">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-sis-md bg-sis-danger-bg text-sis-danger mt-0.5 dark:bg-sis-danger-bg/30">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Recouvrement</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Suivi des impayés, échéances et relances familles
+            </p>
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setTab} className="w-full">

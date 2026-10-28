@@ -75,7 +75,7 @@ import { FilesModule } from "./files/files.module";
     }),
     ThrottlerModule.forRoot([
       // Throttler par defaut : 100 req / min par IP (large, usage normal)
-      { name: "default", ttl: 60_000, limit: 100 },
+      { name: "default", ttl: 60 * 60_000, limit: 5000 },
       // Throttler "auth" : 5 tentatives / 15 min (anti brute force login)
       { name: "auth", ttl: 15 * 60_000, limit: 5 },
       // Throttler "verify" : 30 verifications / min (anti enumeration QR)
